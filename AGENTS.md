@@ -132,11 +132,20 @@ project-root/
 │   │   └── supabase/
 │   ├── utils/
 │   └── config/
+├── docs/
+│   ├── architecture/
+│   │   ├── DB_SCHEMA.md
+│   │   ├── API_SPEC.md
+│   │   └── assets/
+│   │       └── ERD.png
+│   ├── design/
+│   │   ├── DESIGN_SYSTEM.md
+│   │   ├── PAGE_SPEC.md
+│   │   └── assets/
+│   └── management/
+│       └── WBS.md
 ├── AGENTS.md
 ├── README.md
-├── API_SPEC.md
-├── DB_SCHEMA.md
-├── WBS.md
 ├── package.json
 └── .gitignore
 ```
@@ -293,10 +302,10 @@ AI Provider 교체 시 route 코드는 최대한 수정하지 않는다.
 ## Supabase 규칙
 
 - Supabase URL과 Key는 .env에서 관리한다.
-- 테이블 구조 변경 시 DB_SCHEMA.md를 함께 갱신한다.
+- 테이블 구조 변경 시 docs/architecture/DB_SCHEMA.md를 함께 갱신한다.
 - 컬럼 삭제는 팀 승인 후 진행한다.
 - Supabase 관련 코드는 src/services/supabase/에서 관리한다.
-- DB 관련 코드나 Supabase 연동을 생성할 때 DB_SCHEMA.md를 우선 참고한다.
+- DB 관련 코드나 Supabase 연동을 생성할 때 docs/architecture/DB_SCHEMA.md를 우선 참고한다.
 - MVP 여행지 행정구역은 `province`를 광역시/도, `city`를 시/군/구 기준으로 관리한다.
 
 ---
@@ -307,7 +316,7 @@ AI Provider 교체 시 route 코드는 최대한 수정하지 않는다.
 - 국내 관광지 데이터는 한국관광공사 TourAPI 4.0 활용을 우선 고려한다.
 - AI가 실제 데이터에 없는 국내 장소를 임의로 생성하지 않도록 신뢰 가능한 관광 데이터를 먼저 조회한다.
 - 해외 여행 관련 국가, 행정구역, 통화, 시간대 구조는 팀 승인 후 확장한다.
-- API 및 DB 문서에서 국내 행정구역은 `province`(광역시/도), `city`(시/군/구)로 일관되게 표현한다.
+- docs/architecture/API_SPEC.md 및 docs/architecture/DB_SCHEMA.md에서 국내 행정구역은 `province`(광역시/도), `city`(시/군/구)로 일관되게 표현한다.
 
 ---
 
@@ -378,12 +387,15 @@ README에는 아래 내용을 포함한다.
 - 환경 변수 설명
 - API 명세 링크
 - DB 스키마 링크
+- 디자인 시스템 링크
+- 페이지 명세 링크
+- WBS 링크
 - 트러블 슈팅
 - 배포 주소
 
 ---
 
-## DB_SCHEMA.md 필수 항목
+## docs/architecture/DB_SCHEMA.md 필수 항목
 
 DB 구조 문서에는 아래 내용을 포함한다.
 
@@ -396,11 +408,11 @@ DBML
 추후 확장 예정 테이블
 ```
 
-DB 관련 코드나 Supabase 연동 작업 전 DB_SCHEMA.md를 확인하고, 구현과 문서의 구조가 다르면 같은 작업에서 함께 갱신한다.
+DB 관련 코드나 Supabase 연동 작업 전 docs/architecture/DB_SCHEMA.md를 확인하고, 구현과 문서의 구조가 다르면 같은 작업에서 함께 갱신한다.
 
 ---
 
-## API_SPEC.md 필수 항목
+## docs/architecture/API_SPEC.md 필수 항목
 
 API 명세에는 아래 내용을 포함한다.
 
@@ -438,7 +450,7 @@ Response:
 
 ---
 
-## WBS.md 필수 항목
+## docs/management/WBS.md 필수 항목
 
 WBS에는 아래 내용을 포함한다.
 
@@ -462,13 +474,49 @@ BLOCKED
 
 ---
 
+## 문서 우선순위
+
+AI Agent는 아래 순서로 문서를 참고한다.
+
+1. AGENTS.md
+2. docs/design/PAGE_SPEC.md
+3. docs/architecture/DB_SCHEMA.md
+4. docs/architecture/API_SPEC.md
+5. README.md
+
+문서 간 충돌 시 상위 문서를 우선한다.
+
+---
+
+## UI 구현 규칙
+
+새 페이지 구현 전 아래 순서로 문서를 확인한다.
+
+1. docs/design/PAGE_SPEC.md 확인
+2. docs/architecture/DB_SCHEMA.md 확인
+3. docs/architecture/API_SPEC.md 확인
+4. 구현 진행
+
+docs/design/PAGE_SPEC.md에 없는 기능은 임의로 추가하지 않는다.
+
+---
+
+## 문서 관리 규칙
+
+- DB 변경 시 docs/architecture/DB_SCHEMA.md를 갱신한다.
+- API 변경 시 docs/architecture/API_SPEC.md를 갱신한다.
+- 화면 변경 시 docs/design/PAGE_SPEC.md를 갱신한다.
+- 디자인 시스템 변경 시 docs/design/DESIGN_SYSTEM.md를 갱신한다.
+
+---
+
 ## AI Agent 작업 순서
 
 AI Agent는 작업 시 아래 순서를 따른다.
 
 1. 현재 코드 구조 확인
 2. 수정 대상 파일 파악
-3. DB 또는 Supabase 작업인 경우 DB_SCHEMA.md 확인
+3. DB 또는 Supabase 작업인 경우 docs/architecture/DB_SCHEMA.md 확인
 4. 변경 계획 설명
 5. 최소 범위로 코드 수정
 6. 변경 내용 요약

@@ -119,13 +119,23 @@ UNSPLASH_ACCESS_KEY=
 
 `.env` 파일은 GitHub에 올리지 않습니다.
 
-## 프로젝트 문서
+## Documentation
 
-- [API_SPEC.md](./API_SPEC.md)
-- [DB_SCHEMA.md](./DB_SCHEMA.md)
-- [WBS.md](./WBS.md)
+### Architecture
 
-MVP 단계에서는 `users`, `user_preferences`, `destinations`, `trips`, `itineraries` 5개 핵심 테이블을 기준으로 구현합니다. 자세한 구조와 관계는 [DB_SCHEMA.md](./DB_SCHEMA.md)를 참고합니다.
+- [DB Schema](./docs/architecture/DB_SCHEMA.md)
+- [API Specification](./docs/architecture/API_SPEC.md)
+
+### Design
+
+- [Design System](./docs/design/DESIGN_SYSTEM.md)
+- [Page Specification](./docs/design/PAGE_SPEC.md)
+
+### Project Management
+
+- [WBS](./docs/management/WBS.md)
+
+MVP 단계에서는 `users`, `user_preferences`, `destinations`, `trips`, `itineraries` 5개 핵심 테이블을 기준으로 구현합니다. 자세한 구조와 관계는 [DB Schema](./docs/architecture/DB_SCHEMA.md)를 참고합니다.
 
 ## 트러블 슈팅
 
