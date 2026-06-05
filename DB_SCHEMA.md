@@ -4,6 +4,8 @@
 
 본 문서는 여행 성향 분석, 맞춤 여행지 추천, 여행 일정 생성에 필요한 MVP 데이터 구조를 정의한다.
 
+MVP 단계에서는 대한민국 국내 여행만 지원한다. 국내 관광지 정보는 한국관광공사 TourAPI 4.0 활용을 우선 고려하며, 해외 여행 지원에 필요한 국가 정보와 다국가 행정구역 구조는 추후 확장한다.
+
 MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
 
 - `users`
@@ -56,13 +58,13 @@ MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
 
 ## destinations
 
-추천 대상이 되는 도시 및 실제 여행지 정보를 저장한다.
+추천 대상이 되는 대한민국 국내 행정구역 및 실제 여행지 정보를 저장한다.
 
 | 컬럼 | 타입 | 제약조건 | 설명 |
 | --- | --- | --- | --- |
 | `destination_id` | `int` | PK, Auto Increment | 여행지 식별자 |
-| `country` | `varchar(100)` | NULL | 국가명 |
-| `city` | `varchar(100)` | NULL | 도시명 |
+| `province` | `varchar(100)` | NULL | 광역시/도 |
+| `city` | `varchar(100)` | NULL | 시/군/구 |
 | `destination_name` | `varchar(255)` | NOT NULL | 여행지 또는 장소명 |
 | `description` | `text` | NULL | 여행지 설명 |
 | `category` | `varchar(100)` | NULL | 관광지, 음식점, 문화시설 등 분류 |
@@ -150,7 +152,7 @@ Table user_preferences {
 
 Table destinations {
   destination_id int [pk, increment]
-  country varchar(100)
+  province varchar(100)
   city varchar(100)
   destination_name varchar(255) [not null]
   description text
@@ -205,3 +207,5 @@ Ref: trips.trip_id < itineraries.trip_id
 | `reviews` | 여행 후 평점, 만족도, 후기 데이터를 수집한다. |
 
 확장 테이블은 MVP 핵심 플로우가 안정화된 이후 실제 사용 기록과 피드백을 활용하는 단계에서 추가한다.
+
+해외 여행 지원 시에는 국가 코드, 국가명, 해외 행정구역 체계, 통화 및 시간대 정보를 별도 컬럼 또는 정규화된 지역 테이블로 확장한다.
