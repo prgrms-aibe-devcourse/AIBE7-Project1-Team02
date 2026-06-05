@@ -133,6 +133,7 @@ project-root/
 ├── AGENTS.md
 ├── README.md
 ├── API_SPEC.md
+├── DB_SCHEMA.md
 ├── WBS.md
 ├── package.json
 └── .gitignore
@@ -290,9 +291,10 @@ AI Provider 교체 시 route 코드는 최대한 수정하지 않는다.
 ## Supabase 규칙
 
 - Supabase URL과 Key는 .env에서 관리한다.
-- 테이블 구조 변경 시 문서화한다.
+- 테이블 구조 변경 시 DB_SCHEMA.md를 함께 갱신한다.
 - 컬럼 삭제는 팀 승인 후 진행한다.
 - Supabase 관련 코드는 src/services/supabase/에서 관리한다.
+- DB 관련 코드나 Supabase 연동을 생성할 때 DB_SCHEMA.md를 우선 참고한다.
 
 ---
 
@@ -362,8 +364,26 @@ README에는 아래 내용을 포함한다.
 - 실행 방법
 - 환경 변수 설명
 - API 명세 링크
+- DB 스키마 링크
 - 트러블 슈팅
 - 배포 주소
+
+---
+
+## DB_SCHEMA.md 필수 항목
+
+DB 구조 문서에는 아래 내용을 포함한다.
+
+```text
+테이블 목록
+테이블별 역할
+컬럼 정의
+테이블 관계
+DBML
+추후 확장 예정 테이블
+```
+
+DB 관련 코드나 Supabase 연동 작업 전 DB_SCHEMA.md를 확인하고, 구현과 문서의 구조가 다르면 같은 작업에서 함께 갱신한다.
 
 ---
 
@@ -435,10 +455,11 @@ AI Agent는 작업 시 아래 순서를 따른다.
 
 1. 현재 코드 구조 확인
 2. 수정 대상 파일 파악
-3. 변경 계획 설명
-4. 최소 범위로 코드 수정
-5. 변경 내용 요약
-6. 실행 또는 테스트 방법 안내
+3. DB 또는 Supabase 작업인 경우 DB_SCHEMA.md 확인
+4. 변경 계획 설명
+5. 최소 범위로 코드 수정
+6. 변경 내용 요약
+7. 실행 또는 테스트 방법 안내
 
 ---
 
