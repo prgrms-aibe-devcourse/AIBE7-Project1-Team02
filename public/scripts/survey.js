@@ -326,5 +326,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ── Init ───────────────────────────────────────────────────
+  // 모든 문항의 기본값을 '보통'(value="3")으로 설정합니다.
+  document.querySelectorAll('input[type="radio"][value="3"]').forEach((radio) => {
+    radio.checked = true;
+  });
+  
   updateUI();
 });
