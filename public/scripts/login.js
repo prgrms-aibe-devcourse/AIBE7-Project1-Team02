@@ -69,7 +69,7 @@ function setMode(nextMode) {
 function redirectToMainPage() {
   if (redirectTimer) clearTimeout(redirectTimer);
   redirectTimer = setTimeout(() => {
-    window.location.replace("./index.html");
+    window.location.replace("../index.html");
   }, 700);
 }
 
