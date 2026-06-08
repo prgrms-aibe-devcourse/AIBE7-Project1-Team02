@@ -3,15 +3,69 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로그인 | Tripadvisor AI</title>
-    <link rel="stylesheet" href="../styles/common.css">
+    <title>로그인 | ExploraJourneys</title>
+    <meta name="description" content="ExploraJourneys 계정으로 로그인합니다.">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="../styles/auth.css">
-    <script src="../scripts/common.js" defer></script>
+    <script src="../scripts/auth.js" defer></script>
     <script src="../scripts/login.js" defer></script>
   </head>
-  <body>
-    <main>
-      <h1>로그인</h1>
+  <body class="auth-page">
+    <main class="auth-layout">
+      <section class="auth-visual" aria-label="국내 여행 이미지">
+        <img src="../assets/images/jeju_night.png" alt="제주의 푸른 해안 풍경">
+        <div class="auth-visual-overlay"></div>
+        <div class="auth-brand">
+          <a href="../index.html" class="auth-logo">ExploraJourneys</a>
+          <p>당신의 취향에서 시작하는 국내 여행</p>
+        </div>
+      </section>
+
+      <section class="auth-panel">
+        <div class="auth-form-wrap">
+          <p class="auth-eyebrow">다시 만나 반가워요</p>
+          <h1>로그인</h1>
+          <p class="auth-description">저장한 여행과 맞춤 추천을 이어서 확인하세요.</p>
+
+          <div id="authMessage" class="auth-message" role="alert" hidden></div>
+
+          <form id="loginForm" class="auth-form" novalidate>
+            <label class="auth-field">
+              <span>이메일</span>
+              <span class="auth-input-wrap">
+                <i data-lucide="mail"></i>
+                <input id="email" name="email" type="email" autocomplete="email" placeholder="example@email.com" required>
+              </span>
+            </label>
+
+            <label class="auth-field">
+              <span>비밀번호</span>
+              <span class="auth-input-wrap">
+                <i data-lucide="lock-keyhole"></i>
+                <input id="password" name="password" type="password" autocomplete="current-password" placeholder="비밀번호를 입력하세요" required>
+                <button class="password-toggle" type="button" aria-label="비밀번호 표시" data-password-toggle>
+                  <i data-lucide="eye"></i>
+                </button>
+              </span>
+            </label>
+
+            <label class="auth-check">
+              <input id="rememberMe" type="checkbox">
+              <span>로그인 상태 유지</span>
+            </label>
+
+            <button id="loginButton" class="auth-submit" type="submit">
+              <span>로그인</span>
+              <i data-lucide="arrow-right"></i>
+            </button>
+          </form>
+
+          <p class="auth-switch">
+            아직 계정이 없나요?
+            <a href="./signup.html">회원가입</a>
+          </p>
+        </div>
+      </section>
     </main>
   </body>
 </html>

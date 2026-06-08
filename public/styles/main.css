@@ -338,6 +338,8 @@ a {
 .user-avatar-wrapper {
   width: 36px;
   height: 36px;
+  padding: 0;
+  background: #fff;
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid var(--color-border);
@@ -347,6 +349,11 @@ a {
 
 .user-avatar-wrapper:hover {
   border-color: var(--color-primary);
+}
+
+.user-avatar-wrapper:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.25);
+  outline-offset: 2px;
 }
 
 .user-avatar {

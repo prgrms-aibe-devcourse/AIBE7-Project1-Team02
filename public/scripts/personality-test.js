@@ -23,9 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const loadingOverlay = document.getElementById("loadingOverlay");
   const nextStepBtn = document.getElementById("nextStepBtn");
 
-  // 인증 모듈이 생성한 공용 Supabase 클라이언트를 사용한다.
-  const supabaseClient = window.appSupabaseClient || null;
-
   // ── 축 라벨 맵 ──────────────────────────────────────────────
   const axisLabels = {
     ei: "E/I 활동 vs 휴식",
@@ -254,41 +251,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ── Supabase UPSERT ────────────────────────────────────────
-  async function saveToSupabase({ scores, mbtiType, rawAnswers }) {
-    if (!supabaseClient) {
+  async function saveToSupabase(result) {
+    if (!window.authService) {
       return;
     }
 
     try {
-      const {
-        data: { user },
-      } = await supabaseClient.auth.getUser();
-
-      if (!user) {
-        console.warn("로그인된 사용자가 없습니다. 결과가 저장되지 않습니다.");
-        return;
-      }
-
-      const { error } = await supabaseClient
-        .from("travel_mbti_results")
-        .upsert(
-          {
-            user_id: user.id,
-            mbti_type: mbtiType,
-            ei_score: scores.ei,
-            sn_score: scores.sn,
-            tf_score: scores.tf,
-            jp_score: scores.jp,
-            raw_answers: rawAnswers,
-          },
-          { onConflict: "user_id" },
-        );
-
-      if (error) {
-        console.error("MBTI 저장 실패:", error);
-      }
-    } catch (err) {
-      console.error("Supabase 연결 오류:", err);
+      await window.authService.saveMbtiResult(result);
+    } catch (error) {
+      console.error("MBTI 저장 실패:", error);
     }
   }
 

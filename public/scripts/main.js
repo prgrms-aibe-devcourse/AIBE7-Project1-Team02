@@ -1,4 +1,31 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const authAction = document.getElementById("auth-action");
+  const userGreeting = document.getElementById("user-greeting");
+  const session = window.authService?.getSession();
+  const nickname =
+    session?.user?.user_metadata?.nickname || session?.user?.email?.split("@")[0];
+
+  if (nickname && userGreeting) {
+    userGreeting.textContent = `안녕하세요, ${nickname}님!`;
+  }
+
+  if (authAction) {
+    const isLoggedIn = Boolean(session?.accessToken && session?.user?.id);
+    const actionLabel = isLoggedIn ? "로그아웃" : "로그인";
+
+    authAction.setAttribute("aria-label", actionLabel);
+    authAction.title = actionLabel;
+    authAction.addEventListener("click", () => {
+      if (isLoggedIn) {
+        window.authService.clearSession();
+        window.location.reload();
+        return;
+      }
+
+      window.location.href = "./pages/login.html";
+    });
+  }
+
   // Keywords Data for Flow B
   const keywords = [
     "#오션뷰",

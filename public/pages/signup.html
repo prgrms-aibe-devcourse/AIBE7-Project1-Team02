@@ -3,15 +3,77 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회원가입 | Tripadvisor AI</title>
-    <link rel="stylesheet" href="../styles/common.css">
+    <title>회원가입 | ExploraJourneys</title>
+    <meta name="description" content="ExploraJourneys 계정을 만들고 여행 MBTI를 분석합니다.">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="../styles/auth.css">
-    <script src="../scripts/common.js" defer></script>
+    <script src="../scripts/auth.js" defer></script>
     <script src="../scripts/signup.js" defer></script>
   </head>
-  <body>
-    <main>
-      <h1>회원가입</h1>
+  <body class="auth-page">
+    <main class="auth-layout">
+      <section class="auth-visual" aria-label="국내 여행 이미지">
+        <img src="../assets/images/bukchon.png" alt="서울 북촌 한옥마을 풍경">
+        <div class="auth-visual-overlay"></div>
+        <div class="auth-brand">
+          <a href="../index.html" class="auth-logo">ExploraJourneys</a>
+          <p>여행 MBTI로 발견하는 나다운 목적지</p>
+        </div>
+      </section>
+
+      <section class="auth-panel">
+        <div class="auth-form-wrap">
+          <p class="auth-eyebrow">새로운 여정의 시작</p>
+          <h1>회원가입</h1>
+          <p class="auth-description">계정을 만든 뒤 여행 MBTI 분석을 진행합니다.</p>
+
+          <div id="authMessage" class="auth-message" role="alert" hidden></div>
+
+          <form id="signupForm" class="auth-form" novalidate>
+            <label class="auth-field">
+              <span>닉네임</span>
+              <span class="auth-input-wrap">
+                <i data-lucide="user-round"></i>
+                <input id="nickname" name="nickname" type="text" autocomplete="nickname" placeholder="서비스에서 사용할 이름" maxlength="100" required>
+              </span>
+            </label>
+
+            <label class="auth-field">
+              <span>이메일</span>
+              <span class="auth-input-wrap">
+                <i data-lucide="mail"></i>
+                <input id="email" name="email" type="email" autocomplete="email" placeholder="example@email.com" required>
+              </span>
+            </label>
+
+            <label class="auth-field">
+              <span>비밀번호</span>
+              <span class="auth-input-wrap">
+                <i data-lucide="lock-keyhole"></i>
+                <input id="password" name="password" type="password" autocomplete="new-password" placeholder="8자 이상 입력하세요" minlength="8" required>
+                <button class="password-toggle" type="button" aria-label="비밀번호 표시" data-password-toggle>
+                  <i data-lucide="eye"></i>
+                </button>
+              </span>
+            </label>
+
+            <label class="auth-check">
+              <input id="termsAccepted" type="checkbox" required>
+              <span>서비스 이용약관과 개인정보 처리방침에 동의합니다.</span>
+            </label>
+
+            <button id="signupButton" class="auth-submit" type="submit">
+              <span>계정 만들기</span>
+              <i data-lucide="arrow-right"></i>
+            </button>
+          </form>
+
+          <p class="auth-switch">
+            이미 계정이 있나요?
+            <a href="./login.html">로그인</a>
+          </p>
+        </div>
+      </section>
     </main>
   </body>
 </html>

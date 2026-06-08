@@ -29,7 +29,9 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 
 | Method | URL | Request Body | Response Body | Error Case | 담당자 |
 | --- | --- | --- | --- | --- | --- |
-| POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
+| GET | `/api/config/public` | 없음 | 브라우저 공개용 Supabase 설정 | 환경 변수 누락 | 백엔드 |
+| POST | `/api/auth/signup` | 이메일, 비밀번호, 닉네임 | 회원가입 결과 | 중복 이메일, 비밀번호 형식 오류 | 백엔드 |
+| POST | `/api/auth/login` | 이메일, 비밀번호 | 로그인 세션 | 이메일 또는 비밀번호 불일치 | 백엔드 |
 | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
 | POST | `/api/travel/recommend` | 광역시/도, 시/군/구, 날짜, 동반자 유형, 예산, 키워드 | 맞춤 여행지 추천 결과 | 필수 입력값 누락, 지원하지 않는 지역, 외부 API 호출 실패 | 백엔드 |
@@ -40,13 +42,30 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 
 ## 상세 예시
 
+### GET /api/config/public
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "supabaseUrl": "브라우저 공개용 Supabase URL",
+    "supabaseAnonKey": "브라우저 공개용 Supabase anon key"
+  },
+  "message": "공개 환경 설정 조회 성공"
+}
+```
+
+`service_role` 키와 기타 비밀값은 응답에 포함하지 않는다.
+
 ### POST /api/auth/signup
 
 Request:
 
 ```json
 {
-  "userId": "traveler01",
+  "email": "traveler@example.com",
   "password": "password1234",
   "nickname": "여행자"
 }
@@ -58,7 +77,7 @@ Response:
 {
   "success": true,
   "data": {
-    "userId": "traveler01",
+    "email": "traveler@example.com",
     "nickname": "여행자"
   },
   "message": "회원가입 성공"
@@ -70,7 +89,7 @@ Error Case:
 ```json
 {
   "success": false,
-  "message": "이미 사용 중인 아이디입니다."
+  "message": "이미 사용 중인 이메일입니다."
 }
 ```
 
