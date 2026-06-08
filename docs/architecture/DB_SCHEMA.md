@@ -23,7 +23,7 @@ MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
 | `users` | 회원의 계정 및 기본 프로필 정보를 관리한다. |
 | `user_preferences` | 여행 템포, 음식 선호도, 성향 칭호 등 사용자별 여행 성향을 관리한다. |
 | `destinations` | 추천과 일정 생성에 사용하는 도시 및 여행지 기본 정보를 관리한다. |
-| `trips` | 사용자가 생성한 여행의 기간, 예산, 동반자 유형, 상태를 관리한다. |
+| `trips` | 사용자가 생성한 여행의 기간, 동반자 유형, 상태를 관리한다. |
 | `itineraries` | 여행별 일차 및 시간대에 따른 세부 방문 일정을 관리한다. |
 
 ## users
@@ -72,7 +72,6 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 | `latitude` | `decimal(10,7)` | NULL | 위도 |
 | `longitude` | `decimal(10,7)` | NULL | 경도 |
 | `image_url` | `varchar(500)` | NULL | 대표 이미지 URL |
-| `average_budget` | `int` | NULL | 예상 평균 비용 |
 | `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
 
 ## trips
@@ -87,7 +86,6 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 | `title` | `varchar(255)` | NOT NULL | 여행 제목 |
 | `start_date` | `date` | NULL | 여행 시작일 |
 | `end_date` | `date` | NULL | 여행 종료일 |
-| `budget` | `int` | NULL | 여행 예산 |
 | `companion_type` | `varchar(50)` | NULL | 혼자, 친구, 연인, 가족 등 동반자 유형 |
 | `status` | `varchar(50)` | NOT NULL, DEFAULT `planning` | 계획, 진행 중, 완료 등 여행 상태 |
 | `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
@@ -160,7 +158,6 @@ Table destinations {
   latitude decimal(10,7)
   longitude decimal(10,7)
   image_url varchar(500)
-  average_budget int
   created_at timestamptz [not null, default: `now()`]
 }
 
@@ -171,7 +168,6 @@ Table trips {
   title varchar(255) [not null]
   start_date date
   end_date date
-  budget int
   companion_type varchar(50)
   status varchar(50) [not null, default: 'planning']
   created_at timestamptz [not null, default: `now()`]
