@@ -6,18 +6,23 @@
 
 MVP 단계에서는 대한민국 국내 여행만 지원한다. 국내 관광지 정보는 한국관광공사 TourAPI 4.0 활용을 우선 고려하며, 해외 여행 지원에 필요한 국가 정보와 다국가 행정구역 구조는 추후 확장한다.
 
-MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
+현재 MVP 스키마는 아래 8개 테이블을 사용한다.
 
 - `users`
 - `user_preferences`
+- `travel_mbti_results`
 - `destinations`
+- `destination_keywords`
+- `destination_mbti_scores`
 - `trips`
 - `itineraries`
 
 회원 인증은 Supabase Auth를 사용한다. `public.users`는 `auth.users`와 동일한 UUID를 사용하는 프로필 테이블이며 비밀번호는 저장하지 않는다.
 
 TourAPI 여행지를 MBTI 기반으로 추천하기 위한 가공 데이터는
-`destination_keywords`, `destination_mbti_scores` 보조 테이블에 저장한다.
+`destination_keywords`, `destination_mbti_scores`에 저장한다. 2026년
+6월 8일 기준 국내 관광지 600개의 기본 정보와 설명, 규칙 기반 키워드,
+MBTI 16유형 적합도 점수를 Supabase에 적재했다.
 
 ## 사용 테이블 목록
 
@@ -25,8 +30,9 @@ TourAPI 여행지를 MBTI 기반으로 추천하기 위한 가공 데이터는
 | --- | --- |
 | `users` | 회원의 계정 및 기본 프로필 정보를 관리한다. |
 | `user_preferences` | 여행 템포, 음식 선호도, 성향 칭호 등 사용자별 여행 성향을 관리한다. |
+| `travel_mbti_results` | 여행 MBTI 진단 결과와 축별 세부 점수를 관리한다. |
 | `destinations` | 추천과 일정 생성에 사용하는 도시 및 여행지 기본 정보를 관리한다. |
-| `trips` | 사용자가 생성한 여행의 기간, 예산, 동반자 유형, 상태를 관리한다. |
+| `trips` | 사용자가 생성한 여행의 기간, 동반자 유형, 상태를 관리한다. |
 | `itineraries` | 여행별 일차 및 시간대에 따른 세부 방문 일정을 관리한다. |
 | `destination_keywords` | TourAPI 원본을 규칙으로 가공한 여행지 키워드를 관리한다. |
 | `destination_mbti_scores` | 여행지별 MBTI 16유형 적합도 점수를 관리한다. |
@@ -97,7 +103,6 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 | `latitude` | `decimal(10,7)` | NULL | 위도 |
 | `longitude` | `decimal(10,7)` | NULL | 경도 |
 | `image_url` | `varchar(500)` | NULL | 대표 이미지 URL |
-| `average_budget` | `int` | NULL | 예상 평균 비용 |
 | `tour_content_id` | `varchar(50)` | UNIQUE, NULL | TourAPI 콘텐츠 식별자 |
 | `content_type_id` | `int` | NULL | TourAPI 관광 타입 식별자 |
 | `address` | `varchar(500)` | NULL | TourAPI 기준 도로명 또는 지번 주소 |
@@ -157,7 +162,6 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 | `title` | `varchar(255)` | NOT NULL | 여행 제목 |
 | `start_date` | `date` | NULL | 여행 시작일 |
 | `end_date` | `date` | NULL | 여행 종료일 |
-| `budget` | `int` | NULL | 여행 예산 |
 | `companion_type` | `varchar(50)` | NULL | 혼자, 친구, 연인, 가족 등 동반자 유형 |
 | `status` | `varchar(50)` | NOT NULL, DEFAULT `planning` | 계획, 진행 중, 완료 등 여행 상태 |
 | `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
@@ -183,6 +187,8 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 
 - `users` 1 : 1 `user_preferences`
   - 사용자 한 명은 하나의 여행 성향 정보를 가진다.
+- `users` 1 : 1 `travel_mbti_results`
+  - 사용자 한 명은 하나의 상세 여행 MBTI 진단 결과를 가진다.
 - `users` 1 : N `trips`
   - 사용자 한 명은 여러 여행을 생성할 수 있다.
 - `destinations` 1 : N `trips`
@@ -197,6 +203,7 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 ```mermaid
 erDiagram
     users ||--|| user_preferences : has
+    users ||--|| travel_mbti_results : diagnosed_as
     users ||--o{ trips : creates
     destinations ||--o{ trips : selected_for
     destinations ||--o{ destination_keywords : classified_as
@@ -227,6 +234,19 @@ Table user_preferences {
   updated_at timestamptz [not null, default: `now()`]
 }
 
+Table travel_mbti_results {
+  id uuid [pk]
+  user_id uuid [unique, not null]
+  mbti_type varchar(4) [not null]
+  ei_score smallint [not null]
+  sn_score smallint [not null]
+  tf_score smallint [not null]
+  jp_score smallint [not null]
+  raw_answers jsonb
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
 Table destinations {
   destination_id bigint [pk, increment]
   province varchar(100) [not null]
@@ -237,7 +257,6 @@ Table destinations {
   latitude decimal(10,7)
   longitude decimal(10,7)
   image_url varchar(500)
-  average_budget int
   tour_content_id varchar(50) [unique]
   content_type_id int
   address varchar(500)
@@ -277,7 +296,6 @@ Table trips {
   title varchar(255) [not null]
   start_date date
   end_date date
-  budget int
   companion_type varchar(50)
   status varchar(50) [not null, default: 'planning']
   created_at timestamptz [not null, default: `now()`]
@@ -297,6 +315,7 @@ Table itineraries {
 }
 
 Ref: users.user_id - user_preferences.user_id
+Ref: users.user_id - travel_mbti_results.user_id
 Ref: users.user_id < trips.user_id
 Ref: destinations.destination_id < trips.destination_id
 Ref: destinations.destination_id < destination_keywords.destination_id
