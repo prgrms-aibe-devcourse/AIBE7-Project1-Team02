@@ -6,6 +6,8 @@
 
 기존 여행 플랫폼처럼 사용자가 직접 많은 정보를 검색하는 방식이 아니라, 회원가입 단계에서 성향을 먼저 진단하고 사용자에게 가장 적합한 여행지를 먼저 제안하는 것이 핵심 가치입니다.
 
+MVP 추천의 주요 성향 기준은 MBTI 16유형이며, MBTI는 심리 진단이 아닌 여행 취향 추천 분류 기준으로 사용합니다.
+
 ## MVP 서비스 범위
 
 MVP 단계에서는 대한민국 국내 여행만 지원합니다. 국내 관광지 정보는 한국관광공사 TourAPI 4.0 활용을 우선 고려하며, 해외 여행 추천은 국내 여행 플로우가 안정화된 이후 확장할 예정입니다.
@@ -125,6 +127,7 @@ UNSPLASH_ACCESS_KEY=
 
 - [DB Schema](./docs/architecture/DB_SCHEMA.md)
 - [API Specification](./docs/architecture/API_SPEC.md)
+- [TourAPI MBTI Data Processing](./docs/architecture/DATA_PROCESSING.md)
 
 ### Design
 

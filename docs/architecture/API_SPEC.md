@@ -30,7 +30,7 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | Method | URL | Request Body | Response Body | Error Case | 담당자 |
 | --- | --- | --- | --- | --- | --- |
 | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
-| POST | `/api/user/preference` | 여행 템포, F&B 민감도 | 성향 칭호, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
+| POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
 | POST | `/api/travel/recommend` | 광역시/도, 시/군/구, 날짜, 동반자 유형, 예산, 키워드 | 맞춤 여행지 추천 결과 | 필수 입력값 누락, 지원하지 않는 지역, 외부 API 호출 실패 | 백엔드 |
 | POST | `/api/travel/plan` | 추천 여행지, 기간, 사용자 성향, 관광 데이터 | AI 여행 일정 | 관광 데이터 없음, AI 응답 실패 | 백엔드 |
@@ -80,6 +80,7 @@ Request:
 
 ```json
 {
+  "mbtiType": "INFP",
   "travelTempo": "relaxed",
   "foodPreference": "local"
 }
@@ -91,6 +92,7 @@ Response:
 {
   "success": true,
   "data": {
+    "mbtiType": "INFP",
     "badge": "여유를 즐기는 로컬 탐험가",
     "travelTempo": "relaxed",
     "foodPreference": "local"
