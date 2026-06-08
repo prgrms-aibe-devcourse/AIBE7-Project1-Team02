@@ -4,10 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ExploraJourneys | Community</title>
-    <meta name="description" content="국내 여행 경험과 사진을 공유하는 커뮤니티 페이지입니다." />
+    <meta name="description" content="국내 여행 경험과 사진을 공유하고 다른 사용자의 여행 게시물을 탐색하는 커뮤니티 페이지입니다." />
+    <link rel="stylesheet" href="../styles/community.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="/public/styles/main.css" />
-    <link rel="stylesheet" href="/public/styles/community.css" />
   </head>
   <body>
     <div class="app-container">
@@ -19,32 +18,32 @@
         </div>
 
         <nav class="sidebar-nav">
-          <a href="/public/index.html" class="nav-item">
+          <a href="../index.html" class="nav-item">
             <i data-lucide="compass" class="nav-icon"></i> 탐색하기
           </a>
-          <a href="/public/pages/community.html" class="nav-item active">
+          <a href="./community.html" class="nav-item active">
             <i data-lucide="users" class="nav-icon"></i> 커뮤니티
           </a>
-          <a href="/public/index.html#itinerary" class="nav-item">
+          <a href="../index.html#itinerary" class="nav-item">
             <i data-lucide="map" class="nav-icon"></i> 여행 일정
           </a>
-          <a href="/public/pages/survey.html" class="nav-item">
+          <a href="../index.html#generate" class="nav-item">
             <i data-lucide="sparkles" class="nav-icon"></i> 추천받기
           </a>
-          <a href="/public/pages/profile.html" class="nav-item">
+          <a href="../index.html#profile" class="nav-item">
             <i data-lucide="user" class="nav-icon"></i> 마이페이지
           </a>
         </nav>
 
         <div class="sidebar-footer">
-          <button class="btn-create-itinerary" id="btn-sidebar-create">+ 새 글 작성</button>
+          <button class="btn-create-itinerary" id="btn-sidebar-create" type="button">+ 새 글 작성</button>
         </div>
       </aside>
 
       <div class="main-wrapper">
         <header class="top-header">
           <div class="header-left">
-            <button class="mobile-menu-toggle" id="mobile-toggle" type="button">
+            <button class="mobile-menu-toggle" id="mobile-toggle" type="button" aria-label="메뉴 열기">
               <i data-lucide="menu"></i>
             </button>
             <div class="header-breadcrumb">
@@ -52,10 +51,11 @@
               <span class="breadcrumb-text">Local Stories</span>
             </div>
           </div>
+
           <div class="header-actions">
             <div class="header-user-info" style="display:flex; align-items:center; gap:10px;">
               <span id="header-user-name" style="font-size:0.95rem; font-weight:700; color:var(--color-text-main);"></span>
-              <button class="btn-icon" id="logout-btn" type="button" title="로그아웃">
+              <button class="btn-icon" id="logout-btn" type="button" title="로그아웃" aria-label="로그아웃">
                 <i data-lucide="log-out"></i>
               </button>
             </div>
@@ -67,7 +67,7 @@
             <div>
               <p class="community-kicker">Local Stories</p>
               <h1 class="community-title">국내 여행 커뮤니티</h1>
-              <p class="community-desc">여행 경험과 사진을 공유하고, 좋아요와 댓글로 소통해보세요.</p>
+              <p class="community-desc">여행 경험과 사진을 공유하고, 마음에 드는 게시물에는 좋아요와 댓글로 반응해보세요.</p>
             </div>
             <button class="btn-primary btn-glow" id="btn-write-post" type="button">
               <i data-lucide="pen-line"></i> 새 글 작성
@@ -78,15 +78,18 @@
             <div class="community-main">
               <div class="community-feed" id="community-feed"></div>
             </div>
+
             <aside class="community-side">
               <div class="community-panel">
                 <h3>인기 태그</h3>
                 <div class="tag-list" id="popular-tags"></div>
               </div>
+
               <div class="community-panel">
                 <h3>추천 사용자</h3>
                 <div class="recommend-list" id="recommended-users"></div>
               </div>
+
               <div class="community-panel featured-story">
                 <h3>추천 여행 이야기</h3>
                 <div id="featured-story"></div>
@@ -99,11 +102,14 @@
 
     <div class="modal-overlay" id="post-modal">
       <div class="modal-content community-modal">
-        <button class="modal-close-btn" id="post-modal-close" type="button"><i data-lucide="x"></i></button>
+        <button class="modal-close-btn" id="post-modal-close" type="button" aria-label="닫기">
+          <i data-lucide="x"></i>
+        </button>
+
         <section class="flow-b-section">
           <div class="section-header" style="margin-bottom: 1rem;">
             <h2>여행 게시물 작성</h2>
-            <p>사진과 함께 여행 후기를 올려보세요. 본인 글만 수정하고 삭제할 수 있습니다.</p>
+            <p>여행 후기를 작성하고 사진과 함께 커뮤니티에 공유해보세요.</p>
           </div>
 
           <form id="post-form" class="community-form">
@@ -117,30 +123,37 @@
                 <option value="명소">명소</option>
               </select>
             </label>
+
             <label>
               제목
               <input id="post-title" type="text" placeholder="예: 제주 동쪽 바다 드라이브 후기" />
             </label>
+
             <label>
               요약
               <textarea id="post-summary" rows="4" placeholder="여행 경험을 짧게 소개해주세요."></textarea>
             </label>
+
             <label>
               대표 이미지 URL
               <input id="post-image-url" type="url" placeholder="사진 URL을 입력하세요" />
             </label>
+
             <label>
               태그
               <input id="post-tags" type="text" placeholder="#제주, #바다, #힐링" />
             </label>
+
             <label>
               지역
               <input id="post-location" type="text" placeholder="예: 제주, 부산, 서울" />
             </label>
+
             <label>
               카테고리
               <input id="post-category" type="text" placeholder="예: 자연, 맛집, 숙소" />
             </label>
+
             <div class="form-actions">
               <button type="submit" class="btn-primary">게시물 등록</button>
             </div>
@@ -151,11 +164,14 @@
 
     <div class="modal-overlay" id="comment-modal">
       <div class="modal-content community-modal">
-        <button class="modal-close-btn" id="comment-modal-close" type="button"><i data-lucide="x"></i></button>
+        <button class="modal-close-btn" id="comment-modal-close" type="button" aria-label="닫기">
+          <i data-lucide="x"></i>
+        </button>
+
         <section class="flow-b-section">
           <div class="section-header" style="margin-bottom: 1rem;">
             <h2 id="comment-post-title">댓글</h2>
-            <p>댓글은 등록 후 다시 열어도 유지됩니다.</p>
+            <p>게시물에 댓글을 남기고, 수정과 삭제도 할 수 있습니다.</p>
           </div>
 
           <form id="comment-form" class="community-form">
@@ -174,6 +190,6 @@
       </div>
     </div>
 
-    <script src="/public/scripts/community.js"></script>
+    <script src="../scripts/community.js"></script>
   </body>
 </html>
