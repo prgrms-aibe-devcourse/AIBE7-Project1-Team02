@@ -1,4 +1,77 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const authToken = sessionStorage.getItem("sb_access_token") || "";
+  const userRaw = sessionStorage.getItem("sb_user") || "{}";
+  const currentUser = (() => {
+    try {
+      return JSON.parse(userRaw) || {};
+    } catch {
+      return {};
+    }
+  })();
+
+  if (!authToken) {
+    window.location.replace("./pages/login.html");
+    return;
+  }
+
+  const userName =
+    currentUser?.user_metadata?.nickname ||
+    currentUser?.user_metadata?.name ||
+    currentUser?.email?.split('@')?.[0] ||
+    '사용자';
+
+  const ensureAuthBadge = () => {
+    const actions = document.querySelector('.header-actions');
+    if (!actions) return;
+
+    let badge = document.getElementById('auth-badge');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'auth-badge';
+      badge.style.display = 'flex';
+      badge.style.alignItems = 'center';
+      badge.style.gap = '10px';
+      badge.style.marginLeft = '12px';
+      badge.style.fontWeight = '700';
+      badge.style.color = 'var(--color-text-main)';
+      badge.innerHTML = [
+        '<span id="auth-user-name"></span>',
+        '<button type="button" id="auth-logout-btn" class="btn-icon" title="로그아웃">',
+        '  <i data-lucide="log-out"></i>',
+        '</button>',
+      ].join('\n');
+    }
+
+    const notificationBtn = document.getElementById('notification-btn');
+    if (badge.parentElement !== actions) {
+      if (notificationBtn && notificationBtn.parentElement === actions) {
+        actions.insertBefore(badge, notificationBtn);
+      } else {
+        actions.appendChild(badge);
+      }
+    }
+
+    const nameEl = document.getElementById('auth-user-name');
+    if (nameEl) nameEl.textContent = `${userName}님`;
+
+    const logoutBtn = document.getElementById('auth-logout-btn');
+    if (logoutBtn && !logoutBtn.dataset.bound) {
+      logoutBtn.dataset.bound = '1';
+      logoutBtn.addEventListener('click', () => {
+        sessionStorage.removeItem('sb_access_token');
+        sessionStorage.removeItem('sb_refresh_token');
+        sessionStorage.removeItem('sb_user');
+        window.location.replace('./pages/login.html');
+      });
+    }
+
+    const avatarLink = document.querySelector('.user-avatar-wrapper');
+    if (avatarLink) {
+      avatarLink.setAttribute('aria-label', `${userName} 프로필`);
+      avatarLink.setAttribute('title', `${userName} 프로필`);
+      avatarLink.setAttribute('href', './pages/profile.html');
+    }
+  };
   // Keywords Data for Flow B
   const keywords = [
     "#오션뷰",
@@ -229,6 +302,8 @@ document.addEventListener("DOMContentLoaded", () => {
       sidebarOverlay.classList.remove("active");
     });
   }
+
+  ensureAuthBadge();
 
   // Initialize Lucide Icons
   lucide.createIcons();
