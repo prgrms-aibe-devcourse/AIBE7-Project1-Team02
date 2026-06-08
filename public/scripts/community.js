@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const authToken = sessionStorage.getItem(AUTH_KEYS.access) || '';
   if (!authToken) {
-    window.location.replace('/public/pages/login.html');
+    window.location.replace('./login.html');
     return;
   }
 
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sessionStorage.removeItem(AUTH_KEYS.access);
       sessionStorage.removeItem(AUTH_KEYS.refresh);
       sessionStorage.removeItem(AUTH_KEYS.user);
-      window.location.replace('/public/pages/login.html');
+      window.location.replace('./login.html');
     });
 
     els.btnSidebarCreate?.addEventListener('click', openPostModal);
