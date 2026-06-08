@@ -18,6 +18,7 @@ MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
 
 TourAPI 여행지를 MBTI 기반으로 추천하기 위한 가공 데이터는
 `destination_keywords`, `destination_mbti_scores` 보조 테이블에 저장한다.
+사용자의 설문 응답과 MBTI 축별 점수는 `travel_mbti_results`에 저장한다.
 
 ## 사용 테이블 목록
 
@@ -30,6 +31,7 @@ TourAPI 여행지를 MBTI 기반으로 추천하기 위한 가공 데이터는
 | `itineraries` | 여행별 일차 및 시간대에 따른 세부 방문 일정을 관리한다. |
 | `destination_keywords` | TourAPI 원본을 규칙으로 가공한 여행지 키워드를 관리한다. |
 | `destination_mbti_scores` | 여행지별 MBTI 16유형 적합도 점수를 관리한다. |
+| `travel_mbti_results` | 사용자별 여행 MBTI 유형, 축 점수, 원본 응답을 관리한다. |
 
 ## users
 
@@ -62,6 +64,25 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 | `updated_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 수정 일시 |
 
 `user_id`에 UNIQUE 제약조건을 적용하여 사용자 한 명당 하나의 성향 정보만 갖도록 한다.
+
+## travel_mbti_results
+
+여행 성향 설문의 최종 MBTI 유형과 네 가지 축 점수를 사용자별로 저장한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `id` | `uuid` | PK, DEFAULT UUID | MBTI 결과 식별자 |
+| `user_id` | `uuid` | FK, UNIQUE, NOT NULL | 결과를 소유한 사용자 |
+| `mbti_type` | `varchar(4)` | NOT NULL, CHECK | MBTI 16유형 중 하나 |
+| `ei_score` | `smallint` | NOT NULL, 0~100 | 0은 I, 100은 E 방향의 점수 |
+| `sn_score` | `smallint` | NOT NULL, 0~100 | 0은 N, 100은 S 방향의 점수 |
+| `tf_score` | `smallint` | NOT NULL, 0~100 | 0은 F, 100은 T 방향의 점수 |
+| `jp_score` | `smallint` | NOT NULL, 0~100 | 0은 P, 100은 J 방향의 점수 |
+| `raw_answers` | `jsonb` | NULL | 문항별 원본 응답 |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+| `updated_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 수정 일시 |
+
+`user_id`를 UNIQUE로 관리하고 설문을 다시 완료하면 같은 행을 upsert한다.
 
 ## destinations
 
@@ -164,6 +185,8 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 
 - `users` 1 : 1 `user_preferences`
   - 사용자 한 명은 하나의 여행 성향 정보를 가진다.
+- `users` 1 : 1 `travel_mbti_results`
+  - 사용자 한 명은 하나의 최신 여행 MBTI 분석 결과를 가진다.
 - `users` 1 : N `trips`
   - 사용자 한 명은 여러 여행을 생성할 수 있다.
 - `destinations` 1 : N `trips`
@@ -178,6 +201,7 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 ```mermaid
 erDiagram
     users ||--|| user_preferences : has
+    users ||--|| travel_mbti_results : analyzed_as
     users ||--o{ trips : creates
     destinations ||--o{ trips : selected_for
     destinations ||--o{ destination_keywords : classified_as
@@ -204,6 +228,19 @@ Table user_preferences {
   food_preference varchar(100)
   badge varchar(100)
   mbti_type varchar(4)
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table travel_mbti_results {
+  id uuid [pk]
+  user_id uuid [unique, not null]
+  mbti_type varchar(4) [not null]
+  ei_score smallint [not null]
+  sn_score smallint [not null]
+  tf_score smallint [not null]
+  jp_score smallint [not null]
+  raw_answers jsonb
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 }
@@ -278,6 +315,7 @@ Table itineraries {
 }
 
 Ref: users.user_id - user_preferences.user_id
+Ref: users.user_id - travel_mbti_results.user_id
 Ref: users.user_id < trips.user_id
 Ref: destinations.destination_id < trips.destination_id
 Ref: destinations.destination_id < destination_keywords.destination_id
