@@ -1,17 +1,28 @@
 // Community feed page behavior.
 document.addEventListener('DOMContentLoaded', () => {
-  const SUPABASE_URL = 'https://etomsinirscywqvyyjiv.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0b21zaW5pcnNjeXdxdnl5aml2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NDQ4NDcsImV4cCI6MjA5NjIyMDg0N30.GnbWzZZQaL2XdPkEavBsbzjx5DEZeAvosMGFVBEEYnA';
+  let SUPABASE_URL = '';
+  let SUPABASE_ANON_KEY = '';
+  let API = {};
   const AUTH_KEYS = { access: 'sb_access_token', refresh: 'sb_refresh_token', user: 'sb_user' };
-  const API = {
-    feed: `${SUPABASE_URL}/rest/v1/community_feed`,
-    posts: `${SUPABASE_URL}/rest/v1/community_posts`,
-    likes: `${SUPABASE_URL}/rest/v1/community_likes`,
-    comments: `${SUPABASE_URL}/rest/v1/community_comments`,
-    shares: `${SUPABASE_URL}/rest/v1/community_shares`,
-    tags: `${SUPABASE_URL}/rest/v1/community_tags_popular`,
-    users: `${SUPABASE_URL}/rest/v1/users`,
-  };
+
+  async function loadConfig() {
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) return;
+    const res = await fetch("/api/config");
+    const result = await res.json();
+    if (result.success) {
+      SUPABASE_URL = result.data.supabaseUrl;
+      SUPABASE_ANON_KEY = result.data.supabaseAnonKey;
+      API = {
+        feed: `${SUPABASE_URL}/rest/v1/community_feed`,
+        posts: `${SUPABASE_URL}/rest/v1/community_posts`,
+        likes: `${SUPABASE_URL}/rest/v1/community_likes`,
+        comments: `${SUPABASE_URL}/rest/v1/community_comments`,
+        shares: `${SUPABASE_URL}/rest/v1/community_shares`,
+        tags: `${SUPABASE_URL}/rest/v1/community_tags_popular`,
+        users: `${SUPABASE_URL}/rest/v1/users`,
+      };
+    }
+  }
 
   const authToken = sessionStorage.getItem(AUTH_KEYS.access) || '';
   if (!authToken) {
@@ -65,7 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (els.headerUserName) els.headerUserName.textContent = `${userNickname}님`;
 
   bindEvents();
-  loadCommunityPage().catch(console.error);
+  loadConfig().then(() => {
+    loadCommunityPage().catch(console.error);
+  }).catch(console.error);
   lucide.createIcons();
 
   function safeJson(value) {

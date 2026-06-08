@@ -1,4 +1,39 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // --- Auth State Logic ---
+  const AUTH_KEYS = { access: 'sb_access_token', refresh: 'sb_refresh_token', user: 'sb_user' };
+  const authToken = sessionStorage.getItem(AUTH_KEYS.access) || '';
+  let currentUser = {};
+  try {
+    currentUser = JSON.parse(sessionStorage.getItem(AUTH_KEYS.user) || '{}');
+  } catch(e) {}
+
+  const headerUserName = document.getElementById('header-user-name');
+  const headerUserAvatar = document.getElementById('header-user-avatar');
+  const logoutBtn = document.getElementById('logout-btn');
+  const loginLink = document.getElementById('login-link');
+
+  if (authToken && currentUser.id) {
+    const userNickname = currentUser?.user_metadata?.nickname || currentUser?.email?.split('@')?.[0] || '사용자';
+    if (headerUserName) headerUserName.textContent = `${userNickname}님`;
+    if (headerUserAvatar) {
+      headerUserAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=1a5c3a&color=fff&size=160`;
+    }
+    if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+    if (loginLink) loginLink.href = "#"; // Disable login link if already logged in
+  } else {
+    if (logoutBtn) logoutBtn.style.display = 'none';
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      sessionStorage.removeItem(AUTH_KEYS.access);
+      sessionStorage.removeItem(AUTH_KEYS.refresh);
+      sessionStorage.removeItem(AUTH_KEYS.user);
+      window.location.reload();
+    });
+  }
+  // ------------------------
+
   // Keywords Data for Flow B
   const keywords = [
     "#오션뷰",

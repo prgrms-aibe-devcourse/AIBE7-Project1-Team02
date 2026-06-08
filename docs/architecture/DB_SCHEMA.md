@@ -63,6 +63,25 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 
 `user_id`에 UNIQUE 제약조건을 적용하여 사용자 한 명당 하나의 성향 정보만 갖도록 한다.
 
+## travel_mbti_results
+
+회원의 상세 여행 MBTI 성향 진단 결과 및 세부 점수를 저장한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `id` | `uuid` | PK, DEFAULT gen_random_uuid() | 결과 식별자 |
+| `user_id` | `uuid` | FK, UNIQUE, NOT NULL | 결과를 소유한 사용자 (`users.user_id` 참조) |
+| `mbti_type` | `varchar(4)` | NOT NULL | 계산된 MBTI 유형 |
+| `ei_score` | `smallint` | NOT NULL, 0~100 | E/I 활동 vs 휴식 점수 |
+| `sn_score` | `smallint` | NOT NULL, 0~100 | S/N 전통 vs 탐험 점수 |
+| `tf_score` | `smallint` | NOT NULL, 0~100 | T/F 효율 vs 감성 점수 |
+| `jp_score` | `smallint` | NOT NULL, 0~100 | J/P 계획 vs 즉흥 점수 |
+| `raw_answers` | `jsonb` | NULL | 사용자의 문항별 원본 응답 |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+| `updated_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 수정 일시 |
+
+`user_id`에 UNIQUE 제약조건이 적용되어 있어야 `on_conflict=user_id` upsert가 가능합니다.
+
 ## destinations
 
 추천 대상이 되는 대한민국 국내 행정구역 및 실제 여행지 정보를 저장한다.
