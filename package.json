@@ -1,0 +1,19 @@
+{
+  "name": "aibe7-project1-team02",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI 기반 국내 여행 추천 서비스",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1"
+  }
+}
