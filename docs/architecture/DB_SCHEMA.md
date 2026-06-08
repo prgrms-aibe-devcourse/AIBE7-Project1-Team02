@@ -14,7 +14,7 @@ MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
 - `trips`
 - `itineraries`
 
-회원 인증은 Supabase Auth 사용을 기준으로 한다. 실제 구현에서는 비밀번호를 애플리케이션 테이블에 평문으로 저장하지 않으며, 인증 정보와 사용자 프로필 정보의 분리 여부는 Supabase 연동 방식에 맞춰 확정한다.
+회원 인증은 Supabase Auth를 사용한다. `public.users`는 `auth.users`와 동일한 UUID를 사용하는 프로필 테이블이며 비밀번호는 저장하지 않는다.
 
 ## 사용 테이블 목록
 
@@ -32,13 +32,14 @@ MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
 
 | 컬럼 | 타입 | 제약조건 | 설명 |
 | --- | --- | --- | --- |
-| `user_id` | `int` | PK, Auto Increment | 사용자 식별자 |
+| `user_id` | `uuid` | PK, FK, NOT NULL | `auth.users.id`와 동일한 사용자 식별자 |
 | `email` | `varchar(255)` | UNIQUE, NOT NULL | 로그인 및 연락용 이메일 |
-| `password` | `varchar(255)` | NOT NULL | 비밀번호 해시. Supabase Auth 사용 시 `auth.users`에서 관리 |
 | `nickname` | `varchar(100)` | NOT NULL | 서비스에서 표시할 닉네임 |
 | `profile_image` | `varchar(500)` | NULL | 프로필 이미지 URL |
-| `created_at` | `timestamp` | NULL | 생성 일시 |
-| `updated_at` | `timestamp` | NULL | 수정 일시 |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+| `updated_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 수정 일시 |
+
+Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로필을 자동 생성한다.
 
 ## user_preferences
 
@@ -46,13 +47,13 @@ MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
 
 | 컬럼 | 타입 | 제약조건 | 설명 |
 | --- | --- | --- | --- |
-| `preference_id` | `int` | PK, Auto Increment | 성향 정보 식별자 |
-| `user_id` | `int` | FK, UNIQUE, NOT NULL | 성향 정보를 소유한 사용자 |
+| `preference_id` | `bigint` | PK, Identity | 성향 정보 식별자 |
+| `user_id` | `uuid` | FK, UNIQUE, NOT NULL | 성향 정보를 소유한 사용자 |
 | `travel_tempo` | `varchar(100)` | NULL | 부지런함, 여유로움 등 여행 템포 |
 | `food_preference` | `varchar(100)` | NULL | 맛집 중요, 편의성 중요 등 음식 선호 |
 | `badge` | `varchar(100)` | NULL | 성향 분석 결과로 부여된 칭호 |
-| `created_at` | `timestamp` | NULL | 생성 일시 |
-| `updated_at` | `timestamp` | NULL | 수정 일시 |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+| `updated_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 수정 일시 |
 
 `user_id`에 UNIQUE 제약조건을 적용하여 사용자 한 명당 하나의 성향 정보만 갖도록 한다.
 
@@ -62,8 +63,8 @@ MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
 
 | 컬럼 | 타입 | 제약조건 | 설명 |
 | --- | --- | --- | --- |
-| `destination_id` | `int` | PK, Auto Increment | 여행지 식별자 |
-| `province` | `varchar(100)` | NULL | 광역시/도 |
+| `destination_id` | `bigint` | PK, Identity | 여행지 식별자 |
+| `province` | `varchar(100)` | NOT NULL | 광역시/도 |
 | `city` | `varchar(100)` | NULL | 시/군/구 |
 | `destination_name` | `varchar(255)` | NOT NULL | 여행지 또는 장소명 |
 | `description` | `text` | NULL | 여행지 설명 |
@@ -72,7 +73,7 @@ MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
 | `longitude` | `decimal(10,7)` | NULL | 경도 |
 | `image_url` | `varchar(500)` | NULL | 대표 이미지 URL |
 | `average_budget` | `int` | NULL | 예상 평균 비용 |
-| `created_at` | `timestamp` | NULL | 생성 일시 |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
 
 ## trips
 
@@ -80,17 +81,17 @@ MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
 
 | 컬럼 | 타입 | 제약조건 | 설명 |
 | --- | --- | --- | --- |
-| `trip_id` | `int` | PK, Auto Increment | 여행 식별자 |
-| `user_id` | `int` | FK, NOT NULL | 여행을 소유한 사용자 |
-| `destination_id` | `int` | FK, NOT NULL | 여행의 대표 여행지 |
+| `trip_id` | `bigint` | PK, Identity | 여행 식별자 |
+| `user_id` | `uuid` | FK, NOT NULL | 여행을 소유한 사용자 |
+| `destination_id` | `bigint` | FK, NOT NULL | 여행의 대표 여행지 |
 | `title` | `varchar(255)` | NOT NULL | 여행 제목 |
 | `start_date` | `date` | NULL | 여행 시작일 |
 | `end_date` | `date` | NULL | 여행 종료일 |
 | `budget` | `int` | NULL | 여행 예산 |
 | `companion_type` | `varchar(50)` | NULL | 혼자, 친구, 연인, 가족 등 동반자 유형 |
-| `status` | `varchar(50)` | NULL | 계획, 진행 중, 완료 등 여행 상태 |
-| `created_at` | `timestamp` | NULL | 생성 일시 |
-| `updated_at` | `timestamp` | NULL | 수정 일시 |
+| `status` | `varchar(50)` | NOT NULL, DEFAULT `planning` | 계획, 진행 중, 완료 등 여행 상태 |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+| `updated_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 수정 일시 |
 
 ## itineraries
 
@@ -98,15 +99,15 @@ MVP 단계에서는 아래 5개 핵심 테이블을 우선 사용한다.
 
 | 컬럼 | 타입 | 제약조건 | 설명 |
 | --- | --- | --- | --- |
-| `itinerary_id` | `int` | PK, Auto Increment | 세부 일정 식별자 |
-| `trip_id` | `int` | FK, NOT NULL | 세부 일정이 속한 여행 |
-| `day_number` | `int` | NULL | 여행 시작일을 기준으로 한 일차 |
+| `itinerary_id` | `bigint` | PK, Identity | 세부 일정 식별자 |
+| `trip_id` | `bigint` | FK, NOT NULL | 세부 일정이 속한 여행 |
+| `day_number` | `int` | NOT NULL | 여행 시작일을 기준으로 한 일차 |
 | `start_time` | `time` | NULL | 일정 시작 시간 |
-| `location_name` | `varchar(255)` | NULL | 방문 장소명 |
+| `location_name` | `varchar(255)` | NOT NULL | 방문 장소명 |
 | `description` | `text` | NULL | 활동 및 일정 설명 |
 | `latitude` | `decimal(10,7)` | NULL | 장소 위도 |
 | `longitude` | `decimal(10,7)` | NULL | 장소 경도 |
-| `sort_order` | `int` | NULL | 같은 날짜 안에서의 노출 및 방문 순서 |
+| `sort_order` | `int` | NOT NULL, DEFAULT 0 | 같은 날짜 안에서의 노출 및 방문 순서 |
 
 ## 테이블 관계
 
@@ -131,28 +132,27 @@ erDiagram
 
 ```dbml
 Table users {
-  user_id int [pk, increment]
+  user_id uuid [pk, note: 'auth.users.id 참조']
   email varchar(255) [unique, not null]
-  password varchar(255) [not null, note: 'Supabase Auth 사용 시 auth.users에서 관리']
   nickname varchar(100) [not null]
   profile_image varchar(500)
-  created_at timestamp
-  updated_at timestamp
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 }
 
 Table user_preferences {
-  preference_id int [pk, increment]
-  user_id int [unique, not null]
+  preference_id bigint [pk, increment]
+  user_id uuid [unique, not null]
   travel_tempo varchar(100)
   food_preference varchar(100)
   badge varchar(100)
-  created_at timestamp
-  updated_at timestamp
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 }
 
 Table destinations {
-  destination_id int [pk, increment]
-  province varchar(100)
+  destination_id bigint [pk, increment]
+  province varchar(100) [not null]
   city varchar(100)
   destination_name varchar(255) [not null]
   description text
@@ -161,33 +161,33 @@ Table destinations {
   longitude decimal(10,7)
   image_url varchar(500)
   average_budget int
-  created_at timestamp
+  created_at timestamptz [not null, default: `now()`]
 }
 
 Table trips {
-  trip_id int [pk, increment]
-  user_id int [not null]
-  destination_id int [not null]
+  trip_id bigint [pk, increment]
+  user_id uuid [not null]
+  destination_id bigint [not null]
   title varchar(255) [not null]
   start_date date
   end_date date
   budget int
   companion_type varchar(50)
-  status varchar(50)
-  created_at timestamp
-  updated_at timestamp
+  status varchar(50) [not null, default: 'planning']
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
 }
 
 Table itineraries {
-  itinerary_id int [pk, increment]
-  trip_id int [not null]
-  day_number int
+  itinerary_id bigint [pk, increment]
+  trip_id bigint [not null]
+  day_number int [not null]
   start_time time
-  location_name varchar(255)
+  location_name varchar(255) [not null]
   description text
   latitude decimal(10,7)
   longitude decimal(10,7)
-  sort_order int
+  sort_order int [not null, default: 0]
 }
 
 Ref: users.user_id - user_preferences.user_id
@@ -195,6 +195,13 @@ Ref: users.user_id < trips.user_id
 Ref: destinations.destination_id < trips.destination_id
 Ref: trips.trip_id < itineraries.trip_id
 ```
+
+## 보안 정책
+
+- 5개 테이블 모두 Row Level Security(RLS)를 활성화한다.
+- 사용자는 자신의 프로필, 성향, 여행, 일정만 조회·생성·수정·삭제할 수 있다.
+- 여행지(`destinations`)는 비로그인 사용자와 로그인 사용자 모두 조회할 수 있다.
+- 여행지 생성·수정·삭제는 서버의 `service_role` 또는 별도 관리자 기능에서만 수행한다.
 
 ## 추후 확장 예정 테이블
 
