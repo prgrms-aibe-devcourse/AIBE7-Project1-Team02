@@ -29,6 +29,7 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 
 | Method | URL | Request Body | Response Body | Error Case | 담당자 |
 | --- | --- | --- | --- | --- | --- |
+| GET | `/api/health` | 없음 | 서버 상태, 확인 시각 | 서버 미실행 | 백엔드 |
 | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
 | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
@@ -39,6 +40,21 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | PATCH | `/api/travel/:id` | 수정할 일정 정보 | 수정된 여행 일정 | 일정 없음, 권한 없음 | 백엔드 |
 
 ## 상세 예시
+
+### GET /api/health
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "ok",
+    "timestamp": "2026-06-08T07:29:43.035Z"
+  },
+  "message": "서버가 정상 작동 중입니다."
+}
+```
 
 ### POST /api/auth/signup
 

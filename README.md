@@ -91,12 +91,15 @@ AI 환각을 줄이기 위해 국내 관광 데이터는 TourAPI 등 신뢰 가�
 
 ## 실행 방법
 
-아직 프로젝트 초기 단계이며, 서버 코드와 `package.json` 생성 후 아래 명령으로 실행합니다.
+의존성을 설치한 뒤 Express 서버를 실행합니다.
 
 ```bash
 npm install
 npm start
 ```
+
+기본 접속 주소는 `http://localhost:3000`이며, `.env`의 `PORT` 값으로
+변경할 수 있습니다. 서버 상태는 `GET /api/health`에서 확인합니다.
 
 ## 환경 변수
 
