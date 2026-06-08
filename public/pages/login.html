@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trip AI 로그인 / 회원가입</title>
+    <title>Trip AI | 로그인 / 회원가입</title>
     <style>
       * { box-sizing: border-box; }
       body {
@@ -15,10 +15,7 @@
         display: grid;
         place-items: center;
       }
-      .wrap {
-        width: min(100%, 480px);
-        padding: 24px;
-      }
+      .wrap { width: min(100%, 480px); padding: 24px; }
       .card {
         background: #fff;
         border: 1px solid #dfe7e1;
@@ -68,25 +65,23 @@
         background: #e8f5ee;
         color: #1a5c3a;
       }
-      .alert {
-        display: none;
-        margin-bottom: 14px;
-        padding: 12px 14px;
-        border-radius: 12px;
-        background: #fef7e0;
-        border: 1px solid #f7d56b;
-        color: #8a6500;
-        white-space: pre-line;
-      }
+      .alert,
       .success {
         display: none;
         margin-top: 14px;
         padding: 12px 14px;
         border-radius: 12px;
+        white-space: pre-line;
+      }
+      .alert {
+        background: #fef7e0;
+        border: 1px solid #f7d56b;
+        color: #8a6500;
+      }
+      .success {
         background: #e8f5ee;
         border: 1px solid #b8ddc7;
         color: #1a5c3a;
-        white-space: pre-line;
       }
       .sub {
         margin-top: 18px;
@@ -120,7 +115,7 @@
         </div>
 
         <div class="btn-row">
-          <button id="submitBtn" class="primary">로그인</button>
+          <button id="submitBtn" class="primary" type="button">로그인</button>
           <button id="clearBtn" class="secondary" type="button">초기화</button>
         </div>
 
@@ -132,7 +127,7 @@
         <div id="success" class="success"></div>
 
         <div class="sub">
-          로그인 성공 시 `sessionStorage`에 토큰이 저장됩니다.
+          로그인 성공 시 세션 정보가 저장되고 메인 페이지로 이동합니다.
         </div>
       </div>
     </div>
