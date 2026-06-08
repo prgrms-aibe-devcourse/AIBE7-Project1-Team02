@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>여행 MBTI 테스트 | ExploraJourneys</title>
+    <meta
+      name="description"
+      content="나만의 여행 성향을 MBTI로 알아보고, AI가 맞춤 여행지를 추천해드립니다."
+    />
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/public/styles/main.css" />
+    <link rel="stylesheet" href="/public/styles/survey.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <!-- App Container -->
+    <div class="app-container">
+      <!-- Sidebar Navigation -->
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">ExploraJourneys</div>
+          <div class="logo-desc">당신의 한국 여행 도우미</div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a href="#" class="nav-item">
+            <i data-lucide="compass" class="nav-icon"></i> 탐색하기
+          </a>
+          <a href="#" class="nav-item">
+            <i data-lucide="users" class="nav-icon"></i> 커뮤니티
+          </a>
+          <a href="#" class="nav-item">
+            <i data-lucide="map" class="nav-icon"></i> 내 여행
+          </a>
+          <a href="#" class="nav-item active">
+            <i data-lucide="sparkles" class="nav-icon"></i> 생성하기
+          </a>
+          <a href="#" class="nav-item">
+            <i data-lucide="user" class="nav-icon"></i> 프로필
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button class="btn-create-itinerary" id="btn-sidebar-create">
+            + 새 일정 만들기
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <div class="main-wrapper">
+        <!-- Top Header -->
+        <header class="top-header">
+          <div class="header-left">
+            <button class="mobile-menu-toggle" id="mobile-toggle">
+              <i data-lucide="menu"></i>
+            </button>
+            <div class="header-breadcrumb">
+              <span class="breadcrumb-icon"
+                ><i data-lucide="sparkles"></i
+              ></span>
+              <span class="breadcrumb-text">여행 성향 분석</span>
+            </div>
+          </div>
+          <div class="header-actions">
+            <div class="search-bar">
+              <i data-lucide="search" class="search-icon"></i>
+              <input type="text" placeholder="목적지, 맛집, 액티비티 검색..." />
+            </div>
+            <button class="btn-icon" id="notification-btn">
+              <i data-lucide="bell"></i>
+              <span class="notification-dot"></span>
+            </button>
+            <div class="user-avatar-wrapper">
+              <img
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+                alt="User"
+                class="user-avatar"
+              />
+            </div>
+          </div>
+        </header>
+
+        <!-- Dashboard Content (Survey) -->
+        <main class="dashboard-content">
+          <!-- Dashboard Header -->
+          <div class="dash-header" id="surveyHeader">
+            <div class="dash-greeting">
+              <h1 class="greeting-title">나의 여행 MBTI 알아보기 ✈️</h1>
+              <p class="greeting-desc">
+                12개의 질문에 답하면 AI가 나에게 딱 맞는 여행지를 추천해드려요
+              </p>
+            </div>
+          </div>
+
+          <!-- Survey Container -->
+          <div class="survey-container">
+            <!-- ── Progress Bar ────────────────────────── -->
+            <div class="progress-container" id="progressContainer">
+              <div class="progress-info">
+                <span class="step-count" id="stepCount">1 / 12</span>
+                <span id="axisLabel">E/I 활동 vs 휴식</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+            </div>
+
+            <!-- ── Questions ───────────────────────────── -->
+            <form id="surveyForm">
+              <div class="questions-wrapper" id="questionsWrapper">
+                <!-- Q1: E/I -->
+                <div
+                  class="question-slide active"
+                  data-axis="ei"
+                  data-index="0"
+                >
+                  <div class="question-card">
+                    <span class="question-axis">E / I — 활동 vs 휴식</span>
+                    <h3>이번 여행에서 내가 더 끌리는 일정은?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >시끌벅적한 축제, 번화가, 레포츠 체험</span
+                      >
+                      <span class="label-b"
+                        >대자연 속 휴양, 조용하고 한적한 명소 힐링</span
+                      >
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q1" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q1" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q1" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q1" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q1" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Q2: E/I -->
+                <div class="question-slide" data-axis="ei" data-index="1">
+                  <div class="question-card">
+                    <span class="question-axis">E / I — 활동 vs 휴식</span>
+                    <h3>여행 중 하루 자유시간이 생겼다면?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >현지인과 어울리는 펍/카페, 그룹 투어 참가</span
+                      >
+                      <span class="label-b"
+                        >혼자 산책하거나 숙소에서 독서·명상</span
+                      >
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q2" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q2" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q2" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q2" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q2" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Q3: E/I -->
+                <div class="question-slide" data-axis="ei" data-index="2">
+                  <div class="question-card">
+                    <span class="question-axis">E / I — 활동 vs 휴식</span>
+                    <h3>여행 동행에 대한 나의 생각은?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >많을수록 좋다! 대규모 그룹 여행 선호</span
+                      >
+                      <span class="label-b">혼행 또는 소수 친한 친구와만</span>
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q3" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q3" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q3" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q3" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q3" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Q4: S/N -->
+                <div class="question-slide" data-axis="sn" data-index="3">
+                  <div class="question-card">
+                    <span class="question-axis">S / N — 전통 vs 탐험</span>
+                    <h3>새로운 여행지에 도착하면 어디부터?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >역사적 명소, 전통문화 체험, 인기 맛집</span
+                      >
+                      <span class="label-b"
+                        >남들은 잘 모르는 독특한 전시관, 예술적 체험</span
+                      >
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q4" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q4" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q4" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q4" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q4" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Q5: S/N -->
+                <div class="question-slide" data-axis="sn" data-index="4">
+                  <div class="question-card">
+                    <span class="question-axis">S / N — 전통 vs 탐험</span>
+                    <h3>여행지에서 식사를 고를 때?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >현지 대표 음식, 검증된 맛집 위주</span
+                      >
+                      <span class="label-b"
+                        >독특한 퓨전 요리, 실험적인 로컬 레스토랑</span
+                      >
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q5" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q5" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q5" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q5" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q5" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Q6: S/N -->
+                <div class="question-slide" data-axis="sn" data-index="5">
+                  <div class="question-card">
+                    <span class="question-axis">S / N — 전통 vs 탐험</span>
+                    <h3>숙소를 고를 때 더 끌리는 곳은?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >접근성 좋은 시내 호텔, 편의시설 완비</span
+                      >
+                      <span class="label-b"
+                        >독특한 컨셉의 에어비앤비, 트리하우스, 한옥 스테이</span
+                      >
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q6" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q6" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q6" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q6" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q6" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Q7: T/F -->
+                <div class="question-slide" data-axis="tf" data-index="6">
+                  <div class="question-card">
+                    <span class="question-axis">T / F — 효율 vs 감성</span>
+                    <h3>여행 코스를 짤 때 더 중요한 것은?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >동선 효율, 체계적 정보, 이동 시간 최적화</span
+                      >
+                      <span class="label-b"
+                        >풍경이 예쁘고 의미 있는 감성적인 장소</span
+                      >
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q7" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q7" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q7" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q7" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q7" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Q8: T/F -->
+                <div class="question-slide" data-axis="tf" data-index="7">
+                  <div class="question-card">
+                    <span class="question-axis">T / F — 효율 vs 감성</span>
+                    <h3>여행 중 예상치 못한 문제가 생기면?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >즉시 대안 검색, 플랜B 실행, 합리적 판단</span
+                      >
+                      <span class="label-b"
+                        >일단 흐름에 맡기고, 그 상황 자체를 즐겨보기</span
+                      >
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q8" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q8" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q8" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q8" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q8" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Q9: T/F -->
+                <div class="question-slide" data-axis="tf" data-index="8">
+                  <div class="question-card">
+                    <span class="question-axis">T / F — 효율 vs 감성</span>
+                    <h3>여행 후 가장 기억에 남는 것은?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >효율적으로 많이 본 일정, 가성비 좋은 경험</span
+                      >
+                      <span class="label-b"
+                        >감동적이었던 풍경, 현지인과의 따뜻한 교류</span
+                      >
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q9" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q9" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q9" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q9" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q9" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Q10: J/P -->
+                <div class="question-slide" data-axis="jp" data-index="9">
+                  <div class="question-card">
+                    <span class="question-axis">J / P — 계획 vs 즉흥</span>
+                    <h3>내일 당장 떠나는 여행, 나의 준비 상태는?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >식당 예약 완료! 분 단위 일정표 준비</span
+                      >
+                      <span class="label-b"
+                        >일단 출발! 발길 닿는 대로 즉흥 탐방</span
+                      >
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q10" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q10" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q10" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q10" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q10" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Q11: J/P -->
+                <div class="question-slide" data-axis="jp" data-index="10">
+                  <div class="question-card">
+                    <span class="question-axis">J / P — 계획 vs 즉흥</span>
+                    <h3>여행 중 일정이 꼬였을 때 나는?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >불안하고 스트레스, 빠르게 재조정</span
+                      >
+                      <span class="label-b"
+                        >오히려 좋아! 새로운 발견의 기회</span
+                      >
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q11" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q11" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q11" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q11" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q11" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Q12: J/P -->
+                <div class="question-slide" data-axis="jp" data-index="11">
+                  <div class="question-card">
+                    <span class="question-axis">J / P — 계획 vs 즉흥</span>
+                    <h3>여행 예산 관리 스타일은?</h3>
+                    <div class="likert-labels">
+                      <span class="label-a"
+                        >사전에 예산 배분표 작성, 항목별 관리</span
+                      >
+                      <span class="label-b"
+                        >대략적인 총액만 정하고 유동적으로 사용</span
+                      >
+                    </div>
+                    <div class="likert-scale">
+                      <label
+                        ><input type="radio" name="q12" value="5" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q12" value="4" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q12" value="3" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q12" value="2" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                      <label
+                        ><input type="radio" name="q12" value="1" /><span
+                          class="dot"
+                        ></span
+                      ></label>
+                    </div>
+                    <div class="likert-hint">
+                      <span>매우 그렇다</span>
+                      <span>보통</span>
+                      <span>매우 그렇다</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Navigation -->
+              <div class="nav-buttons" id="navButtons">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  id="prevBtn"
+                  disabled
+                >
+                  ← 이전
+                </button>
+                <button type="button" class="btn btn-primary" id="nextBtn">
+                  다음 →
+                </button>
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-submit"
+                  id="submitBtn"
+                  style="display: none"
+                >
+                  내 여행 MBTI 결과 보기 ✨
+                </button>
+              </div>
+              <p class="validation-msg" id="validationMsg">
+                질문에 답변해주세요
+              </p>
+            </form>
+
+            <!-- ── Result ──────────────────────────────── -->
+            <div class="result-container" id="resultContainer">
+              <div class="result-header">
+                <p class="result-label">당신의 여행 성향은...</p>
+                <h1 class="mbti-type" id="resultMbtiType"></h1>
+                <p class="mbti-alias" id="resultAlias"></p>
+                <p class="mbti-desc" id="resultDesc"></p>
+              </div>
+
+              <div class="score-card">
+                <h4>성향 분석 상세</h4>
+
+                <div class="score-row">
+                  <span class="score-label-left">E</span>
+                  <div class="score-bar-track">
+                    <div class="score-bar-fill ei" id="barEI"></div>
+                  </div>
+                  <span class="score-label-right">I</span>
+                  <span class="score-value" id="valEI"></span>
+                </div>
+
+                <div class="score-row">
+                  <span class="score-label-left">S</span>
+                  <div class="score-bar-track">
+                    <div class="score-bar-fill sn" id="barSN"></div>
+                  </div>
+                  <span class="score-label-right">N</span>
+                  <span class="score-value" id="valSN"></span>
+                </div>
+
+                <div class="score-row">
+                  <span class="score-label-left">T</span>
+                  <div class="score-bar-track">
+                    <div class="score-bar-fill tf" id="barTF"></div>
+                  </div>
+                  <span class="score-label-right">F</span>
+                  <span class="score-value" id="valTF"></span>
+                </div>
+
+                <div class="score-row">
+                  <span class="score-label-left">J</span>
+                  <div class="score-bar-track">
+                    <div class="score-bar-fill jp" id="barJP"></div>
+                  </div>
+                  <span class="score-label-right">P</span>
+                  <span class="score-value" id="valJP"></span>
+                </div>
+              </div>
+
+              <div class="result-cta">
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  id="nextStepBtn"
+                  style="margin: 0 auto"
+                >
+                  맞춤 일정 생성하러 가기 →
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+      <p>성향을 분석하고 있어요...</p>
+    </div>
+
+    <script src="survey.js"></script>
+    <script>
+      // Initialize Lucide Icons
+      lucide.createIcons();
+
+      // Mobile Sidebar Toggle
+      const mobileToggle = document.getElementById("mobile-toggle");
+      const sidebar = document.getElementById("sidebar");
+      const sidebarOverlay = document.getElementById("sidebar-overlay");
+
+      if (mobileToggle && sidebar && sidebarOverlay) {
+        mobileToggle.addEventListener("click", () => {
+          sidebar.classList.add("active");
+          sidebarOverlay.classList.add("active");
+        });
+
+        sidebarOverlay.addEventListener("click", () => {
+          sidebar.classList.remove("active");
+          sidebarOverlay.classList.remove("active");
+        });
+      }
+    </script>
+  </body>
+</html>
