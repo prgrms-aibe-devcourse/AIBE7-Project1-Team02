@@ -13,9 +13,9 @@ BLOCKED
 
 | 작업명 | 담당자 | 시작일 | 마감일 | 진행상태 | 비고 |
 | --- | --- | --- | --- | --- | --- |
-| API 키 발급 및 연동 테스트 | 백엔드 / 기획 | 미정 | 미정 | TODO | Google Maps, OpenWeather, OpenAI, TourAPI 4.0, Unsplash API 호출 테스트 |
-| 데이터베이스 및 인프라 초기 셋업 | 전체 인원 | 미정 | 미정 | TODO | GitHub 레포지토리, Supabase 프로젝트, 기본 프로젝트 구조 확인 |
-| DB 스키마 생성 및 Auth 연동 | 백엔드 | 미정 | 미정 | TODO | Supabase 유저 테이블, 성향 결과 테이블, Auth 기반 가입/로그인 뼈대 |
+| API 키 발급 및 연동 테스트 | 백엔드 / 기획 | 미정 | 미정 | 완료 | Google Maps, OpenWeather, OpenAI, TourAPI 4.0, Unsplash API 호출 테스트 |
+| 데이터베이스 및 인프라 초기 셋업 | 전체 인원 | 미정 | 미정 | 완료 | GitHub 레포지토리, Supabase 프로젝트, 기본 프로젝트 구조 확인 |
+| DB 스키마 생성 및 Auth 연동 | 백엔드 | 미정 | 미정 | 완료 | Supabase 유저 테이블, 성향 결과 테이블, Auth 기반 가입/로그인 뼈대 |
 | 성향 진단 폼 UI 개발 | 프론트엔드 | 미정 | 미정 | TODO | 여행 체력/템포, F&B 민감도 객관식 설문 화면 |
 | 칭호 부여 알고리즘 및 DB 저장 | 백엔드 | 미정 | 미정 | TODO | 설문 선택 조합에 따라 칭호 판별 후 Supabase 저장 |
 | Flow A 화면 전환 연결 | 프론트엔드 | 미정 | 미정 | TODO | 가입 완료, 성향 진단, 칭호 팝업, 대시보드 이동 |
