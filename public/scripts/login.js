@@ -1,5 +1,5 @@
 const SUPABASE_URL = "https://etomsinirscywqvyyjiv.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_ANON_KEY = "sb_publishable_n7sNjxeP99qitDJiptmfSQ_FYCNVhF2";
 
 const $ = (id) => document.getElementById(id);
 
