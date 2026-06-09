@@ -33,6 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
     postSummarySelectionStart: 0,
     postSummarySelectionEnd: 0,
     likingPostIds: new Set(),
+    likedPostIds: new Set(),
   };
 
   const els = {
@@ -224,6 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function renderFeed() {
     const rows = await request(`${state.api.feed}?select=*&order=created_at.desc`, { method: "GET" });
     state.posts = Array.isArray(rows) ? rows : [];
+    await syncLikedPostsState();
 
     if (!state.posts.length) {
       els.feed.innerHTML = '<div class="empty-feed">아직 게시글이 없습니다. 첫 게시글을 작성해보세요.</div>';
@@ -248,8 +250,8 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="feed-card-actions">
                 <button type="button" class="action-link" data-action="detail" data-post-id="${post.post_id}">상세보기</button>
-                <button type="button" class="action-link" data-action="like" data-post-id="${post.post_id}">좋아요 ${post.like_count || 0}</button>
-                <button type="button" class="action-link" data-action="comment" data-post-id="${post.post_id}">댓글 ${post.comment_count || 0}</button>
+                <button type="button" class="action-link like-button${isPostLiked(post.post_id) ? " is-liked" : ""}" data-action="like" data-post-id="${post.post_id}" aria-pressed="${isPostLiked(post.post_id) ? "true" : "false"}">좋아요 ${getLikeCount(post)}</button>
+                <button type="button" class="action-link" data-action="comment" data-post-id="${post.post_id}">댓글 ${getCommentCount(post)}</button>
                 ${isMine ? `<button type="button" class="action-link" data-action="edit" data-post-id="${post.post_id}">수정</button>` : ""}
                 ${isMine ? `<button type="button" class="action-link danger" data-action="delete" data-post-id="${post.post_id}">삭제</button>` : ""}
               </div>
@@ -319,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function renderFeaturedStory() {
-    const rows = await request(`${state.api.feed}?select=*&order=like_count.desc&limit=1`, { method: "GET" });
+    const rows = await request(`${state.api.feed}?select=*&order=real_like_count.desc&limit=1`, { method: "GET" });
     const post = Array.isArray(rows) ? rows[0] : null;
     if (!post) {
       els.featuredStory.innerHTML = '<div class="empty-feed">추천 여행 이야기가 없습니다.</div>';
@@ -336,6 +338,30 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       openPostDetail(post.post_id);
     });
+  }
+
+  async function syncLikedPostsState() {
+    if (!userId || !state.posts.length) {
+      state.likedPostIds = new Set();
+      return;
+    }
+
+    const postIds = state.posts.map((post) => post.post_id).filter(Boolean);
+    if (!postIds.length) {
+      state.likedPostIds = new Set();
+      return;
+    }
+
+    const rows = await request(
+      `${state.api.likes}?user_id=eq.${encodeURIComponent(userId)}&post_id=in.(${postIds.join(",")})&select=post_id`,
+      { method: "GET" }
+    ).catch(() => []);
+    const likedIds = Array.isArray(rows) ? rows.map((row) => String(row.post_id)) : [];
+    state.likedPostIds = new Set(likedIds);
+  }
+
+  function isPostLiked(postId) {
+    return state.likedPostIds.has(String(postId));
   }
 
   async function openPostDetail(postId, options = {}) {
@@ -433,6 +459,7 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "DELETE",
           headers: { Prefer: "return=minimal" },
         });
+        state.likedPostIds.delete(postId);
         return;
       }
       await request(state.api.likes, {
@@ -440,6 +467,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { Prefer: "return=representation" },
         body: JSON.stringify({ post_id: post.post_id, user_id: userId }),
       });
+      state.likedPostIds.add(postId);
     } catch (error) {
       console.error(error);
       throw error;
@@ -447,6 +475,14 @@ document.addEventListener("DOMContentLoaded", () => {
       state.likingPostIds.delete(postId);
       setLikeButtonsDisabled(postId, false);
     }
+  }
+
+  function getLikeCount(post) {
+    return Number(post?.real_like_count ?? post?.like_count ?? 0);
+  }
+
+  function getCommentCount(post) {
+    return Number(post?.real_comment_count ?? post?.comment_count ?? 0);
   }
 
   function setLikeButtonsDisabled(postId, disabled) {
