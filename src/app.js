@@ -15,6 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/health", healthRouter);
 app.use("/api/config", configRouter);
 app.use("/api/destinations", destinationsRouter);
+app.use("/api/user", require("./routes/user"));
 app.use("/public", express.static(publicDirectory));
 app.use(express.static(publicDirectory));
 

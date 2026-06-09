@@ -112,6 +112,57 @@ document.addEventListener("DOMContentLoaded", () => {
       avatarLink.setAttribute('title', `${userName} 프로필`);
       avatarLink.setAttribute('href', './pages/mypage.html');
     }
+
+    // --- 아바타 이미지 및 닉네임 최신화 (DB 조회) ---
+    const userId = currentUser?.id;
+    if (userId) {
+      // 1. 화면 깜빡임(로딩 지연) 방지를 위해 세션 캐시 이미지로 즉시 적용
+      const cachedImg = currentUser?.user_metadata?.profile_image;
+      if (cachedImg) {
+        const headerImg = document.getElementById("header-user-avatar");
+        if (headerImg) headerImg.src = cachedImg;
+      }
+
+      // 2. 이후 백그라운드에서 DB 최신 데이터로 동기화
+      fetch("/api/config").then(r => r.json()).then(result => {
+        if (result.success) {
+          const sUrl = result.data.supabaseUrl;
+          const sKey = result.data.supabaseAnonKey;
+          fetch(`${sUrl}/rest/v1/users?user_id=eq.${userId}&select=profile_image,nickname`, {
+            headers: {
+              "apikey": sKey,
+              "Authorization": `Bearer ${authToken}`
+            }
+          })
+          .then(r => r.json())
+          .then(data => {
+            const dbImg = data?.[0]?.profile_image;
+            const dbNick = data?.[0]?.nickname;
+            
+            // 이미지 업데이트
+            if (dbImg) {
+              const headerImg = document.getElementById("header-user-avatar");
+              if (headerImg) headerImg.src = dbImg;
+              
+              // sessionStorage 캐싱 업데이트
+              currentUser.user_metadata = currentUser.user_metadata || {};
+              currentUser.user_metadata.profile_image = dbImg;
+            }
+            
+            // 닉네임 업데이트
+            if (dbNick) {
+              if (nameEl) nameEl.textContent = `${dbNick}님`;
+              currentUser.user_metadata.nickname = dbNick;
+            }
+
+            if (dbImg || dbNick) {
+              sessionStorage.setItem("sb_user", JSON.stringify(currentUser));
+            }
+          })
+          .catch(err => console.error("프로필 헤더 로드 에러:", err));
+        }
+      });
+    }
   };
 
   function getSafeImageUrl(imageUrl) {
@@ -299,6 +350,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadMbtiRecommendations() {
+    // 해당 페이지에 추천 섹션이 없다면 실행하지 않음
+    if (!document.getElementById("recommendation-list")) return;
+
     try {
       const response = await fetch("/api/destinations/recommended?limit=10", {
         headers: {

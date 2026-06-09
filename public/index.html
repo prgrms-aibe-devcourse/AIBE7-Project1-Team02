@@ -88,7 +88,7 @@
               ></span>
               <a href="/public/pages/login.html" id="login-link">
                 <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+                  src=""
                   alt="User"
                   id="header-user-avatar"
                   class="user-avatar"
@@ -107,11 +107,86 @@
         </header>
 
         <main class="dashboard-content">
-          <section class="recommendation-catalog" aria-labelledby="recommendation-title">
-            <div class="recommendation-catalog-header">
-              <div>
-                <span class="recommendation-eyebrow">TRAVEL MATCH</span>
-                <h1 id="recommendation-title">내 여행 MBTI 추천</h1>
+          <section class="dash-header">
+            <div class="dash-greeting">
+              <h1 class="greeting-title" id="greeting-title">
+                안녕하세요, 여행자님!
+              </h1>
+              <p class="greeting-desc" id="greeting-desc">
+                여행 MBTI에 맞는 국내 여행지를 찾고 있습니다.
+              </p>
+            </div>
+
+            <div class="dash-header-actions">
+              <button
+                class="btn-primary btn-glow"
+                id="btn-quick-create"
+                type="button"
+              >
+                <i data-lucide="sparkles"></i> AI 맞춤 여행 계획 생성
+              </button>
+            </div>
+          </section>
+
+          <section class="bento-grid" aria-label="메인 대시보드">
+            <div
+              class="bento-item bento-large summary-card-bento"
+              id="featured-recommendation"
+            >
+              <div
+                class="bento-bg-image"
+                id="featured-recommendation-image"
+                style="
+                  background-image: url(&quot;./images/summer_banner.png&quot;);
+                "
+              ></div>
+              <div class="bento-overlay"></div>
+              <div class="bento-content summary-content">
+                <div class="badge-d-day" id="featured-recommendation-badge">
+                  맞춤 추천 준비 중
+                </div>
+                <div class="trip-details">
+                  <h2 id="featured-recommendation-name">
+                    여행지를 불러오고 있습니다
+                  </h2>
+                  <p id="featured-recommendation-region">
+                    <i data-lucide="map-pin"></i>
+                    <span>잠시만 기다려 주세요.</span>
+                  </p>
+                  <p
+                    class="featured-recommendation-description"
+                    id="featured-recommendation-description"
+                  ></p>
+                </div>
+                <button
+                  class="btn-glass"
+                  id="featured-recommendation-action"
+                  style="width: fit-content; border-radius: 30px"
+                  type="button"
+                  disabled
+                >
+                  추천 결과 확인 중 <i data-lucide="arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="bento-item bento-small widget-weather">
+              <div class="weather-icon"><i data-lucide="sun"></i></div>
+              <div class="weather-info">
+                <h3>24°C</h3>
+                <p>제주 맑음</p>
+              </div>
+            </div>
+
+            <div class="bento-item bento-small widget-profile">
+              <div class="profile-avatar">
+                <img
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+                  alt="프로필"
+                />
+              </div>
+              <div class="profile-info">
+                <span class="profile-title">여행 성향 프로필</span>
                 <p
                   class="recommendation-subtitle"
                   id="recommendation-subtitle"
@@ -119,13 +194,69 @@
                   Supabase에 저장된 관광지 적합도 점수를 조회하고 있습니다.
                 </p>
               </div>
-              <a
-                href="./pages/survey.html"
-                class="btn-text"
-                id="recommendation-link"
+            </div>
+
+            <div
+              class="bento-item bento-wide popular-destinations recommendation-panel"
+            >
+              <div class="bento-header">
+                <div>
+                  <h3 id="recommendation-title">내 여행 MBTI 추천</h3>
+                  <p
+                    class="recommendation-subtitle"
+                    id="recommendation-subtitle"
+                  >
+                    Supabase에 저장된 관광지 적합도 점수를 조회하고 있습니다.
+                  </p>
+                </div>
+                <a
+                  href="./pages/survey.html"
+                  class="btn-text"
+                  id="recommendation-link"
+                >
+                  성향 다시 분석 <i data-lucide="chevron-right"></i>
+                </a>
+              </div>
+              <div
+                class="dest-scroll-container recommendation-list"
+                id="recommendation-list"
+                aria-live="polite"
               >
-                성향 다시 분석 <i data-lucide="chevron-right"></i>
-              </a>
+                <div class="recommendation-state">
+                  <span
+                    class="recommendation-spinner"
+                    aria-hidden="true"
+                  ></span>
+                  <span>맞춤 여행지를 불러오는 중입니다.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bento-item bento-small widget-stats">
+              <div class="stat-number">2</div>
+              <div class="stat-label">이번 달 완료한 여행</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width: 66%"></div>
+              </div>
+              <span class="stat-sub">목표 3개 중 2개 완료</span>
+            </div>
+
+            <div class="bento-item bento-wide seasonal-banner">
+              <div
+                class="bento-bg-image"
+                style="
+                  background-image: url(&quot;./images/summer_banner.png&quot;);
+                "
+              ></div>
+              <div class="bento-overlay seasonal-overlay"></div>
+              <div class="bento-content seasonal-content">
+                <div class="seasonal-badge">여름 시즌 추천</div>
+                <h3>시원한 바다와 함께하는 제주 여행</h3>
+                <p>선선한 바람과 여유로운 일정으로 여행을 준비해보세요.</p>
+                <button class="btn-glass seasonal-btn" type="button">
+                  추천 여행지 보기 <i data-lucide="arrow-right"></i>
+                </button>
+              </div>
             </div>
             <div
               class="recommendation-list"
