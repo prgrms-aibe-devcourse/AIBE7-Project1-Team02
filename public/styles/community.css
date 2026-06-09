@@ -53,6 +53,7 @@ body, .main-wrapper, .app-container {
   overflow-x: auto;
   scrollbar-width: none;
   padding-bottom: 0.5rem;
+  padding-top: 4px;
 }
 .category-pills-scroll::-webkit-scrollbar {
   display: none;
