@@ -109,8 +109,10 @@
         <main class="dashboard-content">
           <section class="dash-header">
             <div class="dash-greeting">
-              <h1 class="greeting-title">안녕하세요, 여행자님!</h1>
-              <p class="greeting-desc">오늘은 어떤 여행을 준비하고 계신가요?</p>
+              <h1 class="greeting-title" id="greeting-title">안녕하세요, 여행자님!</h1>
+              <p class="greeting-desc" id="greeting-desc">
+                여행 MBTI에 맞는 국내 여행지를 찾고 있습니다.
+              </p>
             </div>
 
             <div class="dash-header-actions">
@@ -134,13 +136,19 @@
               ></div>
               <div class="bento-overlay"></div>
               <div class="bento-content summary-content">
-                <div class="badge-d-day">D-12</div>
+                <div class="badge-d-day" id="featured-recommendation-badge">
+                  맞춤 추천 준비 중
+                </div>
                 <div class="trip-details">
                   <h2>제주도 바다 여행</h2>
                   <p>
                     <i data-lucide="calendar"></i> 2026.06.20 - 06.23 &nbsp; |
                     &nbsp; <i data-lucide="map-pin"></i> 제주
                   </p>
+                  <p
+                    class="featured-recommendation-description"
+                    id="featured-recommendation-description"
+                  ></p>
                 </div>
                 <button
                   class="btn-glass"
@@ -178,7 +186,7 @@
               </div>
             </div>
 
-            <div class="bento-item bento-wide popular-destinations">
+            <div class="bento-item bento-wide popular-destinations recommendation-panel">
               <div class="bento-header">
                 <h3>인기 여행지</h3>
                 <a href="./pages/destinations.html" class="btn-text"
@@ -207,12 +215,18 @@
                     <p>부산</p>
                   </div>
                 </div>
-                <div class="dest-mini-card">
-                  <img src="./images/namsan.png" alt="남산" />
-                  <div class="dest-mini-info">
-                    <h4>남산타워</h4>
-                    <p>서울</p>
-                  </div>
+                <a href="./pages/survey.html" class="btn-text" id="recommendation-link">
+                  성향 다시 분석 <i data-lucide="chevron-right"></i>
+                </a>
+              </div>
+              <div
+                class="dest-scroll-container recommendation-list"
+                id="recommendation-list"
+                aria-live="polite"
+              >
+                <div class="recommendation-state">
+                  <span class="recommendation-spinner" aria-hidden="true"></span>
+                  <span>맞춤 여행지를 불러오는 중입니다.</span>
                 </div>
               </div>
             </div>

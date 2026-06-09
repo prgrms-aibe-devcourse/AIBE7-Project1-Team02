@@ -6,10 +6,11 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 
 ## 구현 상태
 
-2026년 6월 8일 기준 Express 서버에 구현된 API는 아래 두 개다.
+2026년 6월 9일 기준 Express 서버에 구현된 API는 아래 세 개다.
 
 - `GET /api/health`
 - `GET /api/config`
+- `GET /api/destinations/recommended`
 
 인증은 현재 프런트엔드에서 Supabase Auth를 직접 사용한다. 아래 표에서
 `PLANNED`로 표시한 API는 명세만 정의된 상태다.
@@ -41,6 +42,7 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | --- | --- | --- | --- | --- | --- | --- |
 | DONE | GET | `/api/health` | 없음 | 서버 상태, 확인 시각 | 서버 미실행 | 백엔드 |
 | DONE | GET | `/api/config` | 없음 | 브라우저용 Supabase URL, Anon Key | 없음, 환경 변수 검증 미구현 | 백엔드 |
+| DONE | GET | `/api/destinations/recommended` | Authorization Bearer Token, 선택 Query `limit` | 사용자 MBTI와 점수 상위 관광지 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
 | PLANNED | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
 | PLANNED | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | PLANNED | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
@@ -84,6 +86,65 @@ Response:
 
 이 API는 브라우저에서 사용 가능한 Supabase Anon Key만 반환한다.
 `SUPABASE_SERVICE_ROLE_KEY`는 절대 응답에 포함하지 않는다.
+
+### GET /api/destinations/recommended
+
+로그인 사용자의 `travel_mbti_results.mbti_type`을 조회한 뒤,
+`destination_mbti_scores`에 저장된 해당 유형의 점수를 내림차순으로
+정렬한다. 관광지 기본 정보는 `destinations`, 키워드는
+`destination_keywords`에서 함께 조회한다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+Query:
+
+```text
+limit: 선택, 기본 6, 최대 10
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "mbtiType": "INFP",
+    "recommendations": [
+      {
+        "destinationId": 93,
+        "destinationName": "가파도 소망전망대",
+        "description": "제주 본 섬과 한라산, 바다를 조망할 수 있는 장소입니다.",
+        "address": "제주특별자치도 서귀포시 대정읍 가파리 513",
+        "province": "제주특별자치도",
+        "city": "서귀포시",
+        "imageUrl": "https://example.com/destination.jpg",
+        "score": 74,
+        "reason": "contentType:12, textRule:1, textRule:2",
+        "keywords": ["자연", "명소", "오션뷰"]
+      }
+    ]
+  },
+  "message": "MBTI 맞춤 여행지 추천 조회 성공"
+}
+```
+
+동점인 경우 `destination_id` 오름차순으로 정렬한다.
+
+Error Case:
+
+```json
+{
+  "success": false,
+  "data": {
+    "needsSurvey": true
+  },
+  "message": "저장된 여행 MBTI 결과가 없습니다."
+}
+```
 
 ### POST /api/auth/signup
 
