@@ -1,6 +1,28 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const AUTH_KEYS = { access: "sb_access_token", refresh: "sb_refresh_token", user: "sb_user" };
-  const authToken = sessionStorage.getItem(AUTH_KEYS.access) || "";
+// Community feed page behavior.
+document.addEventListener('DOMContentLoaded', () => {
+  let SUPABASE_URL = '';
+  let SUPABASE_ANON_KEY = '';
+  let API = {};
+  const AUTH_KEYS = { access: 'sb_access_token', refresh: 'sb_refresh_token', user: 'sb_user' };
+
+  async function loadConfig() {
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) return;
+    const res = await fetch("/api/config");
+    const result = await res.json();
+    if (result.success) {
+      SUPABASE_URL = result.data.supabaseUrl;
+      SUPABASE_ANON_KEY = result.data.supabaseAnonKey;
+      API = {
+        feed: `${SUPABASE_URL}/rest/v1/community_feed`,
+        posts: `${SUPABASE_URL}/rest/v1/community_posts`,
+        likes: `${SUPABASE_URL}/rest/v1/community_likes`,
+        comments: `${SUPABASE_URL}/rest/v1/community_comments`,
+        shares: `${SUPABASE_URL}/rest/v1/community_shares`,
+        tags: `${SUPABASE_URL}/rest/v1/community_tags_popular`,
+        users: `${SUPABASE_URL}/rest/v1/users`,
+      };
+    }
+  }
 
   if (!authToken) {
     window.location.replace("./login.html");
@@ -100,26 +122,11 @@ document.addEventListener("DOMContentLoaded", () => {
     lucide.createIcons();
   }
 
-  async function loadConfig() {
-    const res = await fetch(resolveApiPath("/api/config"));
-    const result = await res.json();
-    if (!result.success) throw new Error("설정 정보를 불러오지 못했습니다.");
-
-    state.supabaseUrl = result.data.supabaseUrl;
-    state.supabaseAnonKey = result.data.supabaseAnonKey;
-    state.storageBucket = result.data.supabaseStorageBucket || "community-images";
-    state.api = {
-      feed: `${state.supabaseUrl}/rest/v1/community_feed`,
-      posts: `${state.supabaseUrl}/rest/v1/community_posts`,
-      likes: `${state.supabaseUrl}/rest/v1/community_likes`,
-      comments: `${state.supabaseUrl}/rest/v1/community_comments`,
-      shares: `${state.supabaseUrl}/rest/v1/community_shares`,
-      tags: `${state.supabaseUrl}/rest/v1/community_tags_popular`,
-      users: `${state.supabaseUrl}/rest/v1/users`,
-      storage: `${state.supabaseUrl}/storage/v1/object/${state.storageBucket}`,
-      storagePublic: `${state.supabaseUrl}/storage/v1/object/public/${state.storageBucket}`,
-    };
-  }
+  bindEvents();
+  loadConfig().then(() => {
+    loadCommunityPage().catch(console.error);
+  }).catch(console.error);
+  lucide.createIcons();
 
   function bindEvents() {
     els.logoutBtn?.addEventListener("click", handleLogout);

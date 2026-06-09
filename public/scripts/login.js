@@ -1,5 +1,17 @@
-const SUPABASE_URL = 'https://etomsinirscywqvyyjiv.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0b21zaW5pcnNjeXdxdnl5aml2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NDQ4NDcsImV4cCI6MjA5NjIyMDg0N30.GnbWzZZQaL2XdPkEavBsbzjx5DEZeAvosMGFVBEEYnA';
+let SUPABASE_URL = "";
+let SUPABASE_ANON_KEY = "";
+
+async function loadConfig() {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) return;
+  const res = await fetch("/api/config");
+  const result = await res.json();
+  if (result.success) {
+    SUPABASE_URL = result.data.supabaseUrl;
+    SUPABASE_ANON_KEY = result.data.supabaseAnonKey;
+  } else {
+    throw new Error("설정 정보를 불러오는데 실패했습니다.");
+  }
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -74,6 +86,7 @@ function redirectToMainPage() {
 }
 
 async function signIn(email, password) {
+  await loadConfig();
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
     headers: {
@@ -83,13 +96,15 @@ async function signIn(email, password) {
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data?.error_description || data?.msg || data?.message || '로그인 실패');
-  }
+  if (!res.ok)
+    throw new Error(
+      data?.error_description || data?.msg || data?.message || "로그인 실패",
+    );
   return data;
 }
 
 async function signUp(email, password, nickname) {
+  await loadConfig();
   const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
     method: 'POST',
     headers: {
@@ -103,9 +118,10 @@ async function signUp(email, password, nickname) {
     }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data?.error_description || data?.msg || data?.message || '회원가입 실패');
-  }
+  if (!res.ok)
+    throw new Error(
+      data?.error_description || data?.msg || data?.message || "회원가입 실패",
+    );
   return data;
 }
 
@@ -125,11 +141,11 @@ async function handleSubmit() {
   try {
     if (mode === 'login') {
       const data = await signIn(email, password);
-      sessionStorage.setItem('sb_access_token', data.access_token || '');
-      sessionStorage.setItem('sb_refresh_token', data.refresh_token || '');
-      sessionStorage.setItem('sb_user', JSON.stringify(data.user || {}));
+      sessionStorage.setItem("sb_access_token", data.access_token || "");
+      sessionStorage.setItem("sb_refresh_token", data.refresh_token || "");
+      sessionStorage.setItem("sb_user", JSON.stringify(data.user || {}));
       showSuccess(
-        `로그인 성공\n\n이메일: ${data.user?.email || email}\n닉네임: ${data.user?.user_metadata?.nickname || '없음'}`
+        `로그인 성공\n\n이메일: ${data.user?.email || email}\n닉네임: ${data.user?.user_metadata?.nickname || "없음"}`,
       );
       redirectToMainPage();
     } else {
@@ -139,9 +155,12 @@ async function handleSubmit() {
         return;
       }
       const data = await signUp(email, password, nickname);
-      sessionStorage.setItem('sb_user', JSON.stringify(data.user || { email, user_metadata: { nickname } }));
-      sessionStorage.setItem('sb_access_token', data.access_token || '');
-      sessionStorage.setItem('sb_refresh_token', data.refresh_token || '');
+      sessionStorage.setItem(
+        "sb_user",
+        JSON.stringify(data.user || { email, user_metadata: { nickname } }),
+      );
+      sessionStorage.setItem("sb_access_token", data.access_token || "");
+      sessionStorage.setItem("sb_refresh_token", data.refresh_token || "");
       showSuccess(`회원가입 성공\n\n이메일: ${email}\n닉네임: ${nickname}`);
       setTimeout(() => setMode('login'), 700);
     }

@@ -64,6 +64,20 @@ AI Provider는 아직 확정되지 않았으며, 교체 가능한 서비스 구�
 4. 4번째 키워드 선택 시 "최대 3개까지만 선택 가능합니다" 툴팁을 표시하고 선택을 무효화합니다.
 5. 최소 1개 이상의 키워드가 선택되면 `내 맞춤 여행지 보기` 버튼을 활성화합니다.
 
+## 현재 구현 현황
+
+2026년 6월 8일 `feature/destination-data` 브랜치 기준 현황입니다.
+
+- TourAPI 콘텐츠 유형 6종에서 국내 관광지 600개 수집
+- 관광지 기본 정보와 상세 설명을 Supabase `destinations`에 저장
+- 규칙 기반 통제 키워드를 `destination_keywords`에 저장
+- 관광지별 MBTI 16유형 적합도 점수를 `destination_mbti_scores`에 저장
+- 설명 보강 후 전체 관광지의 키워드와 MBTI 점수를 재계산
+- 여행지 데이터 가공 단위 테스트 4건 통과
+
+현재 Express API는 `GET /api/health`, `GET /api/config`를 제공하며,
+여행지 조회 및 추천 API는 구현 예정입니다.
+
 ## AI 추천 알고리즘
 
 추천 점수는 아래 기준으로 계산합니다.
@@ -109,6 +123,7 @@ npm start
 PORT=3000
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 AI_PROVIDER=
 AI_API_KEY=
 OPENAI_API_KEY=
@@ -116,11 +131,27 @@ GEMINI_API_KEY=
 GROQ_API_KEY=
 GOOGLE_MAPS_API_KEY=
 OPENWEATHER_API_KEY=
-TOURAPI_KEY=
+TOUR_API_KEY=
 UNSPLASH_ACCESS_KEY=
 ```
 
 `.env` 파일은 GitHub에 올리지 않습니다.
+`SUPABASE_SERVICE_ROLE_KEY`는 여행지 적재 스크립트에서만 사용하며
+브라우저에 전달하거나 공개 저장소에 기록하지 않습니다.
+
+## 여행지 데이터 가공
+
+여행지 데이터는 저장소의 정적 JSON 파일이 아니라 Supabase에 저장합니다.
+
+```bash
+node src/scripts/importTourData.js
+node src/scripts/fillDescriptions.js
+node src/scripts/recalculateMbti.js
+```
+
+실행 순서는 TourAPI 기본 데이터 적재, 누락 설명 보강, 키워드 및 MBTI
+점수 재계산 순서입니다. 세부 규칙은
+[Data Processing](./docs/architecture/DATA_PROCESSING.md)을 참고합니다.
 
 ## Documentation
 
@@ -128,6 +159,7 @@ UNSPLASH_ACCESS_KEY=
 
 - [DB Schema](./docs/architecture/DB_SCHEMA.md)
 - [API Specification](./docs/architecture/API_SPEC.md)
+- [Data Processing](./docs/architecture/DATA_PROCESSING.md)
 
 ### Design
 
@@ -138,7 +170,9 @@ UNSPLASH_ACCESS_KEY=
 
 - [WBS](./docs/management/WBS.md)
 
-MVP 단계에서는 `users`, `user_preferences`, `destinations`, `trips`, `itineraries` 5개 핵심 테이블을 기준으로 구현합니다. 자세한 구조와 관계는 [DB Schema](./docs/architecture/DB_SCHEMA.md)를 참고합니다.
+현재 스키마는 사용자, 여행, 관광지 가공 데이터를 포함한 8개 테이블을
+사용합니다. 자세한 구조와 관계는
+[DB Schema](./docs/architecture/DB_SCHEMA.md)를 참고합니다.
 
 ## 트러블 슈팅
 
