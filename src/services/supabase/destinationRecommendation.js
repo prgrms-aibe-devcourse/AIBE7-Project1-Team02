@@ -89,16 +89,20 @@ async function getRecommendedDestinations({
       "destination_id",
       "score",
       "reason",
-      "destinations(",
-      "destination_id,",
-      "destination_name,",
-      "description,",
-      "address,",
-      "province,",
-      "city,",
-      "image_url",
-      ")",
-    ].join(""),
+      [
+        "destinations(",
+        [
+          "destination_id",
+          "destination_name",
+          "description",
+          "address",
+          "province",
+          "city",
+          "image_url",
+        ].join(","),
+        ")",
+      ].join(""),
+    ].join(","),
   );
   scoreUrl.searchParams.set("mbti_type", `eq.${mbtiType}`);
   scoreUrl.searchParams.set("order", "score.desc,destination_id.asc");
