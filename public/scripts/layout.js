@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         breadcrumbText.textContent = '로그인';
       } else if (currentPath.includes('community')) {
         breadcrumbIcon.innerHTML = '<i data-lucide="users"></i>';
-        breadcrumbText.textContent = 'Local Stories';
+        breadcrumbText.textContent = '커뮤니티';
       } else if (currentPath.includes('destinations')) {
         breadcrumbIcon.innerHTML = '<i data-lucide="compass"></i>';
         breadcrumbText.textContent = '탐색하기';
