@@ -269,6 +269,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadMbtiRecommendations() {
+    // 해당 페이지에 추천 섹션이 없다면 실행하지 않음
+    if (!document.getElementById("recommendation-list")) return;
+
     try {
       const response = await fetch("/api/destinations/recommended?limit=6", {
         headers: {
