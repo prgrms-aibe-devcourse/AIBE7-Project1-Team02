@@ -1,5 +1,5 @@
-const SUPABASE_URL = 'https://etomsinirscywqvyyjiv.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0b21zaW5pcnNjeXdxdnl5aml2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NDQ4NDcsImV4cCI6MjA5NjIyMDg0N30.GnbWzZZQaL2XdPkEavBsbzjx5DEZeAvosMGFVBEEYnA';
+let SUPABASE_URL = '';
+let SUPABASE_ANON_KEY = '';
 
 const $ = (id) => document.getElementById(id);
 
@@ -18,6 +18,20 @@ const switchToLoginBtn = $('switchToLogin');
 
 let mode = 'login';
 let redirectTimer = null;
+
+async function loadConfig() {
+  if (SUPABASE_URL && SUPABASE_ANON_KEY) return;
+
+  const response = await fetch('/api/config');
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok || !result.success) {
+    throw new Error('로그인 설정 정보를 불러오지 못했습니다.');
+  }
+
+  SUPABASE_URL = result.data.supabaseUrl;
+  SUPABASE_ANON_KEY = result.data.supabaseAnonKey;
+}
 
 function showAlert(message) {
   alertEl.textContent = message;
@@ -51,25 +65,39 @@ function setMode(nextMode) {
 
   if (mode === 'signup') {
     titleEl.textContent = '회원가입';
+    subtitleEl.hidden = false;
     subtitleEl.textContent = '새 계정을 만들고 여행 계획을 시작하세요.';
-    nicknameWrapEl.style.display = 'block';
+    nicknameWrapEl.hidden = false;
     submitBtn.textContent = '회원가입';
-    switchToSignupBtn.style.display = 'none';
-    switchToLoginBtn.style.display = 'inline-block';
+    switchToSignupBtn.hidden = true;
+    switchToLoginBtn.hidden = false;
   } else {
     titleEl.textContent = '로그인';
-    subtitleEl.textContent = 'Supabase 계정으로 로그인하세요.';
-    nicknameWrapEl.style.display = 'none';
+    subtitleEl.hidden = true;
+    subtitleEl.textContent = '';
+    nicknameWrapEl.hidden = true;
     submitBtn.textContent = '로그인';
-    switchToSignupBtn.style.display = 'inline-block';
-    switchToLoginBtn.style.display = 'none';
+    switchToSignupBtn.hidden = false;
+    switchToLoginBtn.hidden = true;
+  }
+
+  if (window.lucide) {
+    window.lucide.createIcons();
   }
 }
 
 function redirectToMainPage() {
   if (redirectTimer) clearTimeout(redirectTimer);
   redirectTimer = setTimeout(() => {
-    window.location.replace('../index.html');
+    const redirectPath = new URLSearchParams(window.location.search).get('redirect');
+    window.location.replace(redirectPath || '../index.html');
+  }, 700);
+}
+
+function redirectToSurveyPage() {
+  if (redirectTimer) clearTimeout(redirectTimer);
+  redirectTimer = setTimeout(() => {
+    window.location.replace('./survey.html');
   }, 700);
 }
 
@@ -123,6 +151,8 @@ async function handleSubmit() {
   submitBtn.textContent = mode === 'signup' ? '가입 중...' : '로그인 중...';
 
   try {
+    await loadConfig();
+
     if (mode === 'login') {
       const data = await signIn(email, password);
       sessionStorage.setItem('sb_access_token', data.access_token || '');
@@ -142,8 +172,8 @@ async function handleSubmit() {
       sessionStorage.setItem('sb_user', JSON.stringify(data.user || { email, user_metadata: { nickname } }));
       sessionStorage.setItem('sb_access_token', data.access_token || '');
       sessionStorage.setItem('sb_refresh_token', data.refresh_token || '');
-      showSuccess(`회원가입 성공\n\n이메일: ${email}\n닉네임: ${nickname}`);
-      setTimeout(() => setMode('login'), 700);
+      showSuccess(`회원가입 성공\n\n이메일: ${email}\n닉네임: ${nickname}\n성향 분석 페이지로 이동합니다.`);
+      redirectToSurveyPage();
     }
   } catch (err) {
     showAlert(err?.message || '요청 실패');

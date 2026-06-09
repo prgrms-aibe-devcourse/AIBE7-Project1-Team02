@@ -155,7 +155,10 @@
             >
               <div class="bento-header">
                 <h3>최근 다녀온 여행</h3>
-                <a href="#" id="link-view-all-trips" class="btn-text"
+                <a
+                  href="./saved-trips.html"
+                  id="link-view-all-trips"
+                  class="btn-text"
                   >내 여행 전체 <i data-lucide="chevron-right"></i
                 ></a>
               </div>
@@ -178,14 +181,39 @@
                   >목록 보기 <i data-lucide="chevron-right"></i
                 ></a>
               </div>
-              <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 1; color: var(--color-text-muted); padding: 2rem 0;">
+              <div class="saved-destinations-list" id="saved-destinations-list">
                 <i data-lucide="bookmark" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
-                <p>저장한 여행지가 없습니다.</p>
+                <p>저장한 여행지를 불러오고 있습니다.</p>
               </div>
             </div>
           </section>
         </main>
       </div>
+    </div>
+
+    <div class="modal-overlay" id="saved-destinations-modal">
+      <div class="modal-content saved-destinations-modal-content">
+        <button
+          class="modal-close-btn"
+          id="saved-destinations-close-btn"
+          type="button"
+          aria-label="저장한 여행지 목록 닫기"
+        >
+          <i data-lucide="x"></i>
+        </button>
+        <div class="saved-destinations-modal-header">
+          <span class="recommendation-eyebrow">BOOKMARKS</span>
+          <h2>저장한 여행지</h2>
+          <p>북마크한 관광지를 위아래로 스크롤하며 확인하세요.</p>
+        </div>
+        <div
+          class="saved-destinations-modal-list"
+          id="saved-destinations-modal-list"
+          aria-live="polite"
+        ></div>
+      </div>
+    </div>
+
     <!-- Edit Profile Modal -->
     <div class="modal-overlay" id="edit-profile-modal">
       <div class="modal-content profile-edit-modal" style="max-width: 400px;">

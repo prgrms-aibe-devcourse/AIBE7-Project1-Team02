@@ -1,18 +1,228 @@
 <!doctype html>
 <html lang="ko">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>여행지 탐색 | Tripadvisor AI</title>
-    <link rel="stylesheet" href="../styles/common.css">
-    <link rel="stylesheet" href="../styles/destinations.css">
-    <script src="../scripts/common.js" defer></script>
-    <script src="../scripts/destinations.js" defer></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>여행지 더 찾아보기 | ExploraJourneys</title>
+    <meta
+      name="description"
+      content="내 여행 MBTI 점수 순으로 국내 관광지를 필터링하고 둘러보세요."
+    />
+    <link rel="stylesheet" href="../styles/main.css" />
+    <link rel="stylesheet" href="../styles/destinations.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
-    <main>
-      <h1>여행지 탐색</h1>
-    </main>
+    <div class="app-container">
+      <div id="sidebar-container"></div>
+
+      <div class="main-wrapper">
+        <div id="header-container"></div>
+
+        <main class="dashboard-content destination-explore-page">
+          <section aria-labelledby="destination-explore-title">
+            <div class="destination-explore-header">
+              <div>
+                <span class="recommendation-eyebrow">MORE DESTINATIONS</span>
+                <h1 id="destination-explore-title">여행지 더 찾아보기</h1>
+                <p id="destination-explore-subtitle">
+                  내 여행 MBTI와 잘 맞는 국내 관광지를 불러오고 있습니다.
+                </p>
+              </div>
+              <a
+                class="destination-back-link"
+                id="destination-back-link"
+                href="../index.html"
+              >
+                <i data-lucide="arrow-left"></i>
+                TOP 10으로 돌아가기
+              </a>
+            </div>
+
+            <form class="destination-filter-panel" id="destination-filter-form">
+              <div class="destination-filter-field">
+                <span>지역</span>
+                <button
+                  class="destination-filter-select"
+                  id="destination-province-filter"
+                  type="button"
+                >
+                  <span id="destination-province-summary">전체 지역</span>
+                  <i data-lucide="chevron-down"></i>
+                </button>
+              </div>
+              <div class="destination-filter-field">
+                <span>키워드</span>
+                <button
+                  class="destination-filter-select"
+                  id="destination-keyword-filter"
+                  type="button"
+                >
+                  <span id="destination-keyword-summary">전체 키워드</span>
+                  <i data-lucide="chevron-down"></i>
+                </button>
+              </div>
+              <button
+                class="destination-filter-reset"
+                id="destination-filter-reset"
+                type="button"
+              >
+                <i data-lucide="rotate-ccw"></i>
+                필터 초기화
+              </button>
+              <button
+                class="btn-primary destination-filter-search"
+                id="destination-filter-search"
+                type="submit"
+              >
+                <i data-lucide="search"></i>
+                검색
+              </button>
+            </form>
+
+            <div class="destination-result-summary">
+              <p id="destination-result-count">관광지를 불러오는 중입니다.</p>
+            </div>
+
+            <div
+              class="destination-explore-grid"
+              id="destination-explore-grid"
+              aria-live="polite"
+            >
+              <div class="destination-explore-state">
+                <span class="recommendation-spinner" aria-hidden="true"></span>
+                <span>추천 여행지를 불러오는 중입니다.</span>
+              </div>
+            </div>
+
+            <nav
+              class="destination-pagination"
+              id="destination-pagination"
+              aria-label="여행지 목록 페이지"
+              hidden
+            ></nav>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div
+      class="destination-detail-overlay"
+      id="destination-detail-modal"
+      aria-hidden="true"
+    >
+      <article
+        class="destination-detail-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="destination-detail-name"
+      >
+        <button
+          class="destination-detail-close"
+          id="destination-detail-close"
+          type="button"
+          aria-label="여행지 상세 닫기"
+        >
+          <i data-lucide="x"></i>
+        </button>
+        <img
+          class="destination-detail-image"
+          id="destination-detail-image"
+          alt=""
+        />
+        <div
+          class="destination-detail-image destination-detail-no-image"
+          id="destination-detail-no-image"
+          hidden
+        >
+          <i data-lucide="image-off"></i>
+          <span>이미지 없음</span>
+        </div>
+        <div class="destination-detail-content">
+          <h2 id="destination-detail-name">여행지 상세정보</h2>
+          <p class="destination-detail-region" id="destination-detail-region">
+            <i data-lucide="map-pin"></i>
+            <span>대한민국</span>
+          </p>
+          <div
+            class="destination-detail-keywords"
+            id="destination-detail-keywords"
+          ></div>
+          <p
+            class="destination-detail-description"
+            id="destination-detail-description"
+          ></p>
+          <div class="destination-detail-reason" id="destination-detail-reason">
+            <strong>추천 이유</strong>
+            <p></p>
+          </div>
+          <button
+            class="btn-primary destination-detail-action"
+            id="destination-detail-action"
+            type="button"
+          >
+            이 여행지로 일정 만들기 <i data-lucide="arrow-right"></i>
+          </button>
+          <button
+            class="destination-detail-bookmark"
+            id="destination-detail-bookmark"
+            type="button"
+          >
+            ♡
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <div
+      class="destination-filter-modal"
+      id="destination-filter-modal"
+      aria-hidden="true"
+    >
+      <section
+        class="destination-filter-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="destination-filter-modal-title"
+      >
+        <header class="destination-filter-modal-header">
+          <div>
+            <span class="recommendation-eyebrow">FILTER</span>
+            <h2 id="destination-filter-modal-title">필터 선택</h2>
+          </div>
+          <button
+            class="destination-filter-modal-close"
+            id="destination-filter-modal-close"
+            type="button"
+            aria-label="필터 선택 닫기"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </header>
+        <div
+          class="destination-filter-options"
+          id="destination-filter-options"
+        ></div>
+        <footer class="destination-filter-modal-actions">
+          <button
+            class="destination-filter-modal-clear"
+            id="destination-filter-modal-clear"
+            type="button"
+          >
+            선택 해제
+          </button>
+          <button
+            class="btn-primary"
+            id="destination-filter-modal-apply"
+            type="button"
+          >
+            완료
+          </button>
+        </footer>
+      </section>
+    </div>
+
     <script src="/scripts/layout.js"></script>
+    <script src="../scripts/destinations.js"></script>
   </body>
 </html>
