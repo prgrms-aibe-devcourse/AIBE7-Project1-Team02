@@ -23,7 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const greetingTitle = document.getElementById("greeting-title");
   const greetingDesc = document.getElementById("greeting-desc");
-  const mbtiProfileSummary = document.getElementById("mbti-profile-summary");
   const recommendationTitle = document.getElementById("recommendation-title");
   const recommendationSubtitle = document.getElementById(
     "recommendation-subtitle",
@@ -236,8 +235,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (response.status === 404 && result.data?.needsSurvey) {
         greetingDesc.textContent =
           "여행 성향 분석을 완료하면 나에게 맞는 여행지를 추천해 드립니다.";
-        mbtiProfileSummary.innerHTML =
-          '<strong style="color: var(--color-primary)">MBTI:</strong> 미검사';
         recommendationTitle.textContent = "여행 MBTI 분석이 필요합니다";
         recommendationSubtitle.textContent =
           "12개 질문에 답하고 나만의 국내 여행지를 추천받아 보세요.";
@@ -270,8 +267,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const { mbtiType, recommendations } = result.data;
       greetingDesc.textContent = `${mbtiType} 여행 성향에 잘 맞는 국내 여행지를 추천해 드려요.`;
-      mbtiProfileSummary.innerHTML =
-        `<strong style="color: var(--color-primary)">MBTI:</strong> ${mbtiType}`;
       recommendationTitle.textContent = `${mbtiType} 맞춤 여행지 TOP ${recommendations.length}`;
       recommendationSubtitle.textContent =
         "Supabase에 저장된 관광지별 MBTI 적합도 점수 순위입니다.";
