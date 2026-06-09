@@ -115,6 +115,19 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 `tour_content_id`는 TourAPI 데이터를 반복 수집할 때 동일 여행지를
 중복 생성하지 않고 upsert하기 위한 외부 식별자로 사용한다.
 
+TourAPI 적재는 응답의 `totalCount`로 전체 페이지 수를 계산한 뒤,
+제한된 수의 페이지를 전체 구간에 균등하게 분산 선택한다. 예를 들어
+전체 127페이지에서 3페이지를 수집하면 `1`, `64`, `127`페이지를
+조회한다. 선택한 페이지는 가공 후 일괄 upsert하며, 실행이 중단돼도
+`tour_content_id`를 기준으로 다시 실행할 수 있다.
+
+대량 적재 환경 변수:
+
+- `TOUR_API_PAGE_SIZE`: 페이지당 조회 개수, 기본값 `50`
+- `TOUR_API_MAX_PAGES`: 콘텐츠 유형별 분산 조회 페이지 수, 기본값 `3`
+  (`0`이면 전체 페이지)
+- `TOUR_API_REQUEST_DELAY_MS`: API 페이지 요청 간격, 기본값 `150`
+
 ## destination_keywords
 
 규칙 기반 가공으로 추출한 통제된 여행 키워드를 저장한다.
