@@ -134,40 +134,39 @@
             >
               <div
                 class="bento-bg-image"
-                style="background-image: url('../images/jeju_night.png');"
+                id="mypage-ai-bg"
+                style="background-color: var(--color-bg-card);"
               ></div>
-              <div class="bento-overlay seasonal-overlay ai-recommendation-overlay"></div>
+              <div class="bento-overlay seasonal-overlay ai-recommendation-overlay" style="background: linear-gradient(to right, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.4) 100%);"></div>
               <div
                 class="bento-content seasonal-content"
                 style="align-items: flex-start"
               >
-                <div class="seasonal-badge ai-badge">
+                <div class="seasonal-badge ai-badge" style="background: rgba(255,255,255,0.2);">
                   <i data-lucide="sparkles"></i>
                   AI 맞춤 제안
                 </div>
-                <h3 class="ai-title">
-                  여유로운 해변 산책을 즐기는 여행자님을 위해
+                <h3 class="ai-title" id="mypage-ai-title">
+                  아직 여행 취향을 분석하지 않았어요
                 </h3>
-                <p class="ai-desc">
-                  이번 주말에는 선선한 파도소리와 함께
-                  <strong style="color: #60a5fa">강릉 안목해변</strong>은
-                  어떠신가요?
+                <p class="ai-desc" id="mypage-ai-desc">
+                  여행 취향 검사를 완료하고 나만의 <strong style="color: #60a5fa">맞춤 여행지</strong>를 추천받아보세요!
                 </p>
-                <button
+                <a
+                  href="./survey.html"
+                  id="mypage-ai-btn"
                   class="btn-glass seasonal-btn"
-                  type="button"
-                  id="btn-view-recommendations"
-                  style="margin-top: 1.25rem"
+                  style="margin-top: 1.25rem; display: inline-flex; text-decoration: none;"
                 >
-                  추천 여행지 전체보기 <i data-lucide="arrow-right"></i>
-                </button>
+                  여행 취향 검사하러 가기 <i data-lucide="arrow-right"></i>
+                </a>
               </div>
             </div>
 
             <!-- Stats (Small) -->
             <div class="bento-item bento-small widget-stats mypage-stats-bento">
               <div class="stat-number" style="color: var(--color-primary)">
-                5
+                0
               </div>
               <div class="stat-label" style="color: var(--color-primary-hover)">
                 지금까지 다녀온 여행
@@ -175,11 +174,11 @@
               <div class="stat-bar" style="background: rgba(59, 130, 246, 0.2)">
                 <div
                   class="stat-bar-fill"
-                  style="width: 100%; background: var(--color-primary)"
+                  style="width: 0%; background: var(--color-primary)"
                 ></div>
               </div>
               <span class="stat-sub" style="color: var(--color-text-muted)"
-                >새로운 배지 획득까지 1번 남았습니다!</span
+                >첫 여행을 기록해 보세요!</span
               >
             </div>
 
@@ -194,39 +193,10 @@
                   >내 여행 전체 <i data-lucide="chevron-right"></i
                 ></a>
               </div>
-              <div class="trip-list-wrapper">
-                <div class="trip-list-item">
-                  <img
-                    src="../images/bukchon.png"
-                    alt="북촌"
-                    class="trip-list-img"
-                  />
-                  <div style="flex: 1">
-                    <div class="trip-list-date">
-                      <i data-lucide="calendar"></i>
-                      2026.05.10 - 05.12
-                    </div>
-                    <h4 class="trip-list-title">서울 도심 속 역사 탐방</h4>
-                    <p class="trip-list-desc">북촌 한옥마을, 경복궁 외 3곳</p>
-                  </div>
-                  <div class="trip-list-status">완료됨</div>
-                </div>
-
-                <div class="trip-list-item">
-                  <img
-                    src="../images/haeundae.png"
-                    alt="해운대"
-                    class="trip-list-img"
-                  />
-                  <div style="flex: 1">
-                    <div class="trip-list-date">
-                      <i data-lucide="calendar"></i>
-                      2026.04.05 - 04.07
-                    </div>
-                    <h4 class="trip-list-title">봄바람 부는 부산 여행</h4>
-                    <p class="trip-list-desc">해운대 해수욕장, 광안대교 외 2곳</p>
-                  </div>
-                  <div class="trip-list-status">완료됨</div>
+              <div class="trip-list-wrapper" style="justify-content: center; align-items: center; color: var(--color-text-muted); padding: 2rem 0;">
+                <div style="text-align: center;">
+                  <i data-lucide="map" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                  <p>아직 다녀온 여행이 없습니다.<br>새로운 여행을 계획해 보세요!</p>
                 </div>
               </div>
             </div>
@@ -242,50 +212,9 @@
                   >목록 보기 <i data-lucide="chevron-right"></i
                 ></a>
               </div>
-              <div class="dest-grid" style="margin-top: 0.5rem">
-                <div class="dest-mini-card">
-                  <img src="../images/gwangalli.png" alt="광안리" />
-                  <div class="dest-mini-info dest-mini-info-wrapper">
-                    <div>
-                      <h4>광안리 해수욕장</h4>
-                      <p>부산 수영구</p>
-                    </div>
-                    <i data-lucide="heart"></i>
-                  </div>
-                </div>
-                <div class="dest-mini-card">
-                  <img src="../images/namsan.png" alt="남산" />
-                  <div class="dest-mini-info dest-mini-info-wrapper">
-                    <div>
-                      <h4>N서울타워</h4>
-                      <p>서울 용산구</p>
-                    </div>
-                    <i data-lucide="heart"></i>
-                  </div>
-                </div>
-                <div class="dest-mini-card">
-                  <img src="../images/jeju_night.png" alt="제주" />
-                  <div class="dest-mini-info dest-mini-info-wrapper">
-                    <div>
-                      <h4>성산일출봉</h4>
-                      <p>제주 서귀포시</p>
-                    </div>
-                    <i data-lucide="heart"></i>
-                  </div>
-                </div>
-                <div class="dest-mini-card">
-                  <img
-                    src="https://images.unsplash.com/photo-1546874177-9e664107314e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60"
-                    alt="경주"
-                  />
-                  <div class="dest-mini-info dest-mini-info-wrapper">
-                    <div>
-                      <h4>동궁과 월지</h4>
-                      <p>경북 경주시</p>
-                    </div>
-                    <i data-lucide="heart"></i>
-                  </div>
-                </div>
+              <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 1; color: var(--color-text-muted); padding: 2rem 0;">
+                <i data-lucide="bookmark" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                <p>저장한 여행지가 없습니다.</p>
               </div>
             </div>
           </section>
@@ -322,6 +251,53 @@
           <button id="btn-save-profile" class="btn-primary btn-glow profile-save-btn" style="width: 100%; justify-content: center; margin-top: 0.5rem;">
             저장하기
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+      <div class="modal-content settings-modal-content">
+        <button id="settings-close-btn" class="modal-close-btn" aria-label="Close Settings">
+          <i data-lucide="x"></i>
+        </button>
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <h2 style="font-size: 1.6rem; font-weight: 700; color: var(--color-text-main);">설정</h2>
+        </div>
+        
+        <div class="settings-tabs">
+          <button class="settings-tab active" data-tab="account">계정 관리</button>
+          <button class="settings-tab" data-tab="data">데이터 관리</button>
+          <button class="settings-tab" data-tab="info">서비스 정보</button>
+        </div>
+
+        <div class="settings-tab-content active" id="settings-tab-account">
+          <h3 class="settings-section-title">비밀번호 변경</h3>
+          <div style="margin-bottom: 1.5rem;">
+            <input type="password" id="settings-new-password" class="profile-input" placeholder="새로운 비밀번호 입력 (6자 이상)" style="margin-bottom: 0.5rem; width: 100%;">
+            <button id="btn-change-password" class="btn-primary" style="width: 100%; justify-content: center;">비밀번호 변경</button>
+          </div>
+          
+          <h3 class="settings-section-title" style="color: var(--color-danger); border-top: 1px solid var(--color-border); padding-top: 1.5rem;">위험 영역</h3>
+          <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1rem;">회원 탈퇴 시 등록된 모든 정보가 즉시 완전 삭제되며 복구할 수 없습니다.</p>
+          <button id="btn-delete-account" class="btn-danger" style="width: 100%; justify-content: center;">회원 탈퇴</button>
+        </div>
+
+        <div class="settings-tab-content" id="settings-tab-data">
+          <h3 class="settings-section-title">내 데이터 초기화</h3>
+          <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+            MBTI 검사 결과, 저장된 여행지, 생성된 일정 등 회원님의 활동 데이터를 모두 초기화합니다.
+          </p>
+          <button id="btn-reset-data" class="btn-danger" style="width: 100%; justify-content: center;">내 데이터 모두 지우기</button>
+        </div>
+
+        <div class="settings-tab-content" id="settings-tab-info">
+          <h3 class="settings-section-title">서비스 정보</h3>
+          <ul class="settings-info-list">
+            <li><strong>버전</strong> <span>1.0.0 (MVP)</span></li>
+            <li><a href="#" id="link-tos" style="color: var(--color-primary); text-decoration: underline;">이용약관</a></li>
+            <li><a href="#" id="link-privacy" style="color: var(--color-primary); text-decoration: underline;">개인정보처리방침</a></li>
+          </ul>
         </div>
       </div>
     </div>

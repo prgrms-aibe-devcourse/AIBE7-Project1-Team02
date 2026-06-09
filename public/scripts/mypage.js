@@ -69,6 +69,42 @@ document.addEventListener("DOMContentLoaded", async () => {
       headerAvatarEl.src = profileImage;
     }
 
+    // AI 추천 데이터 조회
+    try {
+      const recRes = await fetch("/api/destinations/recommended?limit=1", {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const recData = await recRes.json().catch(() => null);
+      
+      if (recRes.ok && recData && recData.success && recData.data && recData.data.mbtiType && recData.data.recommendations.length > 0) {
+        const rec = recData.data.recommendations[0];
+        
+        const aiBannerTitle = document.getElementById("mypage-ai-title");
+        const aiBannerDesc = document.getElementById("mypage-ai-desc");
+        const aiBannerBtn = document.getElementById("mypage-ai-btn");
+        const aiBannerBg = document.getElementById("mypage-ai-bg");
+
+        if (aiBannerTitle) {
+          aiBannerTitle.textContent = `${recData.data.mbtiType} 여행자님을 위한 추천!`;
+        }
+        if (aiBannerDesc) {
+          aiBannerDesc.innerHTML = `이번 여행은 <strong style="color: #fbbf24">${rec.destinationName}</strong> 어떠신가요?<br><span style="font-size:0.9rem; opacity:0.9; margin-top:0.3rem; display:block;">${rec.reason || rec.description}</span>`;
+        }
+        if (aiBannerBtn) {
+          aiBannerBtn.innerHTML = `추천 여행지 전체보기 <i data-lucide="arrow-right"></i>`;
+          aiBannerBtn.href = "../index.html";
+        }
+        if (aiBannerBg && rec.imageUrl) {
+          aiBannerBg.style.backgroundImage = `url('${rec.imageUrl}')`;
+          aiBannerBg.style.backgroundColor = "transparent";
+          aiBannerBg.style.backgroundSize = "cover";
+          aiBannerBg.style.backgroundPosition = "center";
+        }
+      }
+    } catch (err) {
+      console.error("추천 데이터 로드 실패:", err);
+    }
+
   } catch (error) {
     console.error("사용자 정보 로드 중 오류 발생:", error);
   }
@@ -81,9 +117,147 @@ document.addEventListener("DOMContentLoaded", async () => {
   const linkAllTrips = document.getElementById("link-view-all-trips");
   const linkSavedDest = document.getElementById("link-view-saved-destinations");
 
+  const settingsModal = document.getElementById("settings-modal");
+  const settingsCloseBtn = document.getElementById("settings-close-btn");
+  const settingsTabs = document.querySelectorAll(".settings-tab");
+  const settingsTabContents = document.querySelectorAll(".settings-tab-content");
+  const btnChangePassword = document.getElementById("btn-change-password");
+  const btnDeleteAccount = document.getElementById("btn-delete-account");
+  const btnResetData = document.getElementById("btn-reset-data");
+  const inputNewPassword = document.getElementById("settings-new-password");
+
   if (btnSettings) {
     btnSettings.addEventListener("click", () => {
-      alert("설정 기능은 준비 중입니다.");
+      if (settingsModal) settingsModal.classList.add("active");
+    });
+  }
+
+  if (settingsCloseBtn) {
+    settingsCloseBtn.addEventListener("click", () => {
+      settingsModal.classList.remove("active");
+    });
+  }
+
+  if (settingsModal) {
+    settingsModal.addEventListener("click", (e) => {
+      if (e.target === settingsModal) {
+        settingsModal.classList.remove("active");
+      }
+    });
+  }
+
+  settingsTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      settingsTabs.forEach(t => t.classList.remove("active"));
+      settingsTabContents.forEach(c => c.classList.remove("active"));
+      tab.classList.add("active");
+      const targetContent = document.getElementById(`settings-tab-${tab.dataset.tab}`);
+      if (targetContent) targetContent.classList.add("active");
+    });
+  });
+
+  // 비밀번호 변경
+  if (btnChangePassword) {
+    btnChangePassword.addEventListener("click", async () => {
+      const newPassword = inputNewPassword.value;
+      if (newPassword.length < 6) {
+        alert("비밀번호는 6자 이상이어야 합니다.");
+        return;
+      }
+      if (!confirm("비밀번호를 변경하시겠습니까?")) return;
+
+      try {
+        btnChangePassword.disabled = true;
+        btnChangePassword.textContent = "변경 중...";
+        
+        const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({ password: newPassword })
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json().catch(()=>({}));
+          throw new Error(errData.msg || "비밀번호 변경 실패");
+        }
+        
+        alert("비밀번호가 성공적으로 변경되었습니다.");
+        inputNewPassword.value = "";
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btnChangePassword.disabled = false;
+        btnChangePassword.textContent = "비밀번호 변경";
+      }
+    });
+  }
+
+  // 데이터 초기화
+  if (btnResetData) {
+    btnResetData.addEventListener("click", async () => {
+      if (!confirm("모든 활동 데이터(MBTI 결과, 여행지 저장, 일정 등)를 삭제합니다.\n이 작업은 복구할 수 없습니다. 계속하시겠습니까?")) return;
+
+      try {
+        btnResetData.disabled = true;
+        btnResetData.textContent = "삭제 중...";
+        
+        const headers = {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${accessToken}`
+        };
+
+        await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/user_preferences?user_id=eq.${userId}`, { method: 'DELETE', headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/travel_mbti_results?user_id=eq.${userId}`, { method: 'DELETE', headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/trips?user_id=eq.${userId}`, { method: 'DELETE', headers })
+        ]);
+
+        alert("모든 데이터가 성공적으로 초기화되었습니다.");
+        window.location.reload();
+      } catch (err) {
+        console.error(err);
+        alert("데이터 초기화 중 오류가 발생했습니다.");
+      } finally {
+        btnResetData.disabled = false;
+        btnResetData.textContent = "내 데이터 모두 지우기";
+      }
+    });
+  }
+
+  // 회원 탈퇴 (Hard Delete)
+  if (btnDeleteAccount) {
+    btnDeleteAccount.addEventListener("click", async () => {
+      if (!confirm("정말 탈퇴하시겠습니까?\n모든 계정 정보와 데이터가 완전히 삭제되며 복구할 수 없습니다.")) return;
+
+      try {
+        btnDeleteAccount.disabled = true;
+        btnDeleteAccount.textContent = "탈퇴 처리 중...";
+
+        const res = await fetch("/api/user/account", {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`
+          }
+        });
+        
+        const data = await res.json().catch(()=>({}));
+        
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "회원 탈퇴에 실패했습니다.");
+        }
+
+        alert("회원 탈퇴가 정상적으로 처리되었습니다.\n그동안 이용해 주셔서 감사합니다.");
+        sessionStorage.clear();
+        window.location.replace("./login.html");
+      } catch (err) {
+        alert(err.message);
+        btnDeleteAccount.disabled = false;
+        btnDeleteAccount.textContent = "회원 탈퇴";
+      }
     });
   }
 
