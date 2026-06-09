@@ -92,20 +92,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   const editPreview = document.getElementById("edit-profile-avatar-preview");
   const editImageInput = document.getElementById("edit-profile-image");
   const editNicknameInput = document.getElementById("edit-profile-nickname");
-  const editEmailInput = document.getElementById("edit-profile-email");
   const btnSaveProfile = document.getElementById("btn-save-profile");
+  
+  let selectedProfileFile = null;
 
   if (btnEditProfile) {
     btnEditProfile.addEventListener("click", () => {
       // 모달 띄울 때 현재 값 세팅
       if(imgEl) {
         editPreview.src = imgEl.src;
-        editImageInput.value = imgEl.src;
       }
       if(nameEl) {
         editNicknameInput.value = nameEl.textContent;
       }
-      editEmailInput.value = user.email || "";
+      editImageInput.value = ""; // 파일 입력란 초기화
+      selectedProfileFile = null;
       editModal.classList.add("active");
     });
   }
@@ -125,10 +126,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // 이미지 URL 입력 시 미리보기 변경
+  // 이미지 파일 선택 시 미리보기 변경 및 파일 객체 저장
   if (editImageInput) {
-    editImageInput.addEventListener("input", (e) => {
-      editPreview.src = e.target.value;
+    editImageInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        selectedProfileFile = file;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          editPreview.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
     });
   }
 
@@ -136,7 +145,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (btnSaveProfile) {
     btnSaveProfile.addEventListener("click", async () => {
       const newNickname = editNicknameInput.value.trim();
-      const newImage = editImageInput.value.trim();
+      let newImage = editPreview.src; // 기본적으로 현재 미리보기 된 주소 사용
 
       if (!newNickname) {
         alert("닉네임을 입력해주세요.");
@@ -147,15 +156,39 @@ document.addEventListener("DOMContentLoaded", async () => {
       btnSaveProfile.disabled = true;
 
       try {
-        const headers = {
-          "Content-Type": "application/json",
+        const baseHeaders = {
           "apikey": SUPABASE_ANON_KEY,
           "Authorization": `Bearer ${accessToken}`
         };
 
+        // 이미지 파일이 새로 선택된 경우 Supabase Storage(avatars)에 업로드
+        if (selectedProfileFile) {
+          const fileExt = selectedProfileFile.name.split('.').pop();
+          const fileName = `${userId}-${Date.now()}.${fileExt}`;
+          
+          const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${fileName}`, {
+            method: 'POST',
+            headers: {
+              ...baseHeaders,
+              "Content-Type": selectedProfileFile.type
+            },
+            body: selectedProfileFile
+          });
+
+          if (!uploadRes.ok) {
+            const errData = await uploadRes.json().catch(()=>({}));
+            throw new Error(errData.message || "이미지 업로드 실패");
+          }
+
+          newImage = `${SUPABASE_URL}/storage/v1/object/public/avatars/${fileName}`;
+        }
+
         const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/users?user_id=eq.${userId}`, {
           method: 'PATCH',
-          headers,
+          headers: {
+            ...baseHeaders,
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
             nickname: newNickname,
             profile_image: newImage
