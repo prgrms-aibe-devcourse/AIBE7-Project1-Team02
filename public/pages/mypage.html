@@ -95,14 +95,15 @@
                 <img
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
                   alt="프로필"
+                  id="mypage-avatar-img"
                 />
               </div>
               <div>
                 <h1 class="greeting-title mypage-title">
-                  여행자님
-                  <span class="mypage-badge">
+                  <span id="mypage-user-name">여행자</span>님
+                  <span class="mypage-badge" id="mypage-user-badge">
                     <i data-lucide="compass"></i>
-                    바다 산책형
+                    <span id="mypage-badge-text">바다 산책형</span>
                   </span>
                 </h1>
                 <p class="greeting-desc">
@@ -112,13 +113,13 @@
             </div>
 
             <div class="dash-header-actions mypage-actions">
-              <button class="btn-primary btn-outline" type="button">
+              <button class="btn-primary btn-outline" type="button" id="btn-settings">
                 <i data-lucide="settings"></i> 설정
               </button>
-              <button class="btn-primary btn-outline" type="button">
+              <button class="btn-primary btn-outline" type="button" id="btn-edit-profile">
                 <i data-lucide="edit-3"></i> 프로필 편집
               </button>
-              <button class="btn-primary btn-glow" type="button">
+              <button class="btn-primary btn-glow" type="button" id="btn-new-trip">
                 <i data-lucide="plus"></i> 새 여행 만들기
               </button>
             </div>
@@ -155,6 +156,7 @@
                 <button
                   class="btn-glass seasonal-btn"
                   type="button"
+                  id="btn-view-recommendations"
                   style="margin-top: 1.25rem"
                 >
                   추천 여행지 전체보기 <i data-lucide="arrow-right"></i>
@@ -188,7 +190,7 @@
             >
               <div class="bento-header">
                 <h3>최근 다녀온 여행</h3>
-                <a href="#" class="btn-text"
+                <a href="#" id="link-view-all-trips" class="btn-text"
                   >내 여행 전체 <i data-lucide="chevron-right"></i
                 ></a>
               </div>
@@ -236,7 +238,7 @@
             >
               <div class="bento-header">
                 <h3>저장한 여행지</h3>
-                <a href="#" class="btn-text"
+                <a href="#" id="link-view-saved-destinations" class="btn-text"
                   >목록 보기 <i data-lucide="chevron-right"></i
                 ></a>
               </div>
@@ -289,7 +291,40 @@
           </section>
         </main>
       </div>
+    <!-- Edit Profile Modal -->
+    <div class="modal-overlay" id="edit-profile-modal">
+      <div class="modal-content" style="max-width: 400px; padding: 2rem;">
+        <button class="modal-close-btn" id="edit-profile-close-btn" type="button" aria-label="닫기">
+          <i data-lucide="x"></i>
+        </button>
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-main);">프로필 편집</h2>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <div style="text-align: center;">
+            <img id="edit-profile-avatar-preview" src="" alt="Profile Preview" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div>
+              <label for="edit-profile-image" style="font-size: 0.85rem; color: var(--color-text-muted); display: block; margin-bottom: 0.5rem; text-align: left;">프로필 이미지 URL</label>
+              <input type="text" id="edit-profile-image" style="width: 100%; padding: 0.75rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(0,0,0,0.2); color: white;" placeholder="이미지 URL을 입력하세요">
+            </div>
+          </div>
+          <div>
+            <label for="edit-profile-nickname" style="font-size: 0.85rem; color: var(--color-text-muted); display: block; margin-bottom: 0.5rem; text-align: left;">닉네임</label>
+            <input type="text" id="edit-profile-nickname" style="width: 100%; padding: 0.75rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(0,0,0,0.2); color: white;">
+          </div>
+          <div>
+            <label for="edit-profile-email" style="font-size: 0.85rem; color: var(--color-text-muted); display: block; margin-bottom: 0.5rem; text-align: left;">이메일 (변경 불가)</label>
+            <input type="email" id="edit-profile-email" disabled style="width: 100%; padding: 0.75rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; background: rgba(0,0,0,0.4); color: var(--color-text-muted); cursor: not-allowed;">
+          </div>
+          <button id="btn-save-profile" class="btn-primary btn-glow" style="width: 100%; justify-content: center; margin-top: 1rem;">
+            저장하기
+          </button>
+        </div>
+      </div>
     </div>
+
+    <script src="../scripts/app.js"></script>
+    <script src="../scripts/mypage.js"></script>
     <script>
       // Initialize lucide icons
       lucide.createIcons();
