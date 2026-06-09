@@ -17,8 +17,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const userName =
     currentUser?.user_metadata?.nickname ||
     currentUser?.user_metadata?.name ||
-    currentUser?.email?.split('@')?.[0] ||
-    '사용자';
+    currentUser?.email?.split("@")?.[0] ||
+    "사용자";
   const fallbackImageUrl = "./images/summer_banner.png";
 
   const greetingTitle = document.getElementById("greeting-title");
@@ -36,9 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const featuredBadge = document.getElementById(
     "featured-recommendation-badge",
   );
-  const featuredName = document.getElementById(
-    "featured-recommendation-name",
-  );
+  const featuredName = document.getElementById("featured-recommendation-name");
   const featuredRegion = document.querySelector(
     "#featured-recommendation-region span",
   );
@@ -54,28 +52,28 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const ensureAuthBadge = () => {
-    const actions = document.querySelector('.header-actions');
+    const actions = document.querySelector(".header-actions");
     if (!actions) return;
 
-    let badge = document.getElementById('auth-badge');
+    let badge = document.getElementById("auth-badge");
     if (!badge) {
-      badge = document.createElement('div');
-      badge.id = 'auth-badge';
-      badge.style.display = 'flex';
-      badge.style.alignItems = 'center';
-      badge.style.gap = '10px';
-      badge.style.marginLeft = '12px';
-      badge.style.fontWeight = '700';
-      badge.style.color = 'var(--color-text-main)';
+      badge = document.createElement("div");
+      badge.id = "auth-badge";
+      badge.style.display = "flex";
+      badge.style.alignItems = "center";
+      badge.style.gap = "10px";
+      badge.style.marginLeft = "12px";
+      badge.style.fontWeight = "700";
+      badge.style.color = "var(--color-text-main)";
       badge.innerHTML = [
         '<span id="auth-user-name"></span>',
         '<button type="button" id="auth-logout-btn" class="btn-icon" title="로그아웃">',
         '  <i data-lucide="log-out"></i>',
-        '</button>',
-      ].join('\n');
+        "</button>",
+      ].join("\n");
     }
 
-    const notificationBtn = document.getElementById('notification-btn');
+    const notificationBtn = document.getElementById("notification-btn");
     if (badge.parentElement !== actions) {
       if (notificationBtn && notificationBtn.parentElement === actions) {
         actions.insertBefore(badge, notificationBtn);
@@ -84,25 +82,25 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    const nameEl = document.getElementById('auth-user-name');
+    const nameEl = document.getElementById("auth-user-name");
     if (nameEl) nameEl.textContent = `${userName}님`;
 
-    const logoutBtn = document.getElementById('auth-logout-btn');
+    const logoutBtn = document.getElementById("auth-logout-btn");
     if (logoutBtn && !logoutBtn.dataset.bound) {
-      logoutBtn.dataset.bound = '1';
-      logoutBtn.addEventListener('click', () => {
-        sessionStorage.removeItem('sb_access_token');
-        sessionStorage.removeItem('sb_refresh_token');
-        sessionStorage.removeItem('sb_user');
-        window.location.replace('./pages/login.html');
+      logoutBtn.dataset.bound = "1";
+      logoutBtn.addEventListener("click", () => {
+        sessionStorage.removeItem("sb_access_token");
+        sessionStorage.removeItem("sb_refresh_token");
+        sessionStorage.removeItem("sb_user");
+        window.location.replace("./pages/login.html");
       });
     }
 
-    const avatarLink = document.querySelector('.user-avatar-wrapper');
+    const avatarLink = document.querySelector(".user-avatar-wrapper");
     if (avatarLink) {
-      avatarLink.setAttribute('aria-label', `${userName} 프로필`);
-      avatarLink.setAttribute('title', `${userName} 프로필`);
-      avatarLink.setAttribute('href', './pages/mypage.html');
+      avatarLink.setAttribute("aria-label", `${userName} 프로필`);
+      avatarLink.setAttribute("title", `${userName} 프로필`);
+      avatarLink.setAttribute("href", "./pages/mypage.html");
     }
 
     // --- 아바타 이미지 및 닉네임 최신화 (DB 조회) ---
@@ -116,44 +114,53 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // 2. 이후 백그라운드에서 DB 최신 데이터로 동기화
-      fetch("/api/config").then(r => r.json()).then(result => {
-        if (result.success) {
-          const sUrl = result.data.supabaseUrl;
-          const sKey = result.data.supabaseAnonKey;
-          fetch(`${sUrl}/rest/v1/users?user_id=eq.${userId}&select=profile_image,nickname`, {
-            headers: {
-              "apikey": sKey,
-              "Authorization": `Bearer ${authToken}`
-            }
-          })
-          .then(r => r.json())
-          .then(data => {
-            const dbImg = data?.[0]?.profile_image;
-            const dbNick = data?.[0]?.nickname;
-            
-            // 이미지 업데이트
-            if (dbImg) {
-              const headerImg = document.getElementById("header-user-avatar");
-              if (headerImg) headerImg.src = dbImg;
-              
-              // sessionStorage 캐싱 업데이트
-              currentUser.user_metadata = currentUser.user_metadata || {};
-              currentUser.user_metadata.profile_image = dbImg;
-            }
-            
-            // 닉네임 업데이트
-            if (dbNick) {
-              if (nameEl) nameEl.textContent = `${dbNick}님`;
-              currentUser.user_metadata.nickname = dbNick;
-            }
+      fetch("/api/config")
+        .then((r) => r.json())
+        .then((result) => {
+          if (result.success) {
+            const sUrl = result.data.supabaseUrl;
+            const sKey = result.data.supabaseAnonKey;
+            fetch(
+              `${sUrl}/rest/v1/users?user_id=eq.${userId}&select=profile_image,nickname`,
+              {
+                headers: {
+                  apikey: sKey,
+                  Authorization: `Bearer ${authToken}`,
+                },
+              },
+            )
+              .then((r) => r.json())
+              .then((data) => {
+                const dbImg = data?.[0]?.profile_image;
+                const dbNick = data?.[0]?.nickname;
 
-            if (dbImg || dbNick) {
-              sessionStorage.setItem("sb_user", JSON.stringify(currentUser));
-            }
-          })
-          .catch(err => console.error("프로필 헤더 로드 에러:", err));
-        }
-      });
+                // 이미지 업데이트
+                if (dbImg) {
+                  const headerImg =
+                    document.getElementById("header-user-avatar");
+                  if (headerImg) headerImg.src = dbImg;
+
+                  // sessionStorage 캐싱 업데이트
+                  currentUser.user_metadata = currentUser.user_metadata || {};
+                  currentUser.user_metadata.profile_image = dbImg;
+                }
+
+                // 닉네임 업데이트
+                if (dbNick) {
+                  if (nameEl) nameEl.textContent = `${dbNick}님`;
+                  currentUser.user_metadata.nickname = dbNick;
+                }
+
+                if (dbImg || dbNick) {
+                  sessionStorage.setItem(
+                    "sb_user",
+                    JSON.stringify(currentUser),
+                  );
+                }
+              })
+              .catch((err) => console.error("프로필 헤더 로드 에러:", err));
+          }
+        });
     }
   };
 
@@ -232,13 +239,21 @@ document.addEventListener("DOMContentLoaded", () => {
     featuredBadge.textContent = `${mbtiType} 추천 1위 · ${destination.score.toFixed(1)}점`;
     featuredName.textContent = destination.destinationName;
     featuredRegion.textContent = getRegionText(destination);
-    featuredDescription.textContent =
-      destination.description || "여행 MBTI 성향과 높은 적합도를 보인 국내 여행지입니다.";
+
+    let descText =
+      destination.description ||
+      "여행 MBTI 성향과 높은 적합도를 보인 국내 여행지입니다.";
+    descText = descText.replace(/(contentType|textRule)[\s:,\d]+/g, "").trim();
+    featuredDescription.textContent = descText;
+
     featuredAction.disabled = false;
     featuredAction.innerHTML =
       '이 여행지로 일정 만들기 <i data-lucide="arrow-right"></i>';
     featuredAction.addEventListener("click", () => {
-      const tripCreateUrl = new URL("./pages/trip-create.html", window.location.href);
+      const tripCreateUrl = new URL(
+        "./pages/trip-create.html",
+        window.location.href,
+      );
       tripCreateUrl.searchParams.set(
         "destinationId",
         String(destination.destinationId),
@@ -302,7 +317,8 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         featuredBadge.textContent = "성향 분석 필요";
         featuredName.textContent = "나에게 맞는 여행지를 발견해 보세요";
-        featuredRegion.textContent = "여행 MBTI 검사 후 추천 결과가 표시됩니다.";
+        featuredRegion.textContent =
+          "여행 MBTI 검사 후 추천 결과가 표시됩니다.";
         featuredDescription.textContent = "";
         featuredAction.disabled = false;
         featuredAction.textContent = "여행 성향 분석하기";
@@ -324,8 +340,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const { mbtiType, recommendations } = result.data;
       greetingDesc.textContent = `${mbtiType} 여행 성향에 잘 맞는 국내 여행지를 추천해 드려요.`;
-      mbtiProfileSummary.innerHTML =
-        `<strong style="color: var(--color-primary)">MBTI:</strong> ${mbtiType}`;
+      mbtiProfileSummary.innerHTML = `<strong style="color: var(--color-primary)">MBTI:</strong> ${mbtiType}`;
       recommendationTitle.textContent = `${mbtiType} 맞춤 여행지 TOP ${recommendations.length}`;
       recommendationSubtitle.textContent =
         "Supabase에 저장된 관광지별 MBTI 적합도 점수 순위입니다.";

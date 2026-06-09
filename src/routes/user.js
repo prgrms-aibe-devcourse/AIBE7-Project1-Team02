@@ -31,12 +31,14 @@ router.delete("/account", async (req, res) => {
     if (!supabaseAdmin) {
       return res.status(500).json({
         success: false,
-        message: "서버의 관리자 키가 설정되지 않아 계정을 완전히 삭제할 수 없습니다. 관리자에게 문의하세요.",
+        message:
+          "서버의 관리자 키가 설정되지 않아 계정을 완전히 삭제할 수 없습니다. 관리자에게 문의하세요.",
       });
     }
 
     // Verify token to get the user ID
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+    const { data: userData, error: userError } =
+      await supabaseAdmin.auth.getUser(token);
     if (userError || !userData?.user) {
       return res.status(401).json({
         success: false,
@@ -50,8 +52,9 @@ router.delete("/account", async (req, res) => {
     // Given the MVP constraints, we will just delete the auth user, and if cascading isn't set up, we should manually clean up public.users.
     // Assuming public.users is set to ON DELETE CASCADE with auth.users, deleting auth.users will clean up public.users and everything related.
 
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-    
+    const { error: deleteError } =
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+
     if (deleteError) {
       console.error("Auth user delete error:", deleteError);
       return res.status(500).json({
@@ -69,6 +72,67 @@ router.delete("/account", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "서버 오류로 회원 탈퇴를 진행할 수 없습니다.",
+    });
+  }
+});
+
+// DELETE /api/user/data - Reset all user data
+router.delete("/data", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "인증 토큰이 없습니다.",
+      });
+    }
+    const token = authHeader.split(" ")[1];
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({
+        success: false,
+        message: "서버 관리자 키가 설정되지 않았습니다.",
+      });
+    }
+
+    const { data: userData, error: userError } =
+      await supabaseAdmin.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return res.status(401).json({
+        success: false,
+        message: "유효하지 않은 토큰입니다.",
+      });
+    }
+
+    const userId = userData.user.id;
+
+    // RLS 무시하고 관리자 권한으로 삭제
+    const [prefRes, mbtiRes, tripsRes] = await Promise.all([
+      supabaseAdmin.from("user_preferences").delete().eq("user_id", userId),
+      supabaseAdmin.from("travel_mbti_results").delete().eq("user_id", userId),
+      supabaseAdmin.from("trips").delete().eq("user_id", userId),
+    ]);
+
+    if (prefRes.error) console.error("pref delete error:", prefRes.error);
+    if (mbtiRes.error) console.error("mbti delete error:", mbtiRes.error);
+    if (tripsRes.error) console.error("trips delete error:", tripsRes.error);
+
+    if (prefRes.error || mbtiRes.error || tripsRes.error) {
+      return res.status(500).json({
+        success: false,
+        message: "일부 데이터를 초기화하는 데 실패했습니다.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "데이터 초기화가 완료되었습니다.",
+    });
+  } catch (error) {
+    console.error("Data reset failed:", error);
+    res.status(500).json({
+      success: false,
+      message: "서버 오류로 데이터를 초기화할 수 없습니다.",
     });
   }
 });
