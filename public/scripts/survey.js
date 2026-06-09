@@ -23,14 +23,47 @@ document.addEventListener("DOMContentLoaded", () => {
   const loadingOverlay = document.getElementById("loadingOverlay");
   const nextStepBtn = document.getElementById("nextStepBtn");
 
-  // ── Supabase 초기화 ─────────────────────────────────────────
-  const SUPABASE_URL = "https://etomsinirscywqvyyjiv.supabase.co";
-  const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0b21zaW5pcnNjeXdxdnl5aml2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NDQ4NDcsImV4cCI6MjA5NjIyMDg0N30.GnbWzZZQaL2XdPkEavBsbzjx5DEZeAvosMGFVBEEYnA";
-  const supabase = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY,
-  );
+  // ── Config 및 사용자 인증 ─────────────────────────────────
+  let SUPABASE_URL = "";
+  let SUPABASE_ANON_KEY = "";
+  const AUTH_KEYS = { access: 'sb_access_token', refresh: 'sb_refresh_token', user: 'sb_user' };
+  
+  const authToken = sessionStorage.getItem(AUTH_KEYS.access) || '';
+  let currentUser = {};
+  try {
+    currentUser = JSON.parse(sessionStorage.getItem(AUTH_KEYS.user) || '{}');
+  } catch(e) {}
+  
+  const headerUserName = document.getElementById('header-user-name');
+  const headerUserAvatar = document.getElementById('header-user-avatar');
+  const logoutBtn = document.getElementById('logout-btn');
+
+  if (authToken && currentUser) {
+    const userNickname = currentUser?.user_metadata?.nickname || currentUser?.email?.split('@')?.[0] || '사용자';
+    if (headerUserName) headerUserName.textContent = `${userNickname}님`;
+    if (headerUserAvatar) {
+      headerUserAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=1a5c3a&color=fff&size=160`;
+    }
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      sessionStorage.removeItem(AUTH_KEYS.access);
+      sessionStorage.removeItem(AUTH_KEYS.refresh);
+      sessionStorage.removeItem(AUTH_KEYS.user);
+      window.location.replace('/public/pages/login.html');
+    });
+  }
+
+  async function loadConfig() {
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) return;
+    const res = await fetch("/api/config");
+    const result = await res.json();
+    if (result.success) {
+      SUPABASE_URL = result.data.supabaseUrl;
+      SUPABASE_ANON_KEY = result.data.supabaseAnonKey;
+    }
+  }
 
   // ── 축 라벨 맵 ──────────────────────────────────────────────
   const axisLabels = {
@@ -262,30 +295,38 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Supabase UPSERT ────────────────────────────────────────
   async function saveToSupabase({ scores, mbtiType, rawAnswers }) {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
+      if (!authToken || !currentUser.id) {
         console.warn("로그인된 사용자가 없습니다. 결과가 저장되지 않습니다.");
         return;
       }
 
-      const { error } = await supabase.from("travel_mbti_results").upsert(
-        {
-          user_id: user.id,
-          mbti_type: mbtiType,
-          ei_score: scores.ei,
-          sn_score: scores.sn,
-          tf_score: scores.tf,
-          jp_score: scores.jp,
-          raw_answers: rawAnswers,
-        },
-        { onConflict: "user_id" },
-      );
+      await loadConfig();
 
-      if (error) {
-        console.error("MBTI 저장 실패:", error);
+      const payload = {
+        user_id: currentUser.id,
+        mbti_type: mbtiType,
+        ei_score: scores.ei,
+        sn_score: scores.sn,
+        tf_score: scores.tf,
+        jp_score: scores.jp,
+        raw_answers: rawAnswers,
+      };
+
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/travel_mbti_results?on_conflict=user_id`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+          Prefer: "resolution=merge-duplicates"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("MBTI 저장 실패:", JSON.stringify(errorData, null, 2));
+        alert("저장 실패: " + (errorData.message || JSON.stringify(errorData)));
       } else {
         console.log("MBTI 결과 저장 완료:", mbtiType);
       }
@@ -322,7 +363,7 @@ document.addEventListener("DOMContentLoaded", () => {
   nextStepBtn.addEventListener("click", () => {
     // TODO: 실제 키워드 선택 페이지로 이동
     alert("성향 분석이 끝났습니다!");
-    window.location.href = "/index.html";
+    window.location.href = "../index.html";
   });
 
   // ── Init ───────────────────────────────────────────────────
