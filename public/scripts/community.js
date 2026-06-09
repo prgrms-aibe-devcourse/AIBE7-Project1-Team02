@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadConfig() {
-    const res = await fetch("/api/config");
+    const res = await fetch(resolveApiPath("/api/config"));
     const result = await res.json();
     if (!result.success) throw new Error("설정 정보를 불러오지 못했습니다.");
 
@@ -989,5 +989,13 @@ document.addEventListener("DOMContentLoaded", () => {
       reader.onerror = () => reject(reader.error || new Error("파일 읽기에 실패했습니다."));
       reader.readAsDataURL(file);
     });
+  }
+
+  function resolveApiPath(path) {
+    const normalized = String(path || "").replace(/^\/+/, "");
+    const base = window.location.pathname.includes("/public/")
+      ? `${window.location.origin}/`
+      : `${window.location.origin}/`;
+    return new URL(normalized, base).toString();
   }
 });
