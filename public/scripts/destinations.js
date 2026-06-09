@@ -1,10 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   const authToken = sessionStorage.getItem("sb_access_token") || "";
-
-  if (!authToken) {
-    window.location.replace("./login.html");
-    return;
-  }
+  const guestMbtiType = "INFP";
 
   const pageSize = 12;
   const fallbackImageUrl = "../images/summer_banner.png";
@@ -77,6 +73,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return url.href;
   }
 
+  function getLoginUrl(redirectUrl) {
+    const loginUrl = new URL("./login.html", window.location.href);
+    loginUrl.searchParams.set("redirect", redirectUrl);
+    return loginUrl.href;
+  }
+
   function closeDetail() {
     detailModal.classList.remove("active");
     detailModal.setAttribute("aria-hidden", "true");
@@ -106,6 +108,13 @@ document.addEventListener("DOMContentLoaded", () => {
       .trim();
     detailReason.textContent = getRecommendationReason(destination);
     detailAction.onclick = () => {
+      const tripCreateUrl = getTripCreateUrl(destination.destinationId);
+
+      if (!authToken) {
+        window.location.href = getLoginUrl(tripCreateUrl);
+        return;
+      }
+
       sessionStorage.setItem(
         "selected_trip_destination",
         JSON.stringify({
@@ -116,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
           keywords: destination.keywords,
         }),
       );
-      window.location.href = getTripCreateUrl(destination.destinationId);
+      window.location.href = tripCreateUrl;
     };
     detailModal.classList.add("active");
     detailModal.setAttribute("aria-hidden", "false");
@@ -244,6 +253,9 @@ document.addEventListener("DOMContentLoaded", () => {
       page: String(page),
       pageSize: String(pageSize),
     });
+    if (!authToken) {
+      params.set("mbtiType", guestMbtiType);
+    }
     if (provinceFilter.value) {
       params.set("province", provinceFilter.value);
     }
@@ -255,17 +267,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(
         `/api/destinations/recommended?${params.toString()}`,
         {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
+          headers: authToken
+            ? {
+                Authorization: `Bearer ${authToken}`,
+              }
+            : {},
         },
       );
       const result = await response.json().catch(() => ({}));
 
       if (response.status === 401) {
-        sessionStorage.clear();
-        window.location.replace("./login.html");
-        return;
+        throw new Error("로그인이 필요한 추천 서비스입니다.");
       }
       if (response.status === 404 && result.data?.needsSurvey) {
         window.location.replace("./survey.html");
@@ -280,7 +292,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const { mbtiType, recommendations, pagination: pageInfo } = result.data;
       subtitle.textContent =
-        `${mbtiType} 여행 성향에 맞는 관광지를 적합도순으로 보여드려요.`;
+        authToken
+          ? `${mbtiType} 여행 성향에 맞는 관광지를 적합도순으로 보여드려요.`
+          : `로그인 전에는 ${mbtiType} 공개 추천 기준으로 관광지를 보여드려요.`;
       resultCount.textContent =
         `조건에 맞는 관광지 ${pageInfo.totalCount.toLocaleString("ko-KR")}개`;
       grid.innerHTML = "";
@@ -321,10 +335,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadFilters() {
     try {
-      const response = await fetch("/api/destinations/recommended/filters", {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+      const filterUrl = new URL(
+        "/api/destinations/recommended/filters",
+        window.location.origin,
+      );
+      if (!authToken) {
+        filterUrl.searchParams.set("mbtiType", guestMbtiType);
+      }
+
+      const response = await fetch(filterUrl, {
+        headers: authToken
+          ? {
+              Authorization: `Bearer ${authToken}`,
+            }
+          : {},
       });
       const result = await response.json().catch(() => ({}));
 

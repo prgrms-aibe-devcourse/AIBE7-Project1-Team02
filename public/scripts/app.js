@@ -9,11 +9,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   })();
 
-  if (!authToken) {
-    window.location.replace("./pages/login.html");
-    return;
-  }
-
   const userName =
     currentUser?.user_metadata?.nickname ||
     currentUser?.user_metadata?.name ||
@@ -70,6 +65,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentRecommendationIndex = 0;
 
   const ensureAuthBadge = () => {
+    if (!authToken) return;
+
     const actions = document.querySelector(".header-actions");
     if (!actions) return;
 
@@ -413,6 +410,19 @@ document.addEventListener("DOMContentLoaded", () => {
     // 해당 페이지에 추천 섹션이 없다면 실행하지 않음
     if (!document.getElementById("recommendation-list")) return;
 
+    if (!authToken) {
+      recommendationTitle.textContent = "국내 여행지를 먼저 둘러보세요";
+      recommendationSubtitle.textContent =
+        "로그인하면 여행 MBTI 기반 TOP 10 추천을 볼 수 있습니다.";
+      recommendationLink.href = "./pages/login.html?redirect=/pages/survey.html";
+      recommendationLink.textContent = "로그인하고 추천 받기";
+      recommendationPosition.textContent = "게스트";
+      recommendationPrev.disabled = true;
+      recommendationNext.disabled = true;
+      renderRecommendationState("추천 여행지 전체 목록은 로그인 없이도 둘러볼 수 있습니다.");
+      return;
+    }
+
     try {
       const response = await fetch("/api/destinations/recommended?limit=10", {
         headers: {
@@ -424,7 +434,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (response.status === 401) {
         sessionStorage.removeItem("sb_access_token");
         sessionStorage.removeItem("sb_refresh_token");
-        window.location.replace("./pages/login.html");
+        renderRecommendationState("로그인이 필요한 추천 서비스입니다.");
         return;
       }
 
@@ -679,34 +689,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Sidebar nav active state
-  const navItems = document.querySelectorAll(".nav-item");
-  navItems.forEach((item) => {
-    item.addEventListener("click", (e) => {
-      if (item.getAttribute("href") === "#" || !item.getAttribute("href")) {
-        e.preventDefault();
-      }
-      navItems.forEach((nav) => nav.classList.remove("active"));
-      item.classList.add("active");
-    });
-  });
-
   // Modal Toggle for Flow B
-  const btnSidebarCreate = document.getElementById("btn-sidebar-create");
-  const btnQuickCreate = document.getElementById("btn-quick-create");
   const flowBModal = document.getElementById("flow-b-modal");
   const modalCloseBtn = document.getElementById("modal-close-btn");
-
-  const openModal = () => {
-    if (flowBModal) flowBModal.classList.add("active");
-  };
 
   const closeModal = () => {
     if (flowBModal) flowBModal.classList.remove("active");
   };
 
-  if (btnSidebarCreate) btnSidebarCreate.addEventListener("click", openModal);
-  if (btnQuickCreate) btnQuickCreate.addEventListener("click", openModal);
   if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeModal);
 
   // Close modal on overlay click

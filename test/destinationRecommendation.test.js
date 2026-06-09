@@ -4,6 +4,7 @@ const test = require("node:test");
 const {
   getRecommendedDestinations,
   normalizeLimit,
+  normalizeMbtiType,
   normalizePage,
   normalizePageSize,
 } = require("../src/services/supabase/destinationRecommendation");
@@ -88,6 +89,51 @@ test("추천 개수는 기본 6개, 최대 10개로 제한한다", () => {
   assert.equal(normalizeLimit("0"), 6);
   assert.equal(normalizeLimit("8"), 8);
   assert.equal(normalizeLimit("100"), 10);
+});
+
+test("공개 조회용 MBTI 유형을 16개 유형으로 제한한다", () => {
+  assert.equal(normalizeMbtiType("infp"), "INFP");
+  assert.equal(normalizeMbtiType("abcd"), null);
+});
+
+test("MBTI 유형을 직접 전달하면 사용자 결과 조회 없이 추천한다", async () => {
+  const requestedUrls = [];
+  const responses = [
+    createJsonResponse([
+      {
+        destination_id: 3,
+        score: "86.25",
+        reason: "",
+        destinations: {
+          destination_id: 3,
+          destination_name: "협재해수욕장",
+          description: "푸른 바다",
+          address: "제주특별자치도 제주시",
+          province: "제주특별자치도",
+          city: "제주시",
+          image_url: "",
+        },
+      },
+    ]),
+    createJsonResponse([{ destination_id: 3, keyword: "힐링" }]),
+  ];
+  const fetchImpl = async (url) => {
+    requestedUrls.push(String(url));
+    return responses.shift();
+  };
+
+  const result = await getRecommendedDestinations({
+    supabaseUrl: "https://example.supabase.co",
+    anonKey: "anon-key",
+    mbtiType: "infp",
+    limit: 10,
+    fetchImpl,
+  });
+
+  assert.equal(result.mbtiType, "INFP");
+  assert.equal(result.recommendations.length, 1);
+  assert.match(requestedUrls[0], /destination_mbti_scores/);
+  assert.doesNotMatch(requestedUrls[0], /travel_mbti_results/);
 });
 
 test("전체 추천 조회의 페이지와 페이지 크기를 안전한 범위로 제한한다", () => {

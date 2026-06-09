@@ -2,11 +2,29 @@ const DEFAULT_LIMIT = 6;
 const MAX_LIMIT = 10;
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 24;
+const MBTI_TYPES = new Set([
+  "ISTJ",
+  "ISFJ",
+  "INFJ",
+  "INTJ",
+  "ISTP",
+  "ISFP",
+  "INFP",
+  "INTP",
+  "ESTP",
+  "ESFP",
+  "ENFP",
+  "ENTP",
+  "ESTJ",
+  "ESFJ",
+  "ENFJ",
+  "ENTJ",
+]);
 
 function createSupabaseHeaders(anonKey, accessToken, prefer) {
   const headers = {
     apikey: anonKey,
-    Authorization: `Bearer ${accessToken}`,
+    Authorization: `Bearer ${accessToken || anonKey}`,
   };
 
   if (prefer) {
@@ -14,6 +32,11 @@ function createSupabaseHeaders(anonKey, accessToken, prefer) {
   }
 
   return headers;
+}
+
+function normalizeMbtiType(mbtiType) {
+  const normalizedMbtiType = String(mbtiType || "").trim().toUpperCase();
+  return MBTI_TYPES.has(normalizedMbtiType) ? normalizedMbtiType : null;
 }
 
 async function requestSupabaseJson(fetchImpl, url, headers) {
@@ -255,6 +278,7 @@ async function getRecommendedDestinations({
   supabaseUrl,
   anonKey,
   accessToken,
+  mbtiType: requestedMbtiType,
   limit,
   page,
   pageSize,
@@ -264,12 +288,22 @@ async function getRecommendedDestinations({
 }) {
   validateSupabaseConfig(supabaseUrl, anonKey);
   const headers = createSupabaseHeaders(anonKey, accessToken);
-  const mbtiType = await getUserMbti({
-    supabaseUrl,
-    headers,
-    accessToken,
-    fetchImpl,
-  });
+  const normalizedRequestedMbtiType = normalizeMbtiType(requestedMbtiType);
+
+  if (requestedMbtiType && !normalizedRequestedMbtiType) {
+    const error = new Error("지원하지 않는 MBTI 유형입니다.");
+    error.status = 400;
+    throw error;
+  }
+
+  const mbtiType =
+    normalizedRequestedMbtiType ||
+    (await getUserMbti({
+      supabaseUrl,
+      headers,
+      accessToken,
+      fetchImpl,
+    }));
 
   if (!mbtiType) {
     return {
@@ -354,16 +388,27 @@ async function getRecommendedDestinationFilters({
   supabaseUrl,
   anonKey,
   accessToken,
+  mbtiType: requestedMbtiType,
   fetchImpl = fetch,
 }) {
   validateSupabaseConfig(supabaseUrl, anonKey);
   const headers = createSupabaseHeaders(anonKey, accessToken);
-  const mbtiType = await getUserMbti({
-    supabaseUrl,
-    headers,
-    accessToken,
-    fetchImpl,
-  });
+  const normalizedRequestedMbtiType = normalizeMbtiType(requestedMbtiType);
+
+  if (requestedMbtiType && !normalizedRequestedMbtiType) {
+    const error = new Error("지원하지 않는 MBTI 유형입니다.");
+    error.status = 400;
+    throw error;
+  }
+
+  const mbtiType =
+    normalizedRequestedMbtiType ||
+    (await getUserMbti({
+      supabaseUrl,
+      headers,
+      accessToken,
+      fetchImpl,
+    }));
 
   if (!mbtiType) {
     return {
@@ -419,6 +464,7 @@ module.exports = {
   getRecommendedDestinationFilters,
   getRecommendedDestinations,
   normalizeLimit,
+  normalizeMbtiType,
   normalizePage,
   normalizePageSize,
 };

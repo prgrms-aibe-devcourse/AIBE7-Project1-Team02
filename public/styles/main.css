@@ -483,22 +483,6 @@ a {
   box-shadow: var(--shadow-glow);
 }
 
-.floating-create-button {
-  position: fixed;
-  right: 2rem;
-  bottom: max(2rem, env(safe-area-inset-bottom));
-  z-index: 95;
-  min-height: 52px;
-  padding: 0.9rem 1.4rem;
-  border-radius: 999px;
-  box-shadow: 0 12px 30px rgba(59, 130, 246, 0.35);
-}
-
-.floating-create-button:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 34px rgba(59, 130, 246, 0.42);
-}
-
 /* ==========================================================================
    Bento Grid Layout
    ========================================================================== */
@@ -1998,14 +1982,6 @@ a {
   }
   .search-bar {
     width: 200px;
-  }
-  .floating-create-button {
-    right: 1rem;
-    bottom: max(1rem, env(safe-area-inset-bottom));
-    max-width: calc(100vw - 2rem);
-    min-height: 48px;
-    padding: 0.8rem 1.1rem;
-    font-size: 0.88rem;
   }
 }
 

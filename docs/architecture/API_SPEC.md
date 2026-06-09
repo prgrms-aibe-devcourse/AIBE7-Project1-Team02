@@ -91,7 +91,8 @@ Response:
 
 ### GET /api/destinations/recommended
 
-로그인 사용자의 `travel_mbti_results.mbti_type`을 조회한 뒤,
+로그인 사용자의 `travel_mbti_results.mbti_type`을 조회하거나 공개 조회용
+`mbtiType` 쿼리를 받은 뒤,
 `destination_mbti_scores`에 저장된 해당 유형의 점수를 내림차순으로
 정렬한다. 관광지 기본 정보는 `destinations`, 키워드는
 `destination_keywords`에서 함께 조회한다.
@@ -102,9 +103,12 @@ Request Header:
 Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
 ```
 
+공개 조회에서는 Authorization Header 없이 `mbtiType` 쿼리를 전달한다.
+
 Query:
 
 ```text
+mbtiType: 선택, 공개 조회용 MBTI 유형, 16개 유형만 허용
 limit: 선택, 상위 추천용 기본 6, 최대 10
 page: 선택, 전체 탐색용 페이지 번호, 기본 1
 pageSize: 선택, 전체 탐색용 페이지 크기, 기본 12, 최대 24
@@ -161,14 +165,16 @@ Error Case:
 
 ### GET /api/destinations/recommended/filters
 
-로그인 사용자의 여행 MBTI 추천 데이터에 존재하는 광역시/도와 키워드
-목록을 반환한다.
+로그인 사용자의 여행 MBTI 추천 데이터 또는 공개 조회용 `mbtiType`에
+존재하는 광역시/도와 키워드 목록을 반환한다.
 
 Request Header:
 
 ```http
 Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
 ```
+
+공개 조회에서는 Authorization Header 없이 `mbtiType` 쿼리를 전달한다.
 
 Response:
 

@@ -19,8 +19,9 @@ function getBearerToken(authorizationHeader) {
 
 router.get("/recommended", async (request, response) => {
   const accessToken = getBearerToken(request.get("authorization"));
+  const requestedMbtiType = request.query.mbtiType;
 
-  if (!accessToken) {
+  if (!accessToken && !requestedMbtiType) {
     return response.status(401).json({
       success: false,
       message: "로그인이 필요한 요청입니다.",
@@ -32,6 +33,7 @@ router.get("/recommended", async (request, response) => {
       supabaseUrl: process.env.SUPABASE_URL,
       anonKey: process.env.SUPABASE_ANON_KEY,
       accessToken,
+      mbtiType: requestedMbtiType,
       limit: request.query.limit,
       page: request.query.page,
       pageSize: request.query.pageSize,
@@ -55,7 +57,7 @@ router.get("/recommended", async (request, response) => {
       message: "MBTI 맞춤 여행지 추천 조회 성공",
     });
   } catch (error) {
-    const status = error.status === 401 ? 401 : 502;
+    const status = [400, 401].includes(error.status) ? error.status : 502;
 
     console.error("MBTI 맞춤 여행지 조회 실패:", {
       status: error.status,
@@ -67,6 +69,8 @@ router.get("/recommended", async (request, response) => {
       message:
         status === 401
           ? "로그인 세션이 만료되었습니다."
+          : status === 400
+            ? error.message
           : "맞춤 여행지를 불러오지 못했습니다.",
     });
   }
@@ -74,8 +78,9 @@ router.get("/recommended", async (request, response) => {
 
 router.get("/recommended/filters", async (request, response) => {
   const accessToken = getBearerToken(request.get("authorization"));
+  const requestedMbtiType = request.query.mbtiType;
 
-  if (!accessToken) {
+  if (!accessToken && !requestedMbtiType) {
     return response.status(401).json({
       success: false,
       message: "로그인이 필요한 요청입니다.",
@@ -87,6 +92,7 @@ router.get("/recommended/filters", async (request, response) => {
       supabaseUrl: process.env.SUPABASE_URL,
       anonKey: process.env.SUPABASE_ANON_KEY,
       accessToken,
+      mbtiType: requestedMbtiType,
     });
 
     if (!result.mbtiType) {
@@ -105,7 +111,7 @@ router.get("/recommended/filters", async (request, response) => {
       message: "추천 여행지 필터 조회 성공",
     });
   } catch (error) {
-    const status = error.status === 401 ? 401 : 502;
+    const status = [400, 401].includes(error.status) ? error.status : 502;
 
     console.error("추천 여행지 필터 조회 실패:", {
       status: error.status,
@@ -117,6 +123,8 @@ router.get("/recommended/filters", async (request, response) => {
       message:
         status === 401
           ? "로그인 세션이 만료되었습니다."
+          : status === 400
+            ? error.message
           : "추천 여행지 필터를 불러오지 못했습니다.",
     });
   }

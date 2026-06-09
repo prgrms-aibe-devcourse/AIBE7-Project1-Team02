@@ -22,14 +22,51 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 3. Set Active Menu Item based on current path
     const currentPath = window.location.pathname;
+    const authToken = sessionStorage.getItem('sb_access_token');
+    const protectedPaths = [
+      '/pages/community.html',
+      '/pages/trip-create.html',
+      '/pages/survey.html',
+      '/pages/mypage.html',
+      '/pages/saved-trips.html'
+    ];
+    const isProtectedPath = (path) => protectedPaths.some((protectedPath) => path.includes(protectedPath));
+    const getLoginUrl = (redirectPath) => {
+      const loginUrl = new URL('/pages/login.html', window.location.origin);
+      loginUrl.searchParams.set('redirect', redirectPath || '/');
+      return loginUrl.href;
+    };
+
+    if (!authToken && isProtectedPath(currentPath)) {
+      window.location.replace(getLoginUrl(`${currentPath}${window.location.search}`));
+      return;
+    }
+
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
-      let itemPath = item.getAttribute('data-path');
+      const itemPath = item.getAttribute('data-path');
       item.classList.remove('active');
-      if ((currentPath === '/' || currentPath === '/index.html') && itemPath === '/') {
+      const isHomePath = currentPath === '/' || currentPath === '/index.html';
+      const isTripPath = currentPath.includes('/pages/trip-create.html') || currentPath.includes('/pages/saved-trips.html');
+
+      if (isHomePath && itemPath === '/') {
         item.classList.add('active');
-      } else if (currentPath !== '/' && currentPath !== '/index.html' && itemPath !== '/' && currentPath.includes(itemPath)) {
+      } else if (isTripPath && itemPath === '/pages/saved-trips.html') {
         item.classList.add('active');
+      } else if (!isHomePath && itemPath !== '/' && currentPath.includes(itemPath)) {
+        item.classList.add('active');
+      }
+    });
+
+    document.querySelectorAll('a[href], button[onclick]').forEach((element) => {
+      const targetPath = element.getAttribute('href') || '/pages/trip-create.html';
+
+      if (!authToken && isProtectedPath(targetPath)) {
+        element.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          window.location.href = getLoginUrl(targetPath);
+        }, true);
       }
     });
 
@@ -38,10 +75,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const breadcrumbText = document.getElementById('breadcrumb-text-container');
     
     if (breadcrumbIcon && breadcrumbText) {
-      if (currentPath.includes('community')) {
+      if (currentPath.includes('login')) {
+        breadcrumbIcon.innerHTML = '<i data-lucide="log-in"></i>';
+        breadcrumbText.textContent = '로그인';
+      } else if (currentPath.includes('community')) {
         breadcrumbIcon.innerHTML = '<i data-lucide="users"></i>';
         breadcrumbText.textContent = 'Local Stories';
-      } else if (currentPath.includes('trip-create') || currentPath.includes('destinations')) {
+      } else if (currentPath.includes('trip-create') || currentPath.includes('saved-trips') || currentPath.includes('destinations')) {
         breadcrumbIcon.innerHTML = '<i data-lucide="map"></i>';
         breadcrumbText.textContent = '여행 일정';
       } else if (currentPath.includes('survey')) {
@@ -174,4 +214,3 @@ async function updateHeaderProfile() {
     }
   }
 }
-
