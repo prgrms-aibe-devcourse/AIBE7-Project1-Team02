@@ -57,12 +57,27 @@ async function getRecommendedDestinations({
   }
 
   const headers = createSupabaseHeaders(anonKey, accessToken);
+  
+  // accessToken(JWT)에서 user_id 추출
+  let userId = null;
+  if (accessToken) {
+    try {
+      const payload = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64').toString('utf8'));
+      userId = payload.sub;
+    } catch (e) {
+      console.error("Failed to parse token", e);
+    }
+  }
+
   const preferenceUrl = new URL(
     "/rest/v1/travel_mbti_results",
     supabaseUrl,
   );
   preferenceUrl.searchParams.set("select", "mbti_type");
   preferenceUrl.searchParams.set("limit", "1");
+  if (userId) {
+    preferenceUrl.searchParams.set("user_id", `eq.${userId}`);
+  }
 
   const preferenceRows = await requestSupabaseJson(
     fetchImpl,
