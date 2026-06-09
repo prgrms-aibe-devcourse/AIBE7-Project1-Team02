@@ -2,6 +2,7 @@ const path = require("node:path");
 const express = require("express");
 
 const healthRouter = require("./routes/health");
+const configRouter = require("./routes/config");
 
 const app = express();
 const publicDirectory = path.join(__dirname, "..", "public");
@@ -11,6 +12,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/health", healthRouter);
+app.use("/api/config", configRouter);
 app.use("/public", express.static(publicDirectory));
 
 app.get("/", (request, response) => {
@@ -22,6 +24,10 @@ app.use("/api", (request, response) => {
     success: false,
     message: "요청한 API를 찾을 수 없습니다.",
   });
+});
+
+app.use((request, response) => {
+  response.status(404).send("Not Found");
 });
 
 module.exports = app;

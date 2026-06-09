@@ -67,14 +67,20 @@
               <i data-lucide="bell"></i>
               <span class="notification-dot"></span>
             </button>
-
-            <a href="./pages/login.html" class="user-avatar-wrapper" aria-label="프로필" title="프로필">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-                alt="프로필"
-                class="user-avatar"
-              />
-            </a>
+            <div class="user-avatar-wrapper">
+              <span id="header-user-name" style="margin-right: 10px; font-weight: 500;"></span>
+              <a href="/public/pages/login.html" id="login-link">
+                <img
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+                  alt="User"
+                  id="header-user-avatar"
+                  class="user-avatar"
+                />
+              </a>
+              <button id="logout-btn" class="btn-icon" style="margin-left: 8px; display: none;" title="로그아웃">
+                <i data-lucide="log-out"></i>
+              </button>
+            </div>
           </div>
         </header>
 

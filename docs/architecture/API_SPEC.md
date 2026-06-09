@@ -4,6 +4,16 @@
 
 MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행만 지원한다. `province`는 광역시/도, `city`는 시/군/구를 의미하며, 국내 관광 데이터 조회는 한국관광공사 TourAPI 4.0 활용을 우선 고려한다. 해외 여행은 추후 확장한다.
 
+## 구현 상태
+
+2026년 6월 8일 기준 Express 서버에 구현된 API는 아래 두 개다.
+
+- `GET /api/health`
+- `GET /api/config`
+
+인증은 현재 프런트엔드에서 Supabase Auth를 직접 사용한다. 아래 표에서
+`PLANNED`로 표시한 API는 명세만 정의된 상태다.
+
 ## 공통 응답 형식
 
 ### 성공
@@ -27,17 +37,18 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 
 ## API 목록
 
-| Method | URL | Request Body | Response Body | Error Case | 담당자 |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/health` | 없음 | 서버 상태, 확인 시각 | 서버 미실행 | 백엔드 |
-| POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
-| POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
-| GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
-| POST | `/api/travel/recommend` | 광역시/도, 시/군/구, 날짜, 동반자 유형, 예산, 키워드 | 맞춤 여행지 추천 결과 | 필수 입력값 누락, 지원하지 않는 지역, 외부 API 호출 실패 | 백엔드 |
-| POST | `/api/travel/plan` | 추천 여행지, 기간, 사용자 성향, 관광 데이터 | AI 여행 일정 | 관광 데이터 없음, AI 응답 실패 | 백엔드 |
-| GET | `/api/travel/list` | 없음 | 저장된 여행 일정 목록 | 로그인 정보 없음 | 백엔드 |
-| GET | `/api/travel/:id` | 없음 | 특정 여행 일정 상세 | 일정 없음, 권한 없음 | 백엔드 |
-| PATCH | `/api/travel/:id` | 수정할 일정 정보 | 수정된 여행 일정 | 일정 없음, 권한 없음 | 백엔드 |
+| 상태 | Method | URL | Request Body | Response Body | Error Case | 담당자 |
+| --- | --- | --- | --- | --- | --- | --- |
+| DONE | GET | `/api/health` | 없음 | 서버 상태, 확인 시각 | 서버 미실행 | 백엔드 |
+| DONE | GET | `/api/config` | 없음 | 브라우저용 Supabase URL, Anon Key | 없음, 환경 변수 검증 미구현 | 백엔드 |
+| PLANNED | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
+| PLANNED | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
+| PLANNED | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
+| PLANNED | POST | `/api/travel/recommend` | 광역시/도, 시/군/구, 날짜, 동반자 유형, 키워드 | 맞춤 여행지 추천 결과 | 필수 입력값 누락, 지원하지 않는 지역, 외부 API 호출 실패 | 백엔드 |
+| PLANNED | POST | `/api/travel/plan` | 추천 여행지, 기간, 사용자 성향, 관광 데이터 | AI 여행 일정 | 관광 데이터 없음, AI 응답 실패 | 백엔드 |
+| PLANNED | GET | `/api/travel/list` | 없음 | 저장된 여행 일정 목록 | 로그인 정보 없음 | 백엔드 |
+| PLANNED | GET | `/api/travel/:id` | 없음 | 특정 여행 일정 상세 | 일정 없음, 권한 없음 | 백엔드 |
+| PLANNED | PATCH | `/api/travel/:id` | 수정할 일정 정보 | 수정된 여행 일정 | 일정 없음, 권한 없음 | 백엔드 |
 
 ## 상세 예시
 
@@ -55,6 +66,24 @@ Response:
   "message": "서버가 정상 작동 중입니다."
 }
 ```
+
+### GET /api/config
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "supabaseUrl": "https://example.supabase.co",
+    "supabaseAnonKey": "public-anon-key"
+  },
+  "message": "설정 정보 조회 성공"
+}
+```
+
+이 API는 브라우저에서 사용 가능한 Supabase Anon Key만 반환한다.
+`SUPABASE_SERVICE_ROLE_KEY`는 절대 응답에 포함하지 않는다.
 
 ### POST /api/auth/signup
 
@@ -137,7 +166,6 @@ Request:
   "startDate": "2026-07-10",
   "endDate": "2026-07-12",
   "companionType": "friend",
-  "budget": 1000000,
   "keywords": ["오션뷰", "맛집탐방", "힐링"]
 }
 ```
