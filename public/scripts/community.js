@@ -242,7 +242,6 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="travel-card-image-wrap skeleton"></div>
         <div class="travel-card-info">
           <div class="travel-card-title skeleton skeleton-text"></div>
-          <div class="travel-card-desc skeleton skeleton-text-short"></div>
         </div>
       </article>
     `,
@@ -335,7 +334,6 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="travel-card-info">
                 <div class="travel-card-title">${escapeHtml(post.title || "무제")}</div>
-                <div class="travel-card-desc">${escapeHtml(truncateText(post.summary || "", 60))}</div>
                 <div class="travel-card-meta">
                   <img src="https://ui-avatars.com/api/?name=${escapeAttr((post.nickname || userNickname).charAt(0))}&background=1a5c3a&color=fff" alt="프로필" loading="lazy">
                   <span>${escapeHtml(post.nickname || userNickname)}</span>
