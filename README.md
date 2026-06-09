@@ -75,8 +75,10 @@ AI Provider는 아직 확정되지 않았으며, 교체 가능한 서비스 구�
 - 설명 보강 후 전체 관광지의 키워드와 MBTI 점수를 재계산
 - 여행지 데이터 가공 단위 테스트 4건 통과
 
-현재 Express API는 `GET /api/health`, `GET /api/config`를 제공하며,
-여행지 조회 및 추천 API는 구현 예정입니다.
+현재 Express API는 `GET /api/health`, `GET /api/config`,
+`GET /api/destinations/recommended`를 제공합니다. 메인 페이지는 로그인
+사용자의 여행 MBTI를 기준으로 Supabase에 저장된 관광지 적합도 점수
+상위 6개를 표시합니다.
 
 ## AI 추천 알고리즘
 

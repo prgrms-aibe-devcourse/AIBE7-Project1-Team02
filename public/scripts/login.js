@@ -1,59 +1,47 @@
-let SUPABASE_URL = "";
-let SUPABASE_ANON_KEY = "";
-
-async function loadConfig() {
-  if (SUPABASE_URL && SUPABASE_ANON_KEY) return;
-  const res = await fetch("/api/config");
-  const result = await res.json();
-  if (result.success) {
-    SUPABASE_URL = result.data.supabaseUrl;
-    SUPABASE_ANON_KEY = result.data.supabaseAnonKey;
-  } else {
-    throw new Error("설정 정보를 불러오는데 실패했습니다.");
-  }
-}
+const SUPABASE_URL = 'https://etomsinirscywqvyyjiv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0b21zaW5pcnNjeXdxdnl5aml2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NDQ4NDcsImV4cCI6MjA5NjIyMDg0N30.GnbWzZZQaL2XdPkEavBsbzjx5DEZeAvosMGFVBEEYnA';
 
 const $ = (id) => document.getElementById(id);
 
-const titleEl = $("title");
-const subtitleEl = $("subtitle");
-const alertEl = $("alert");
-const successEl = $("success");
-const nicknameWrapEl = $("nicknameWrap");
-const nicknameEl = $("nickname");
-const emailEl = $("email");
-const passwordEl = $("password");
-const submitBtn = $("submitBtn");
-const clearBtn = $("clearBtn");
-const switchToSignupBtn = $("switchToSignup");
-const switchToLoginBtn = $("switchToLogin");
+const titleEl = $('title');
+const subtitleEl = $('subtitle');
+const alertEl = $('alert');
+const successEl = $('success');
+const nicknameWrapEl = $('nicknameWrap');
+const nicknameEl = $('nickname');
+const emailEl = $('email');
+const passwordEl = $('password');
+const submitBtn = $('submitBtn');
+const clearBtn = $('clearBtn');
+const switchToSignupBtn = $('switchToSignup');
+const switchToLoginBtn = $('switchToLogin');
 
-let mode = "login";
+let mode = 'login';
 let redirectTimer = null;
 
 function showAlert(message) {
   alertEl.textContent = message;
-  alertEl.style.display = "block";
-  successEl.style.display = "none";
+  alertEl.style.display = 'block';
+  successEl.style.display = 'none';
 }
 
 function showSuccess(message) {
   successEl.textContent = message;
-  successEl.style.display = "block";
-  alertEl.style.display = "none";
+  successEl.style.display = 'block';
+  alertEl.style.display = 'none';
 }
 
 function clearMessages() {
-  alertEl.style.display = "none";
-  successEl.style.display = "none";
-  alertEl.textContent = "";
-  successEl.textContent = "";
+  alertEl.style.display = 'none';
+  successEl.style.display = 'none';
+  alertEl.textContent = '';
+  successEl.textContent = '';
 }
 
 function resetFields() {
-  emailEl.value = "";
-  passwordEl.value = "";
-  nicknameEl.value = "";
+  emailEl.value = '';
+  passwordEl.value = '';
+  nicknameEl.value = '';
 }
 
 function setMode(nextMode) {
@@ -61,54 +49,51 @@ function setMode(nextMode) {
   clearMessages();
   resetFields();
 
-  if (mode === "signup") {
-    titleEl.textContent = "회원가입";
-    subtitleEl.textContent = "새 계정을 만들어 여행을 시작하세요.";
-    nicknameWrapEl.style.display = "block";
-    submitBtn.textContent = "회원가입";
-    switchToSignupBtn.style.display = "none";
-    switchToLoginBtn.style.display = "inline-block";
+  if (mode === 'signup') {
+    titleEl.textContent = '회원가입';
+    subtitleEl.textContent = '새 계정을 만들고 여행 계획을 시작하세요.';
+    nicknameWrapEl.style.display = 'block';
+    submitBtn.textContent = '회원가입';
+    switchToSignupBtn.style.display = 'none';
+    switchToLoginBtn.style.display = 'inline-block';
   } else {
-    titleEl.textContent = "로그인";
-    subtitleEl.textContent = "Supabase 계정으로 로그인하세요.";
-    nicknameWrapEl.style.display = "none";
-    submitBtn.textContent = "로그인";
-    switchToSignupBtn.style.display = "inline-block";
-    switchToLoginBtn.style.display = "none";
+    titleEl.textContent = '로그인';
+    subtitleEl.textContent = 'Supabase 계정으로 로그인하세요.';
+    nicknameWrapEl.style.display = 'none';
+    submitBtn.textContent = '로그인';
+    switchToSignupBtn.style.display = 'inline-block';
+    switchToLoginBtn.style.display = 'none';
   }
 }
 
 function redirectToMainPage() {
   if (redirectTimer) clearTimeout(redirectTimer);
   redirectTimer = setTimeout(() => {
-    window.location.replace("../index.html");
+    window.location.replace('../index.html');
   }, 700);
 }
 
 async function signIn(email, password) {
-  await loadConfig();
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok)
-    throw new Error(
-      data?.error_description || data?.msg || data?.message || "로그인 실패",
-    );
+  if (!res.ok) {
+    throw new Error(data?.error_description || data?.msg || data?.message || '로그인 실패');
+  }
   return data;
 }
 
 async function signUp(email, password, nickname) {
-  await loadConfig();
   const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       apikey: SUPABASE_ANON_KEY,
     },
     body: JSON.stringify({
@@ -118,10 +103,9 @@ async function signUp(email, password, nickname) {
     }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok)
-    throw new Error(
-      data?.error_description || data?.msg || data?.message || "회원가입 실패",
-    );
+  if (!res.ok) {
+    throw new Error(data?.error_description || data?.msg || data?.message || '회원가입 실패');
+  }
   return data;
 }
 
@@ -131,59 +115,56 @@ async function handleSubmit() {
   const email = emailEl.value.trim();
   const password = passwordEl.value;
   if (!email || !password) {
-    showAlert("이메일과 비밀번호를 입력하세요.");
+    showAlert('이메일과 비밀번호를 입력하세요.');
     return;
   }
 
   submitBtn.disabled = true;
-  submitBtn.textContent = mode === "signup" ? "가입 중..." : "로그인 중...";
+  submitBtn.textContent = mode === 'signup' ? '가입 중...' : '로그인 중...';
 
   try {
-    if (mode === "login") {
+    if (mode === 'login') {
       const data = await signIn(email, password);
-      sessionStorage.setItem("sb_access_token", data.access_token || "");
-      sessionStorage.setItem("sb_refresh_token", data.refresh_token || "");
-      sessionStorage.setItem("sb_user", JSON.stringify(data.user || {}));
+      sessionStorage.setItem('sb_access_token', data.access_token || '');
+      sessionStorage.setItem('sb_refresh_token', data.refresh_token || '');
+      sessionStorage.setItem('sb_user', JSON.stringify(data.user || {}));
       showSuccess(
-        `로그인 성공\n\n이메일: ${data.user?.email || email}\n닉네임: ${data.user?.user_metadata?.nickname || "없음"}`,
+        `로그인 성공\n\n이메일: ${data.user?.email || email}\n닉네임: ${data.user?.user_metadata?.nickname || '없음'}`
       );
       redirectToMainPage();
     } else {
       const nickname = nicknameEl.value.trim();
       if (!nickname) {
-        showAlert("닉네임을 입력하세요.");
+        showAlert('닉네임을 입력하세요.');
         return;
       }
       const data = await signUp(email, password, nickname);
-      sessionStorage.setItem(
-        "sb_user",
-        JSON.stringify(data.user || { email, user_metadata: { nickname } }),
-      );
-      sessionStorage.setItem("sb_access_token", data.access_token || "");
-      sessionStorage.setItem("sb_refresh_token", data.refresh_token || "");
+      sessionStorage.setItem('sb_user', JSON.stringify(data.user || { email, user_metadata: { nickname } }));
+      sessionStorage.setItem('sb_access_token', data.access_token || '');
+      sessionStorage.setItem('sb_refresh_token', data.refresh_token || '');
       showSuccess(`회원가입 성공\n\n이메일: ${email}\n닉네임: ${nickname}`);
-      setTimeout(() => setMode("login"), 700);
+      setTimeout(() => setMode('login'), 700);
     }
   } catch (err) {
-    showAlert(err.message || "요청 실패");
+    showAlert(err?.message || '요청 실패');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = mode === "signup" ? "회원가입" : "로그인";
+    submitBtn.textContent = mode === 'signup' ? '회원가입' : '로그인';
   }
 }
 
-submitBtn.addEventListener("click", handleSubmit);
-clearBtn.addEventListener("click", () => {
+submitBtn.addEventListener('click', handleSubmit);
+clearBtn.addEventListener('click', () => {
   clearMessages();
   resetFields();
 });
-switchToSignupBtn.addEventListener("click", () => setMode("signup"));
-switchToLoginBtn.addEventListener("click", () => setMode("login"));
+switchToSignupBtn.addEventListener('click', () => setMode('signup'));
+switchToLoginBtn.addEventListener('click', () => setMode('login'));
 
 [emailEl, passwordEl, nicknameEl].forEach((el) => {
-  el.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleSubmit();
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleSubmit();
   });
 });
 
-setMode("login");
+setMode('login');
