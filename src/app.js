@@ -12,6 +12,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/health", healthRouter);
 app.use("/public", express.static(publicDirectory));
+app.use(express.static(publicDirectory));
 
 app.get("/", (request, response) => {
   response.sendFile(path.join(publicDirectory, "index.html"));
