@@ -42,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     feedLimit: 12,
     hasMoreFeed: true,
     isLoadingFeed: false,
+    draftTags: [],
   };
 
   const els = {
@@ -65,6 +66,8 @@ document.addEventListener("DOMContentLoaded", () => {
     postImageOrderList: document.getElementById("post-image-order-list"),
     postImageGallery: document.getElementById("post-image-gallery"),
     postImageDropzone: document.getElementById("post-image-dropzone"),
+    tagInputContainer: document.getElementById("tag-input-container"),
+    tagChipList: document.getElementById("tag-chip-list"),
     postTags: document.getElementById("post-tags"),
     postLocation: document.getElementById("post-location"),
     postCategory: document.getElementById("post-category"),
@@ -115,6 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
       els.widgetUserAvatar.src = cachedImg || defaultAvatar;
     }
     bindEvents();
+    bindTagInputEvents();
     await loadConfig();
     const likesPromise = fetchUserLikes();
     setupInfiniteScroll();
@@ -229,8 +233,11 @@ document.addEventListener("DOMContentLoaded", () => {
     state.feedPage = 0;
     state.hasMoreFeed = true;
     state.posts = [];
-    
-    const skeletonHTML = Array(4).fill(0).map(() => `
+
+    const skeletonHTML = Array(4)
+      .fill(0)
+      .map(
+        () => `
       <article class="travel-card skeleton-card">
         <div class="travel-card-image-wrap skeleton"></div>
         <div class="travel-card-info">
@@ -238,9 +245,11 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="travel-card-desc skeleton skeleton-text-short"></div>
         </div>
       </article>
-    `).join("");
+    `,
+      )
+      .join("");
     els.feed.innerHTML = skeletonHTML;
-    
+
     await Promise.all([loadFeedChunk(likesPromise), renderTags()]);
     if (state.detailPost) {
       await openPostDetail(state.detailPost.post_id, { refresh: true });
@@ -257,11 +266,18 @@ document.addEventListener("DOMContentLoaded", () => {
       sentinel.style.width = "100%";
       els.feed.parentNode.insertBefore(sentinel, els.feed.nextSibling);
     }
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !state.isLoadingFeed && state.hasMoreFeed) {
-        loadFeedChunk();
-      }
-    }, { rootMargin: "200px" });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          !state.isLoadingFeed &&
+          state.hasMoreFeed
+        ) {
+          loadFeedChunk();
+        }
+      },
+      { rootMargin: "200px" },
+    );
     observer.observe(sentinel);
   }
 
@@ -275,9 +291,9 @@ document.addEventListener("DOMContentLoaded", () => {
         `${state.api.feed}?select=*&order=created_at.desc&limit=${state.feedLimit}&offset=${from}`,
         { method: "GET" },
       );
-      
+
       const [rows] = await Promise.all([feedPromise, likesPromise]);
-      
+
       const newPosts = Array.isArray(rows) ? rows : [];
       if (newPosts.length < state.feedLimit) {
         state.hasMoreFeed = false;
@@ -304,7 +320,7 @@ document.addEventListener("DOMContentLoaded", () => {
           } else {
             imageHtml = `
               <div class="card-slider">
-                ${images.map(img => `<img src="${escapeAttr(img)}" alt="게시글 이미지" loading="lazy">`).join("")}
+                ${images.map((img) => `<img src="${escapeAttr(img)}" alt="게시글 이미지" loading="lazy">`).join("")}
               </div>
             `;
           }
@@ -377,8 +393,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getTagEmoji(tagName) {
     const text = String(tagName).toLowerCase();
-    if (text.includes("부산") || text.includes("바다") || text.includes("해운대") || text.includes("광안리")) return "🌊";
-    if (text.includes("일본") || text.includes("도쿄") || text.includes("교토") || text.includes("오사카")) return "🗾";
+    if (
+      text.includes("부산") ||
+      text.includes("바다") ||
+      text.includes("해운대") ||
+      text.includes("광안리")
+    )
+      return "🌊";
+    if (
+      text.includes("일본") ||
+      text.includes("도쿄") ||
+      text.includes("교토") ||
+      text.includes("오사카")
+    )
+      return "🗾";
     if (text.includes("제주")) return "🍊";
     if (text.includes("산") || text.includes("등산")) return "⛰️";
     if (text.includes("카페") || text.includes("커피")) return "☕";
@@ -644,7 +672,9 @@ document.addEventListener("DOMContentLoaded", () => {
     state.existingPostImages = [];
     state.postSummarySelectionStart = 0;
     state.postSummarySelectionEnd = 0;
+    state.draftTags = [];
     els.postForm?.reset();
+    renderDraftTags();
     renderPostImageGallery();
     setPostSubmitLabel("게시글 등록");
     bringModalToFront(els.postModal, 210);
@@ -659,9 +689,11 @@ document.addEventListener("DOMContentLoaded", () => {
     els.postType.value = post.type || "여행후기";
     els.postTitle.value = post.title || "";
     els.postSummary.value = post.summary || "";
-    els.postTags.value = Array.isArray(post.tags)
-      ? post.tags.join(", ")
-      : String(post.tags || "");
+
+    state.draftTags = splitTags(post.tags);
+    renderDraftTags();
+    els.postTags.value = "";
+
     els.postLocation.value = post.location || "";
     els.postCategory.value = post.category || "";
     setPostSubmitLabel("게시글 수정");
@@ -680,6 +712,59 @@ document.addEventListener("DOMContentLoaded", () => {
     if (els.postImageOrderList) els.postImageOrderList.innerHTML = "";
     state.postImages = [];
     state.existingPostImages = [];
+  }
+
+  function renderDraftTags() {
+    if (!els.tagChipList) return;
+    els.tagChipList.innerHTML = state.draftTags
+      .map(
+        (tag, index) => `
+      <div class="tag-input-chip">
+        #${escapeHtml(tag)}
+        <button type="button" data-index="${index}" aria-label="태그 삭제">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+    `,
+      )
+      .join("");
+
+    els.tagChipList.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.index);
+        state.draftTags.splice(idx, 1);
+        renderDraftTags();
+      });
+    });
+
+    if (window.lucide) {
+      window.lucide.createIcons({ root: els.tagChipList });
+    }
+  }
+
+  function bindTagInputEvents() {
+    if (!els.postTags || !els.tagChipList) return;
+
+    els.postTags.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.code === "Space" || e.key === ",") {
+        e.preventDefault();
+        const tags = splitTags(els.postTags.value);
+        tags.forEach((t) => {
+          if (!state.draftTags.includes(t)) state.draftTags.push(t);
+        });
+        renderDraftTags();
+        els.postTags.value = "";
+      } else if (e.key === "Backspace" && els.postTags.value === "") {
+        if (state.draftTags.length > 0) {
+          state.draftTags.pop();
+          renderDraftTags();
+        }
+      }
+    });
+
+    els.tagInputContainer?.addEventListener("click", () => {
+      els.postTags.focus();
+    });
   }
 
   function renderPostImageGallery() {
@@ -1029,7 +1114,13 @@ document.addEventListener("DOMContentLoaded", () => {
       title,
       summary,
       image_urls: JSON.stringify(images),
-      tags: splitTags(els.postTags.value).join(","),
+      tags: (() => {
+        const inputTags = splitTags(els.postTags.value);
+        inputTags.forEach((t) => {
+          if (!state.draftTags.includes(t)) state.draftTags.push(t);
+        });
+        return state.draftTags.join(",");
+      })(),
       location: els.postLocation.value.trim(),
       category: els.postCategory.value.trim(),
       type: els.postType.value || "여행후기",
