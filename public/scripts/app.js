@@ -258,6 +258,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      if (response.status === 404) {
+        throw new Error(
+          "추천 API를 찾을 수 없습니다. Express 서버를 다시 시작해 주세요.",
+        );
+      }
+
       if (!response.ok || !result.success) {
         throw new Error(result.message || "추천 조회 실패");
       }
@@ -290,9 +296,8 @@ document.addEventListener("DOMContentLoaded", () => {
       greetingDesc.textContent =
         "맞춤 여행지를 불러오는 중 문제가 발생했습니다.";
       recommendationTitle.textContent = "추천 결과를 불러오지 못했습니다";
-      recommendationSubtitle.textContent =
-        "잠시 후 페이지를 새로고침해 주세요.";
-      renderRecommendationState("관광지 추천 조회에 실패했습니다.");
+      recommendationSubtitle.textContent = error.message;
+      renderRecommendationState(error.message);
       featuredBadge.textContent = "추천 조회 실패";
       featuredName.textContent = "잠시 후 다시 시도해 주세요";
       featuredRegion.textContent = "Supabase 연결 상태를 확인해 주세요.";

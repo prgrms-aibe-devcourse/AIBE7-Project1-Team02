@@ -52,6 +52,11 @@ router.get("/recommended", async (request, response) => {
   } catch (error) {
     const status = error.status === 401 ? 401 : 502;
 
+    console.error("MBTI 맞춤 여행지 조회 실패:", {
+      status: error.status,
+      message: error.message,
+    });
+
     return response.status(status).json({
       success: false,
       message:
