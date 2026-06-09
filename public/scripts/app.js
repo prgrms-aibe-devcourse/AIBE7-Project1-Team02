@@ -27,6 +27,12 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const recommendationList = document.getElementById("recommendation-list");
   const recommendationLink = document.getElementById("recommendation-link");
+  const recommendationPrev = document.getElementById("recommendation-prev");
+  const recommendationNext = document.getElementById("recommendation-next");
+  const recommendationDots = document.getElementById("recommendation-dots");
+  const recommendationPosition = document.getElementById(
+    "recommendation-position",
+  );
   const destinationDetailModal = document.getElementById(
     "destination-detail-modal",
   );
@@ -60,6 +66,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const destinationDetailAction = document.getElementById(
     "destination-detail-action",
   );
+  let featuredRecommendations = [];
+  let currentRecommendationIndex = 0;
 
   const ensureAuthBadge = () => {
     const actions = document.querySelector(".header-actions");
@@ -263,9 +271,9 @@ document.addEventListener("DOMContentLoaded", () => {
     lucide.createIcons();
   }
 
-  function createRecommendationCard(destination, rank) {
+  function createFeaturedRecommendation(destination, rank) {
     const card = document.createElement("article");
-    card.className = "dest-mini-card recommendation-card";
+    card.className = "featured-recommendation-card";
     card.tabIndex = 0;
     card.setAttribute("role", "button");
     card.setAttribute(
@@ -274,6 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     const image = document.createElement("img");
+    image.className = "featured-recommendation-image";
     image.src = getSafeImageUrl(destination.imageUrl);
     image.alt = destination.destinationName;
     image.loading = "lazy";
@@ -281,16 +290,15 @@ document.addEventListener("DOMContentLoaded", () => {
       image.src = fallbackImageUrl;
     });
 
-    const rankBadge = document.createElement("span");
-    rankBadge.className = "recommendation-rank";
-    rankBadge.textContent = `${rank}위`;
-
-    const scoreBadge = document.createElement("span");
-    scoreBadge.className = "recommendation-score";
-    scoreBadge.textContent = `${destination.score.toFixed(1)}점`;
-
     const info = document.createElement("div");
-    info.className = "dest-mini-info";
+    info.className = "featured-recommendation-content";
+
+    const meta = document.createElement("div");
+    meta.className = "featured-recommendation-meta";
+    meta.innerHTML = [
+      `<span>추천 ${rank}위</span>`,
+      `<span>적합도 ${destination.score.toFixed(1)}점</span>`,
+    ].join("");
 
     const name = document.createElement("h4");
     name.textContent = destination.destinationName;
@@ -300,18 +308,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const keywordList = document.createElement("div");
     keywordList.className = "recommendation-keywords";
-    destination.keywords.slice(0, 2).forEach((keyword) => {
+    destination.keywords.slice(0, 4).forEach((keyword) => {
       const keywordBadge = document.createElement("span");
       keywordBadge.textContent = `#${keyword}`;
       keywordList.appendChild(keywordBadge);
     });
 
+    const description = document.createElement("p");
+    description.className = "featured-recommendation-copy";
+    description.textContent =
+      destination.description ||
+      "여행 MBTI 성향과 높은 적합도를 보인 국내 여행지입니다.";
+
     const detailGuide = document.createElement("span");
     detailGuide.className = "recommendation-detail-guide";
-    detailGuide.textContent = "상세보기";
+    detailGuide.innerHTML = '상세정보 보기 <i data-lucide="arrow-up-right"></i>';
 
-    info.append(name, region, keywordList, detailGuide);
-    card.append(image, rankBadge, scoreBadge, info);
+    info.append(meta, name, region, keywordList, description, detailGuide);
+    card.append(image, info);
     card.addEventListener("click", () => {
       openDestinationDetail(destination, rank);
     });
@@ -322,6 +336,56 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
     return card;
+  }
+
+  function renderFeaturedRecommendation() {
+    const destination = featuredRecommendations[currentRecommendationIndex];
+    recommendationList.innerHTML = "";
+
+    if (!destination) {
+      return;
+    }
+
+    recommendationList.appendChild(
+      createFeaturedRecommendation(destination, currentRecommendationIndex + 1),
+    );
+    recommendationPosition.textContent =
+      `${currentRecommendationIndex + 1} / ${featuredRecommendations.length}`;
+    recommendationDots
+      .querySelectorAll("button")
+      .forEach((dot, dotIndex) => {
+        dot.classList.toggle("active", dotIndex === currentRecommendationIndex);
+        dot.setAttribute(
+          "aria-current",
+          dotIndex === currentRecommendationIndex ? "true" : "false",
+        );
+      });
+    recommendationPrev.disabled = currentRecommendationIndex === 0;
+    recommendationNext.disabled =
+      currentRecommendationIndex === featuredRecommendations.length - 1;
+    lucide.createIcons();
+  }
+
+  function initializeFeaturedRecommendations(recommendations) {
+    featuredRecommendations = recommendations;
+    currentRecommendationIndex = 0;
+    recommendationDots.innerHTML = "";
+
+    recommendations.forEach((destination, index) => {
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.setAttribute(
+        "aria-label",
+        `${index + 1}번째 추천 ${destination.destinationName} 보기`,
+      );
+      dot.addEventListener("click", () => {
+        currentRecommendationIndex = index;
+        renderFeaturedRecommendation();
+      });
+      recommendationDots.appendChild(dot);
+    });
+
+    renderFeaturedRecommendation();
   }
 
   function renderRecommendationState(message, actionText) {
@@ -389,8 +453,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const { mbtiType, recommendations } = result.data;
       recommendationTitle.textContent = `${mbtiType} 맞춤 여행지 TOP ${recommendations.length}`;
       recommendationSubtitle.textContent =
-        "Supabase에 저장된 관광지별 MBTI 적합도 점수 순위입니다.";
-      recommendationList.innerHTML = "";
+        "한 장씩 넘겨보며 가장 마음에 드는 여행지를 골라보세요.";
 
       if (recommendations.length === 0) {
         renderRecommendationState(
@@ -400,18 +463,26 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      recommendations.forEach((destination, index) => {
-        recommendationList.appendChild(
-          createRecommendationCard(destination, index + 1),
-        );
-      });
-      lucide.createIcons();
+      initializeFeaturedRecommendations(recommendations);
     } catch (error) {
       recommendationTitle.textContent = "추천 결과를 불러오지 못했습니다";
       recommendationSubtitle.textContent = error.message;
       renderRecommendationState(error.message);
     }
   }
+
+  recommendationPrev.addEventListener("click", () => {
+    if (currentRecommendationIndex > 0) {
+      currentRecommendationIndex -= 1;
+      renderFeaturedRecommendation();
+    }
+  });
+  recommendationNext.addEventListener("click", () => {
+    if (currentRecommendationIndex < featuredRecommendations.length - 1) {
+      currentRecommendationIndex += 1;
+      renderFeaturedRecommendation();
+    }
+  });
 
   if (destinationDetailClose) {
     destinationDetailClose.addEventListener("click", closeDestinationDetail);

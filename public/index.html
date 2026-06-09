@@ -39,15 +39,48 @@
                 성향 다시 분석 <i data-lucide="chevron-right"></i>
               </a>
             </div>
-            <div
-              class="recommendation-list"
-              id="recommendation-list"
-              aria-live="polite"
-            >
-              <div class="recommendation-state">
-                <span class="recommendation-spinner" aria-hidden="true"></span>
-                <span>맞춤 여행지를 불러오는 중입니다.</span>
+            <div class="featured-recommendation-shell">
+              <button
+                class="featured-recommendation-control"
+                id="recommendation-prev"
+                type="button"
+                aria-label="이전 추천 여행지"
+              >
+                <i data-lucide="chevron-left"></i>
+              </button>
+              <div
+                class="featured-recommendation"
+                id="recommendation-list"
+                aria-live="polite"
+              >
+                <div class="recommendation-state">
+                  <span class="recommendation-spinner" aria-hidden="true"></span>
+                  <span>맞춤 여행지를 불러오는 중입니다.</span>
+                </div>
               </div>
+              <button
+                class="featured-recommendation-control"
+                id="recommendation-next"
+                type="button"
+                aria-label="다음 추천 여행지"
+              >
+                <i data-lucide="chevron-right"></i>
+              </button>
+            </div>
+            <div class="featured-recommendation-footer">
+              <div
+                class="featured-recommendation-dots"
+                id="recommendation-dots"
+                aria-label="추천 여행지 슬라이드 선택"
+              ></div>
+              <span id="recommendation-position">0 / 0</span>
+              <a
+                class="btn-primary recommendation-explore-button"
+                href="./pages/destinations.html"
+              >
+                여행지 더 찾아보기
+                <i data-lucide="arrow-right"></i>
+              </a>
             </div>
           </section>
 

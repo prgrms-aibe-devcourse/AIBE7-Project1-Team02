@@ -6,11 +6,12 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 
 ## 구현 상태
 
-2026년 6월 9일 기준 Express 서버에 구현된 API는 아래 세 개다.
+2026년 6월 9일 기준 Express 서버에 구현된 API는 아래 네 개다.
 
 - `GET /api/health`
 - `GET /api/config`
 - `GET /api/destinations/recommended`
+- `GET /api/destinations/recommended/filters`
 
 인증은 현재 프런트엔드에서 Supabase Auth를 직접 사용한다. 아래 표에서
 `PLANNED`로 표시한 API는 명세만 정의된 상태다.
@@ -42,7 +43,8 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | --- | --- | --- | --- | --- | --- | --- |
 | DONE | GET | `/api/health` | 없음 | 서버 상태, 확인 시각 | 서버 미실행 | 백엔드 |
 | DONE | GET | `/api/config` | 없음 | 브라우저용 Supabase URL, Anon Key | 없음, 환경 변수 검증 미구현 | 백엔드 |
-| DONE | GET | `/api/destinations/recommended` | Authorization Bearer Token, 선택 Query `limit` | 사용자 MBTI와 점수 상위 관광지 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
+| DONE | GET | `/api/destinations/recommended` | Authorization Bearer Token, 선택 Query `limit`, `page`, `pageSize`, `province`, `keyword` | 사용자 MBTI와 점수순 관광지, 페이지 정보 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
+| DONE | GET | `/api/destinations/recommended/filters` | Authorization Bearer Token | 추천 데이터의 지역, 키워드 옵션 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
 | PLANNED | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
 | PLANNED | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | PLANNED | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
@@ -103,7 +105,11 @@ Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
 Query:
 
 ```text
-limit: 선택, 기본 6, 최대 10
+limit: 선택, 상위 추천용 기본 6, 최대 10
+page: 선택, 전체 탐색용 페이지 번호, 기본 1
+pageSize: 선택, 전체 탐색용 페이지 크기, 기본 12, 최대 24
+province: 선택, 광역시/도 일치 필터
+keyword: 선택, 여행지 키워드 일치 필터
 ```
 
 Response:
@@ -126,13 +132,20 @@ Response:
         "reason": "contentType:12, textRule:1, textRule:2",
         "keywords": ["자연", "명소", "오션뷰"]
       }
-    ]
+    ],
+    "pagination": {
+      "page": 1,
+      "pageSize": 12,
+      "totalCount": 600,
+      "totalPages": 50
+    }
   },
   "message": "MBTI 맞춤 여행지 추천 조회 성공"
 }
 ```
 
 동점인 경우 `destination_id` 오름차순으로 정렬한다.
+`limit`만 전달한 상위 추천 조회에서는 `pagination`을 생략한다.
 
 Error Case:
 
@@ -143,6 +156,31 @@ Error Case:
     "needsSurvey": true
   },
   "message": "저장된 여행 MBTI 결과가 없습니다."
+}
+```
+
+### GET /api/destinations/recommended/filters
+
+로그인 사용자의 여행 MBTI 추천 데이터에 존재하는 광역시/도와 키워드
+목록을 반환한다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "mbtiType": "INFP",
+    "provinces": ["강원특별자치도", "제주특별자치도"],
+    "keywords": ["자연", "힐링"]
+  },
+  "message": "추천 여행지 필터 조회 성공"
 }
 ```
 

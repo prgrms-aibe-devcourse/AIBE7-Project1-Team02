@@ -1,18 +1,141 @@
 <!doctype html>
 <html lang="ko">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>여행지 탐색 | Tripadvisor AI</title>
-    <link rel="stylesheet" href="../styles/common.css">
-    <link rel="stylesheet" href="../styles/destinations.css">
-    <script src="../scripts/common.js" defer></script>
-    <script src="../scripts/destinations.js" defer></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>여행지 더 찾아보기 | ExploraJourneys</title>
+    <meta
+      name="description"
+      content="내 여행 MBTI 점수 순으로 국내 관광지를 필터링하고 둘러보세요."
+    />
+    <link rel="stylesheet" href="../styles/main.css" />
+    <link rel="stylesheet" href="../styles/destinations.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
-    <main>
-      <h1>여행지 탐색</h1>
-    </main>
+    <div class="app-container">
+      <div id="sidebar-container"></div>
+
+      <div class="main-wrapper">
+        <div id="header-container"></div>
+
+        <main class="dashboard-content destination-explore-page">
+          <section aria-labelledby="destination-explore-title">
+            <div class="destination-explore-header">
+              <div>
+                <span class="recommendation-eyebrow">MORE DESTINATIONS</span>
+                <h1 id="destination-explore-title">여행지 더 찾아보기</h1>
+                <p id="destination-explore-subtitle">
+                  내 여행 MBTI와 잘 맞는 국내 관광지를 불러오고 있습니다.
+                </p>
+              </div>
+              <a class="destination-back-link" href="../index.html">
+                <i data-lucide="arrow-left"></i>
+                TOP 10으로 돌아가기
+              </a>
+            </div>
+
+            <form class="destination-filter-panel" id="destination-filter-form">
+              <label>
+                <span>지역</span>
+                <select id="destination-province-filter">
+                  <option value="">전체 지역</option>
+                </select>
+              </label>
+              <label>
+                <span>키워드</span>
+                <select id="destination-keyword-filter">
+                  <option value="">전체 키워드</option>
+                </select>
+              </label>
+              <button class="destination-filter-reset" id="destination-filter-reset" type="button">
+                <i data-lucide="rotate-ccw"></i>
+                필터 초기화
+              </button>
+            </form>
+
+            <div class="destination-result-summary">
+              <p id="destination-result-count">관광지를 불러오는 중입니다.</p>
+              <span>MBTI 적합도순</span>
+            </div>
+
+            <div
+              class="destination-explore-grid"
+              id="destination-explore-grid"
+              aria-live="polite"
+            >
+              <div class="destination-explore-state">
+                <span class="recommendation-spinner" aria-hidden="true"></span>
+                <span>추천 여행지를 불러오는 중입니다.</span>
+              </div>
+            </div>
+
+            <nav
+              class="destination-pagination"
+              id="destination-pagination"
+              aria-label="여행지 목록 페이지"
+              hidden
+            ></nav>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div
+      class="destination-detail-overlay"
+      id="destination-detail-modal"
+      aria-hidden="true"
+    >
+      <article
+        class="destination-detail-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="destination-detail-name"
+      >
+        <button
+          class="destination-detail-close"
+          id="destination-detail-close"
+          type="button"
+          aria-label="여행지 상세 닫기"
+        >
+          <i data-lucide="x"></i>
+        </button>
+        <img
+          class="destination-detail-image"
+          id="destination-detail-image"
+          src="../images/summer_banner.png"
+          alt=""
+        />
+        <div class="destination-detail-content">
+          <h2 id="destination-detail-name">여행지 상세정보</h2>
+          <p class="destination-detail-region" id="destination-detail-region">
+            <i data-lucide="map-pin"></i>
+            <span>대한민국</span>
+          </p>
+          <div
+            class="destination-detail-keywords"
+            id="destination-detail-keywords"
+          ></div>
+          <p
+            class="destination-detail-description"
+            id="destination-detail-description"
+          ></p>
+          <div class="destination-detail-reason" id="destination-detail-reason">
+            <strong>추천 이유</strong>
+            <p></p>
+          </div>
+          <button
+            class="btn-primary destination-detail-action"
+            id="destination-detail-action"
+            type="button"
+          >
+            이 여행지로 일정 만들기 <i data-lucide="arrow-right"></i>
+          </button>
+        </div>
+      </article>
+    </div>
+
     <script src="/scripts/layout.js"></script>
+    <script src="../scripts/destinations.js"></script>
   </body>
 </html>
