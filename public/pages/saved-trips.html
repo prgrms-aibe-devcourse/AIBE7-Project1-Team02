@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>내 여행 일정 | ExploraJourneys</title>
+    <meta
+      name="description"
+      content="저장한 여행 일정의 기간, 여행지, 진행 상태와 날짜별 세부 일정을 확인합니다."
+    />
+    <link rel="stylesheet" href="../styles/main.css" />
+    <link rel="stylesheet" href="../styles/saved-trips.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="../scripts/layout.js" defer></script>
+    <script src="../scripts/saved-trips.js" defer></script>
+  </head>
+  <body>
+    <div class="app-container">
+      <div id="sidebar-container"></div>
+
+      <div class="main-wrapper">
+        <div id="header-container"></div>
+
+        <main class="saved-trips-page">
+          <section class="saved-trips-heading">
+            <div>
+              <span class="saved-trips-eyebrow">MY JOURNEYS</span>
+              <h1>내 여행 일정</h1>
+              <p>저장한 여행 계획과 날짜별 일정을 한곳에서 확인하세요.</p>
+            </div>
+            <a class="btn-primary saved-trips-create" href="./trip-create.html">
+              <i data-lucide="plus"></i>
+              새 여행 만들기
+            </a>
+          </section>
+
+          <section class="saved-trips-toolbar" aria-label="일정 검색 및 필터">
+            <label class="saved-trips-search">
+              <i data-lucide="search"></i>
+              <span class="sr-only">일정 검색</span>
+              <input
+                id="trip-search"
+                type="search"
+                placeholder="여행 제목 또는 여행지 검색"
+              />
+            </label>
+
+            <div class="saved-trips-filters" id="trip-status-filters">
+              <button class="active" type="button" data-status="all">전체</button>
+              <button type="button" data-status="planning">계획 중</button>
+              <button type="button" data-status="ongoing">여행 중</button>
+              <button type="button" data-status="completed">완료</button>
+            </div>
+          </section>
+
+          <section
+            class="saved-trips-list"
+            id="saved-trips-list"
+            aria-live="polite"
+          >
+            <div class="saved-trips-state">
+              <span class="saved-trips-spinner" aria-hidden="true"></span>
+              <p>저장된 여행 일정을 불러오고 있습니다.</p>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div
+      class="trip-detail-overlay"
+      id="trip-detail-modal"
+      aria-hidden="true"
+    >
+      <article
+        class="trip-detail-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trip-detail-title"
+      >
+        <header class="trip-detail-header">
+          <div>
+            <span id="trip-detail-status">여행 일정</span>
+            <h2 id="trip-detail-title">일정 상세</h2>
+            <p id="trip-detail-period"></p>
+          </div>
+          <button
+            class="trip-detail-close"
+            id="trip-detail-close"
+            type="button"
+            aria-label="일정 상세 닫기"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </header>
+
+        <div class="trip-detail-body" id="trip-detail-body"></div>
+      </article>
+    </div>
+  </body>
+</html>

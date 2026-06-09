@@ -412,13 +412,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  if (linkAllTrips) {
-    linkAllTrips.addEventListener("click", (e) => {
-      e.preventDefault();
-      alert("내 여행 전체보기 기능은 준비 중입니다.");
-    });
-  }
-
   if (linkSavedDest) {
     linkSavedDest.addEventListener("click", (e) => {
       e.preventDefault();
