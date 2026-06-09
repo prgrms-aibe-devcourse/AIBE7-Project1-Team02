@@ -75,6 +75,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- 아바타 이미지 및 닉네임 최신화 (DB 조회) ---
     const userId = currentUser?.id;
     if (userId) {
+      // 1. 화면 깜빡임(로딩 지연) 방지를 위해 세션 캐시 이미지로 즉시 적용
+      const cachedImg = currentUser?.user_metadata?.profile_image;
+      if (cachedImg) {
+        const headerImg = document.getElementById("header-user-avatar");
+        if (headerImg) headerImg.src = cachedImg;
+      }
+
+      // 2. 이후 백그라운드에서 DB 최신 데이터로 동기화
       fetch("/api/config").then(r => r.json()).then(result => {
         if (result.success) {
           const sUrl = result.data.supabaseUrl;
