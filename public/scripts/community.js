@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentUser?.user_metadata?.name ||
     currentUser?.email?.split("@")?.[0] ||
     "사용자";
-  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=1a5c3a&color=fff&size=160`;
+  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=random&color=fff&size=160`;
 
   const state = {
     supabaseUrl: "",
@@ -335,7 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="travel-card-info">
                 <div class="travel-card-title">${escapeHtml(post.title || "무제")}</div>
                 <div class="travel-card-meta">
-                  <img src="https://ui-avatars.com/api/?name=${escapeAttr((post.nickname || userNickname).charAt(0))}&background=1a5c3a&color=fff" alt="프로필" loading="lazy">
+                  <img src="https://ui-avatars.com/api/?name=${escapeAttr((post.nickname || userNickname).charAt(0))}&background=random&color=fff" alt="프로필" loading="lazy">
                   <span>${escapeHtml(post.nickname || userNickname)}</span>
                 </div>
               </div>

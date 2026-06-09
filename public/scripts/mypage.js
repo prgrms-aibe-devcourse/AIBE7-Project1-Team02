@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const prefData = await prefRes.json().catch(() => null);
 
     const nickname = userData?.[0]?.nickname || user.user_metadata?.nickname || "여행자";
-    const profileImage = userData?.[0]?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(nickname)}&background=1a5c3a&color=fff&size=160`;
+    const profileImage = userData?.[0]?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(nickname)}&background=random&color=fff&size=160`;
     const badge = prefData?.[0]?.badge || "새로운 여행자";
 
     // DOM 업데이트

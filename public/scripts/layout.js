@@ -191,7 +191,7 @@ async function updateHeaderProfile() {
   const userName = currentUser?.user_metadata?.nickname || currentUser?.user_metadata?.name || currentUser?.email?.split("@")?.[0] || "사용자";
   if (headerUserName) headerUserName.textContent = `${userName}님`;
 
-  const cachedImg = currentUser?.user_metadata?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=1a5c3a&color=fff&size=160`;
+  const cachedImg = currentUser?.user_metadata?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random&color=fff&size=160`;
   if (headerUserAvatar) {
     headerUserAvatar.src = cachedImg;
   }
@@ -210,7 +210,7 @@ async function updateHeaderProfile() {
         const dbNick = data?.[0]?.nickname;
         
         const finalName = dbNick || userName;
-        const finalImg = dbImg || `https://ui-avatars.com/api/?name=${encodeURIComponent(finalName)}&background=1a5c3a&color=fff&size=160`;
+        const finalImg = dbImg || `https://ui-avatars.com/api/?name=${encodeURIComponent(finalName)}&background=random&color=fff&size=160`;
 
         if (headerUserAvatar) {
           headerUserAvatar.src = finalImg;

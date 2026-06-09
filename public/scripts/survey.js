@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
       "사용자";
     if (headerUserName) headerUserName.textContent = `${userNickname}님`;
     if (headerUserAvatar) {
-      headerUserAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=1a5c3a&color=fff&size=160`;
+      headerUserAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=random&color=fff&size=160`;
     }
   }
 
