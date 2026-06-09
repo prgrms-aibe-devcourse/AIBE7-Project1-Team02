@@ -323,3 +323,77 @@ Error Case:
   "message": "일정 생성에 사용할 관광지 데이터가 없습니다."
 }
 ```
+
+### GET /api/travel/list
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "trips": [
+      {
+        "tripId": 1,
+        "title": "제주 힐링 여행",
+        "destinationName": "제주도",
+        "imageUrl": "https://example.com/jeju.jpg",
+        "startDate": "2026-07-10",
+        "endDate": "2026-07-12",
+        "companionType": "친구",
+        "status": "planning",
+        "itineraryCount": 6
+      }
+    ]
+  },
+  "message": "저장 일정 조회 성공"
+}
+```
+
+Error Case:
+
+```json
+{
+  "success": false,
+  "message": "로그인 정보가 없습니다."
+}
+```
+
+### GET /api/travel/:id
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "trip": {
+      "tripId": 1,
+      "title": "제주 힐링 여행",
+      "destinationName": "제주도",
+      "startDate": "2026-07-10",
+      "endDate": "2026-07-12",
+      "status": "planning",
+      "itineraries": [
+        {
+          "dayNumber": 1,
+          "startTime": "10:00",
+          "locationName": "협재해수욕장",
+          "description": "해변 산책",
+          "sortOrder": 1
+        }
+      ]
+    }
+  },
+  "message": "일정 상세 조회 성공"
+}
+```
+
+Error Case:
+
+```json
+{
+  "success": false,
+  "message": "일정을 찾을 수 없거나 조회 권한이 없습니다."
+}
+```

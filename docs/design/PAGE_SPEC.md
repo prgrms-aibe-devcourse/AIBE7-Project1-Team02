@@ -738,6 +738,66 @@
 
 추천 결과 확인 후 일정을 생성하는 경우 `POST /api/travel/recommend`와 `POST /api/travel/plan`을 단계별로 호출한다.
 
+---
+
+## 08 Saved Trips Page
+
+### 목적
+
+사용자가 저장한 여행 일정 목록과 날짜별 세부 일정을 확인한다.
+
+### 화면 구성
+
+- 공통 Sidebar
+- 공통 Header
+- 페이지 제목 및 새 여행 만들기 버튼
+- 여행 제목 또는 여행지 검색
+- 전체, 계획 중, 여행 중, 완료 상태 필터
+- 저장 일정 카드 목록
+- 일정 상세 모달
+- 저장 일정이 없거나 조회에 실패한 경우 상태 안내
+
+### 주요 컴포넌트
+
+- Sidebar
+- Header
+- TripSearch
+- TripStatusFilter
+- SavedTripCard
+- TripDetailModal
+- EmptyState
+
+### 사용자 액션
+
+- 검색어 입력 → 여행 제목 및 대표 여행지 기준 목록 필터링
+- 상태 선택 → 여행 상태 기준 목록 필터링
+- 일정 상세 보기 클릭 → 날짜별 세부 일정 모달 표시
+- 새 여행 만들기 클릭 → 일정 생성 페이지 이동
+- 상세 모달 닫기 또는 ESC 입력 → 상세 모달 닫기
+
+### 사용 API
+
+- `GET /api/travel/list`
+- `GET /api/travel/:id`
+
+### 사용 DB
+
+- `trips`
+- `itineraries`
+- `destinations`
+
+### MVP 여부
+
+포함
+
+### 구현 메모
+
+- `public/components/header.html`, `public/components/sidebar.html`과
+  `public/scripts/layout.js`가 병합된 환경을 기준으로 공통 레이아웃을 주입한다.
+- 목데이터를 사용하지 않고 저장 일정 API 응답만 표시한다.
+- 일정 목록 API가 세부 일정을 포함하면 즉시 표시하고, 포함하지 않으면 상세 API를 추가 조회한다.
+- 이미지가 없거나 로딩에 실패하면 기본 여행 이미지를 표시한다.
+
 ### 사용 DB
 
 - `users`
