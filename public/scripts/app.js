@@ -102,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (avatarLink) {
       avatarLink.setAttribute('aria-label', `${userName} 프로필`);
       avatarLink.setAttribute('title', `${userName} 프로필`);
-      avatarLink.setAttribute('href', './pages/profile.html');
+      avatarLink.setAttribute('href', './pages/mypage.html');
     }
   };
 

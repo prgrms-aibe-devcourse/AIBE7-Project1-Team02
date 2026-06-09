@@ -33,13 +33,17 @@
           <a href="./pages/survey.html" class="nav-item">
             <i data-lucide="sparkles" class="nav-icon"></i> 성향 분석
           </a>
-          <a href="./pages/profile.html" class="nav-item">
+          <a href="./pages/mypage.html" class="nav-item">
             <i data-lucide="user" class="nav-icon"></i> 마이페이지
           </a>
         </nav>
 
         <div class="sidebar-footer">
-          <button class="btn-create-itinerary" id="btn-sidebar-create" type="button">
+          <button
+            class="btn-create-itinerary"
+            id="btn-sidebar-create"
+            type="button"
+          >
             + 여행 일정 만들기
           </button>
         </div>
@@ -48,7 +52,12 @@
       <div class="main-wrapper">
         <header class="top-header">
           <div class="header-left">
-            <button class="mobile-menu-toggle" id="mobile-toggle" type="button" aria-label="메뉴 열기">
+            <button
+              class="mobile-menu-toggle"
+              id="mobile-toggle"
+              type="button"
+              aria-label="메뉴 열기"
+            >
               <i data-lucide="menu"></i>
             </button>
             <div class="header-breadcrumb">
@@ -63,12 +72,20 @@
               <input type="text" placeholder="목적지, 맛집, 액티비티 검색..." />
             </div>
 
-            <button class="btn-icon" id="notification-btn" type="button" aria-label="알림">
+            <button
+              class="btn-icon"
+              id="notification-btn"
+              type="button"
+              aria-label="알림"
+            >
               <i data-lucide="bell"></i>
               <span class="notification-dot"></span>
             </button>
             <div class="user-avatar-wrapper">
-              <span id="header-user-name" style="margin-right: 10px; font-weight: 500;"></span>
+              <span
+                id="header-user-name"
+                style="margin-right: 10px; font-weight: 500"
+              ></span>
               <a href="/public/pages/login.html" id="login-link">
                 <img
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
@@ -77,7 +94,12 @@
                   class="user-avatar"
                 />
               </a>
-              <button id="logout-btn" class="btn-icon" style="margin-left: 8px; display: none;" title="로그아웃">
+              <button
+                id="logout-btn"
+                class="btn-icon"
+                style="margin-left: 8px; display: none"
+                title="로그아웃"
+              >
                 <i data-lucide="log-out"></i>
               </button>
             </div>
@@ -94,18 +116,23 @@
             </div>
 
             <div class="dash-header-actions">
-              <button class="btn-primary btn-glow" id="btn-quick-create" type="button">
+              <button
+                class="btn-primary btn-glow"
+                id="btn-quick-create"
+                type="button"
+              >
                 <i data-lucide="sparkles"></i> AI 맞춤 여행 계획 생성
               </button>
             </div>
           </section>
 
           <section class="bento-grid" aria-label="메인 대시보드">
-            <div class="bento-item bento-large summary-card-bento" id="featured-recommendation">
+            <div class="bento-item bento-large summary-card-bento">
               <div
                 class="bento-bg-image"
-                id="featured-recommendation-image"
-                style="background-image: url('./images/summer_banner.png');"
+                style="
+                  background-image: url(&quot;./images/jeju_night.png&quot;);
+                "
               ></div>
               <div class="bento-overlay"></div>
               <div class="bento-content summary-content">
@@ -113,10 +140,10 @@
                   맞춤 추천 준비 중
                 </div>
                 <div class="trip-details">
-                  <h2 id="featured-recommendation-name">여행지를 불러오고 있습니다</h2>
-                  <p id="featured-recommendation-region">
-                    <i data-lucide="map-pin"></i>
-                    <span>잠시만 기다려 주세요.</span>
+                  <h2>제주도 바다 여행</h2>
+                  <p>
+                    <i data-lucide="calendar"></i> 2026.06.20 - 06.23 &nbsp; |
+                    &nbsp; <i data-lucide="map-pin"></i> 제주
                   </p>
                   <p
                     class="featured-recommendation-description"
@@ -125,12 +152,10 @@
                 </div>
                 <button
                   class="btn-glass"
-                  id="featured-recommendation-action"
                   style="width: fit-content; border-radius: 30px"
                   type="button"
-                  disabled
                 >
-                  추천 결과 확인 중 <i data-lucide="arrow-right"></i>
+                  일정 상세 보기 <i data-lucide="arrow-right"></i>
                 </button>
               </div>
             </div>
@@ -152,19 +177,43 @@
               </div>
               <div class="profile-info">
                 <span class="profile-title">여행 성향 프로필</span>
-                <p id="mbti-profile-summary" style="font-size: 0.8rem; margin-top: 0.5rem">
-                  <strong style="color: var(--color-primary)">MBTI:</strong> 조회 중
+                <p style="font-size: 0.8rem; margin-top: 0.5rem">
+                  <strong style="color: var(--color-primary)"
+                    >다음 추천:</strong
+                  >
+                  바다 산책형
                 </p>
               </div>
             </div>
 
             <div class="bento-item bento-wide popular-destinations recommendation-panel">
               <div class="bento-header">
-                <div>
-                  <h3 id="recommendation-title">내 여행 MBTI 추천</h3>
-                  <p class="recommendation-subtitle" id="recommendation-subtitle">
-                    Supabase에 저장된 관광지 적합도 점수를 조회하고 있습니다.
-                  </p>
+                <h3>인기 여행지</h3>
+                <a href="./pages/destinations.html" class="btn-text"
+                  >모두 보기 <i data-lucide="chevron-right"></i
+                ></a>
+              </div>
+              <div class="dest-scroll-container">
+                <div class="dest-mini-card">
+                  <img src="./images/gwangalli.png" alt="광안리" />
+                  <div class="dest-mini-info">
+                    <h4>광안리</h4>
+                    <p>부산</p>
+                  </div>
+                </div>
+                <div class="dest-mini-card">
+                  <img src="./images/bukchon.png" alt="북촌" />
+                  <div class="dest-mini-info">
+                    <h4>북촌 한옥마을</h4>
+                    <p>서울</p>
+                  </div>
+                </div>
+                <div class="dest-mini-card">
+                  <img src="./images/haeundae.png" alt="해운대" />
+                  <div class="dest-mini-info">
+                    <h4>해운대</h4>
+                    <p>부산</p>
+                  </div>
                 </div>
                 <a href="./pages/survey.html" class="btn-text" id="recommendation-link">
                   성향 다시 분석 <i data-lucide="chevron-right"></i>
@@ -192,7 +241,12 @@
             </div>
 
             <div class="bento-item bento-wide seasonal-banner">
-              <div class="bento-bg-image" style="background-image: url('./images/summer_banner.png');"></div>
+              <div
+                class="bento-bg-image"
+                style="
+                  background-image: url(&quot;./images/summer_banner.png&quot;);
+                "
+              ></div>
               <div class="bento-overlay seasonal-overlay"></div>
               <div class="bento-content seasonal-content">
                 <div class="seasonal-badge">여름 시즌 추천</div>
@@ -210,15 +264,27 @@
               </div>
               <div class="recent-list">
                 <div class="recent-item">
-                  <img src="./images/bukchon.png" alt="북촌" class="recent-thumb" />
+                  <img
+                    src="./images/bukchon.png"
+                    alt="북촌"
+                    class="recent-thumb"
+                  />
                   <span>북촌 한옥마을</span>
                 </div>
                 <div class="recent-item">
-                  <img src="./images/haeundae.png" alt="해운대" class="recent-thumb" />
+                  <img
+                    src="./images/haeundae.png"
+                    alt="해운대"
+                    class="recent-thumb"
+                  />
                   <span>해운대 해수욕장</span>
                 </div>
                 <div class="recent-item">
-                  <img src="./images/gwangalli.png" alt="광안리" class="recent-thumb" />
+                  <img
+                    src="./images/gwangalli.png"
+                    alt="광안리"
+                    class="recent-thumb"
+                  />
                   <span>광안리 야경</span>
                 </div>
               </div>
@@ -230,15 +296,23 @@
 
     <div class="modal-overlay" id="flow-b-modal">
       <div class="modal-content">
-        <button class="modal-close-btn" id="modal-close-btn" type="button" aria-label="닫기">
+        <button
+          class="modal-close-btn"
+          id="modal-close-btn"
+          type="button"
+          aria-label="닫기"
+        >
           <i data-lucide="x"></i>
         </button>
         <section class="flow-b-section" id="destinations-flow">
-          <div class="section-header" style="text-align: center; max-width: 600px; margin: 0 auto 2rem">
+          <div
+            class="section-header"
+            style="text-align: center; max-width: 600px; margin: 0 auto 2rem"
+          >
             <h2>나만의 맞춤 여행지 선택</h2>
             <p>
-              원하는 키워드를 최대 3개까지 선택해서 내 스타일에 맞는 국내 여행지를
-              추천받아보세요.
+              원하는 키워드를 최대 3개까지 선택해서 내 스타일에 맞는 국내
+              여행지를 추천받아보세요.
             </p>
           </div>
 
@@ -261,14 +335,27 @@
 
           <div class="preview-results" id="preview-results">
             <div class="empty-state" id="preview-empty">
-              <i data-lucide="compass" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.5;"></i>
+              <i
+                data-lucide="compass"
+                style="
+                  width: 48px;
+                  height: 48px;
+                  margin-bottom: 1rem;
+                  opacity: 0.5;
+                "
+              ></i>
               <br />
               <span>키워드를 선택하면 추천 결과가 여기에 표시됩니다.</span>
             </div>
           </div>
 
           <div class="preview-action" style="text-align: center">
-            <button class="btn-primary btn-glow disabled" id="btn-generate-itinerary" type="button" disabled>
+            <button
+              class="btn-primary btn-glow disabled"
+              id="btn-generate-itinerary"
+              type="button"
+              disabled
+            >
               맞춤 여행지 보기
             </button>
           </div>

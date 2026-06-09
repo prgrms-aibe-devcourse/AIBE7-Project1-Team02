@@ -10,8 +10,8 @@
     />
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="/public/styles/main.css" />
-    <link rel="stylesheet" href="/public/styles/survey.css" />
+    <link rel="stylesheet" href="../styles/main.css" />
+    <link rel="stylesheet" href="../styles/survey.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   </head>
   <body>
@@ -26,20 +26,20 @@
         </div>
 
         <nav class="sidebar-nav">
-          <a href="/public/index.html" class="nav-item">
+          <a href="../index.html" class="nav-item">
             <i data-lucide="compass" class="nav-icon"></i> 탐색하기
           </a>
-          <a href="#" class="nav-item">
+          <a href="./community.html" class="nav-item">
             <i data-lucide="users" class="nav-icon"></i> 커뮤니티
           </a>
           <a href="#" class="nav-item">
-            <i data-lucide="map" class="nav-icon"></i> 내 여행
+            <i data-lucide="map" class="nav-icon"></i> 여행 일정
           </a>
           <a href="#" class="nav-item active">
-            <i data-lucide="sparkles" class="nav-icon"></i> 생성하기
+            <i data-lucide="sparkles" class="nav-icon"></i> 성향 분석
           </a>
-          <a href="#" class="nav-item">
-            <i data-lucide="user" class="nav-icon"></i> 프로필
+          <a href="./mypage.html" class="nav-item">
+            <i data-lucide="user" class="nav-icon"></i> 마이페이지
           </a>
         </nav>
 
@@ -75,14 +75,22 @@
               <span class="notification-dot"></span>
             </button>
             <div class="user-avatar-wrapper">
-              <span id="header-user-name" style="margin-right: 10px; font-weight: 500;"></span>
+              <span
+                id="header-user-name"
+                style="margin-right: 10px; font-weight: 500"
+              ></span>
               <img
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
                 alt="User"
                 id="header-user-avatar"
                 class="user-avatar"
               />
-              <button id="logout-btn" class="btn-icon" style="margin-left: 8px;" title="로그아웃">
+              <button
+                id="logout-btn"
+                class="btn-icon"
+                style="margin-left: 8px"
+                title="로그아웃"
+              >
                 <i data-lucide="log-out"></i>
               </button>
             </div>
@@ -794,7 +802,7 @@
       <p>성향을 분석하고 있어요...</p>
     </div>
 
-    <script src="/public/scripts/survey.js"></script>
+    <script src="../scripts/survey.js"></script>
     <script>
       // Initialize Lucide Icons
       lucide.createIcons();
