@@ -107,122 +107,106 @@
         </header>
 
         <main class="dashboard-content">
-          <section class="dash-header">
-            <div class="dash-greeting">
-              <h1 class="greeting-title" id="greeting-title">안녕하세요, 여행자님!</h1>
-              <p class="greeting-desc" id="greeting-desc">
-                여행 MBTI에 맞는 국내 여행지를 찾고 있습니다.
-              </p>
-            </div>
-
-            <div class="dash-header-actions">
-              <button
-                class="btn-primary btn-glow"
-                id="btn-quick-create"
-                type="button"
+          <section class="recommendation-catalog" aria-labelledby="recommendation-title">
+            <div class="recommendation-catalog-header">
+              <div>
+                <span class="recommendation-eyebrow">TRAVEL MATCH</span>
+                <h1 id="recommendation-title">내 여행 MBTI 추천</h1>
+                <p
+                  class="recommendation-subtitle"
+                  id="recommendation-subtitle"
+                >
+                  Supabase에 저장된 관광지 적합도 점수를 조회하고 있습니다.
+                </p>
+              </div>
+              <a
+                href="./pages/survey.html"
+                class="btn-text"
+                id="recommendation-link"
               >
-                <i data-lucide="sparkles"></i> AI 맞춤 여행 계획 생성
-              </button>
+                성향 다시 분석 <i data-lucide="chevron-right"></i>
+              </a>
             </div>
-          </section>
-
-          <section class="bento-grid" aria-label="메인 대시보드">
             <div
-              class="bento-item bento-large summary-card-bento"
-              id="featured-recommendation"
+              class="recommendation-list"
+              id="recommendation-list"
+              aria-live="polite"
             >
-              <div
-                class="bento-bg-image"
-                id="featured-recommendation-image"
-                style="background-image: url('./images/summer_banner.png')"
-              ></div>
-              <div class="bento-overlay"></div>
-              <div class="bento-content summary-content">
-                <div class="badge-d-day" id="featured-recommendation-badge">
-                  맞춤 추천 준비 중
-                </div>
-                <div class="trip-details">
-                  <h2 id="featured-recommendation-name">
-                    여행지를 불러오고 있습니다
-                  </h2>
-                  <p id="featured-recommendation-region">
-                    <i data-lucide="map-pin"></i>
-                    <span>잠시만 기다려 주세요.</span>
-                  </p>
-                  <p
-                    class="featured-recommendation-description"
-                    id="featured-recommendation-description"
-                  ></p>
-                </div>
-                <button
-                  class="btn-glass"
-                  id="featured-recommendation-action"
-                  style="width: fit-content; border-radius: 30px"
-                  type="button"
-                  disabled
-                >
-                  추천 결과 확인 중 <i data-lucide="arrow-right"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="bento-item bento-wide popular-destinations recommendation-panel">
-              <div class="bento-header">
-                <div>
-                  <h3 id="recommendation-title">내 여행 MBTI 추천</h3>
-                  <p
-                    class="recommendation-subtitle"
-                    id="recommendation-subtitle"
-                  >
-                    Supabase에 저장된 관광지 적합도 점수를 조회하고 있습니다.
-                  </p>
-                </div>
-                <a
-                  href="./pages/survey.html"
-                  class="btn-text"
-                  id="recommendation-link"
-                >
-                  성향 다시 분석 <i data-lucide="chevron-right"></i>
-                </a>
-              </div>
-              <div
-                class="dest-scroll-container recommendation-list"
-                id="recommendation-list"
-                aria-live="polite"
-              >
-                <div class="recommendation-state">
-                  <span class="recommendation-spinner" aria-hidden="true"></span>
-                  <span>맞춤 여행지를 불러오는 중입니다.</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="bento-item bento-wide seasonal-banner">
-              <div
-                class="bento-bg-image"
-                style="
-                  background-image: url(&quot;./images/summer_banner.png&quot;);
-                "
-              ></div>
-              <div class="bento-overlay seasonal-overlay"></div>
-              <div class="bento-content seasonal-content">
-                <div class="seasonal-badge">여름 시즌 추천</div>
-                <h3>시원한 바다와 함께하는 제주 여행</h3>
-                <p>선선한 바람과 여유로운 일정으로 여행을 준비해보세요.</p>
-                <button class="btn-glass seasonal-btn" type="button">
-                  추천 여행지 보기 <i data-lucide="arrow-right"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="bento-item bento-small widget-recent">
-              <div class="bento-header" style="margin-bottom: 0.5rem">
-                <h3 style="font-size: 1rem">최근 본 여행지</h3>
+              <div class="recommendation-state">
+                <span class="recommendation-spinner" aria-hidden="true"></span>
+                <span>맞춤 여행지를 불러오는 중입니다.</span>
               </div>
             </div>
           </section>
+
+          <button
+            class="btn-primary btn-glow floating-create-button"
+            id="btn-quick-create"
+            type="button"
+          >
+            <i data-lucide="sparkles"></i>
+            <span>AI 맞춤 여행 계획 생성</span>
+          </button>
         </main>
       </div>
+    </div>
+
+    <div
+      class="destination-detail-overlay"
+      id="destination-detail-modal"
+      aria-hidden="true"
+    >
+      <article
+        class="destination-detail-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="destination-detail-name"
+      >
+        <button
+          class="destination-detail-close"
+          id="destination-detail-close"
+          type="button"
+          aria-label="여행지 상세 닫기"
+        >
+          <i data-lucide="x"></i>
+        </button>
+        <img
+          class="destination-detail-image"
+          id="destination-detail-image"
+          src="./images/summer_banner.png"
+          alt=""
+        />
+        <div class="destination-detail-content">
+          <div class="destination-detail-meta">
+            <span id="destination-detail-rank">추천 순위</span>
+            <span id="destination-detail-score">적합도 점수</span>
+          </div>
+          <h2 id="destination-detail-name">여행지 상세정보</h2>
+          <p class="destination-detail-region" id="destination-detail-region">
+            <i data-lucide="map-pin"></i>
+            <span>대한민국</span>
+          </p>
+          <div
+            class="destination-detail-keywords"
+            id="destination-detail-keywords"
+          ></div>
+          <p
+            class="destination-detail-description"
+            id="destination-detail-description"
+          ></p>
+          <div class="destination-detail-reason" id="destination-detail-reason">
+            <strong>추천 이유</strong>
+            <p></p>
+          </div>
+          <button
+            class="btn-primary destination-detail-action"
+            id="destination-detail-action"
+            type="button"
+          >
+            이 여행지로 일정 만들기 <i data-lucide="arrow-right"></i>
+          </button>
+        </div>
+      </article>
     </div>
 
     <div class="modal-overlay" id="flow-b-modal">

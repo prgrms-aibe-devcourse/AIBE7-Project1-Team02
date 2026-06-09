@@ -370,30 +370,6 @@ a {
   max-width: 1400px;
 }
 
-/* Dashboard Header */
-.dash-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 2rem;
-}
-
-.dash-greeting {
-  padding: 0;
-}
-
-.greeting-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--color-text-main);
-  margin-bottom: 0.3rem;
-}
-
-.greeting-desc {
-  font-size: 1rem;
-  color: var(--color-text-muted);
-}
-
 .btn-primary {
   display: flex;
   align-items: center;
@@ -429,6 +405,22 @@ a {
 
 .btn-glow:not(:disabled):not(.disabled) {
   box-shadow: var(--shadow-glow);
+}
+
+.floating-create-button {
+  position: fixed;
+  right: 2rem;
+  bottom: max(2rem, env(safe-area-inset-bottom));
+  z-index: 95;
+  min-height: 52px;
+  padding: 0.9rem 1.4rem;
+  border-radius: 999px;
+  box-shadow: 0 12px 30px rgba(59, 130, 246, 0.35);
+}
+
+.floating-create-button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 34px rgba(59, 130, 246, 0.42);
 }
 
 /* ==========================================================================
@@ -771,6 +763,305 @@ a {
   to {
     transform: rotate(360deg);
   }
+}
+
+.recommendation-catalog {
+  min-height: calc(100vh - 140px);
+}
+
+.recommendation-catalog-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1.75rem;
+}
+
+.recommendation-eyebrow {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.recommendation-catalog-header h1 {
+  color: var(--color-text-main);
+  font-size: clamp(1.75rem, 3vw, 2.4rem);
+  line-height: 1.2;
+}
+
+.recommendation-catalog .recommendation-subtitle {
+  margin-top: 0.55rem;
+  font-size: 0.95rem;
+}
+
+.recommendation-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.recommendation-card {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-sm);
+  outline: none;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.recommendation-card:hover,
+.recommendation-card:focus-visible {
+  transform: translateY(-5px);
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow: var(--shadow-lg);
+}
+
+.recommendation-card img {
+  display: block;
+  width: 100%;
+  height: 180px;
+  aspect-ratio: auto;
+  object-fit: cover;
+}
+
+.recommendation-card .dest-mini-info {
+  position: relative;
+  display: flex;
+  min-height: 150px;
+  flex-direction: column;
+  padding: 1rem;
+  background: var(--color-bg-card);
+  color: var(--color-text-main);
+}
+
+.recommendation-card .dest-mini-info h4 {
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recommendation-card .dest-mini-info p {
+  display: -webkit-box;
+  min-height: 2.7em;
+  margin-top: 0.35rem;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.recommendation-card .recommendation-keywords {
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.recommendation-card .recommendation-keywords span {
+  max-width: 90px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 0.68rem;
+}
+
+.recommendation-detail-guide {
+  margin-top: auto;
+  padding-top: 0.8rem;
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.recommendation-list .recommendation-state {
+  grid-column: 1 / -1;
+  min-height: 360px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-card);
+}
+
+.modal-open {
+  overflow: hidden;
+}
+
+.destination-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease;
+}
+
+.destination-detail-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.destination-detail-dialog {
+  position: relative;
+  display: grid;
+  width: min(920px, 100%);
+  height: min(720px, calc(100vh - 3rem));
+  max-height: min(720px, 90vh);
+  grid-template-columns: minmax(280px, 0.9fr) minmax(340px, 1.1fr);
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-card);
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28);
+  transform: translateY(16px) scale(0.98);
+  transition: transform 0.25s ease;
+}
+
+.destination-detail-overlay.active .destination-detail-dialog {
+  transform: translateY(0) scale(1);
+}
+
+.destination-detail-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.destination-detail-image {
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  object-fit: cover;
+}
+
+.destination-detail-content {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 3rem 2.5rem 2.5rem;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.destination-detail-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.destination-detail-content::-webkit-scrollbar-track {
+  background: var(--color-bg-app);
+}
+
+.destination-detail-content::-webkit-scrollbar-thumb {
+  border: 2px solid var(--color-bg-app);
+  border-radius: 999px;
+  background: var(--color-text-light);
+}
+
+.destination-detail-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.destination-detail-meta span {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.destination-detail-content h2 {
+  font-size: 1.8rem;
+  line-height: 1.25;
+}
+
+.destination-detail-region {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.destination-detail-region svg {
+  width: 16px;
+  min-width: 16px;
+}
+
+.destination-detail-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 1.25rem;
+}
+
+.destination-detail-keywords span {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: var(--color-bg-app);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.destination-detail-description {
+  margin-top: 1.5rem;
+  color: var(--color-text-main);
+  font-size: 0.92rem;
+  line-height: 1.75;
+  white-space: pre-line;
+}
+
+.destination-detail-reason {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-light);
+}
+
+.destination-detail-reason strong {
+  color: var(--color-primary);
+  font-size: 0.8rem;
+}
+
+.destination-detail-reason p {
+  margin-top: 0.35rem;
+  color: var(--color-text-main);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.destination-detail-action {
+  justify-content: center;
+  width: 100%;
+  margin-top: 1.5rem;
 }
 
 /* Stats Widget */
@@ -1257,6 +1548,9 @@ a {
   .bento-large {
     grid-column: span 2;
   }
+  .recommendation-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
@@ -1276,6 +1570,35 @@ a {
   .dashboard-content {
     padding: 1.5rem 1rem;
   }
+  .recommendation-catalog-header {
+    align-items: flex-start;
+  }
+  .recommendation-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+  }
+  .recommendation-card img {
+    height: 150px;
+  }
+  .destination-detail-overlay {
+    padding: 1rem;
+  }
+  .destination-detail-dialog {
+    display: block;
+    height: auto;
+    max-height: 92vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+  .destination-detail-image {
+    height: 240px;
+    min-height: 0;
+  }
+  .destination-detail-content {
+    overflow: visible;
+    padding: 1.5rem;
+  }
   .bento-grid {
     grid-template-columns: 1fr;
   }
@@ -1283,18 +1606,31 @@ a {
   .bento-large {
     grid-column: span 1;
   }
-  .greeting-title {
-    font-size: 1.5rem;
-  }
   .flow-b-section {
     padding: 2rem 1rem;
   }
   .search-bar {
     width: 200px;
   }
-  .dash-header {
+  .floating-create-button {
+    right: 1rem;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    max-width: calc(100vw - 2rem);
+    min-height: 48px;
+    padding: 0.8rem 1.1rem;
+    font-size: 0.88rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .recommendation-catalog-header {
     flex-direction: column;
-    align-items: flex-start;
     gap: 1rem;
+  }
+  .recommendation-list {
+    grid-template-columns: 1fr;
+  }
+  .recommendation-card img {
+    height: 210px;
   }
 }
