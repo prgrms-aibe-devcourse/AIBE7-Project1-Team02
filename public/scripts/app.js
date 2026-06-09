@@ -66,18 +66,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const avatarLink = document.querySelector('.user-avatar-wrapper');
-    const loginLink = document.getElementById('login-link');
-
     if (avatarLink) {
       avatarLink.setAttribute('aria-label', `${userName} 프로필`);
       avatarLink.setAttribute('title', `${userName} 프로필`);
-      avatarLink.setAttribute('href', './pages/profile.html');
-    }
-
-    if (loginLink) {
-      loginLink.setAttribute('href', './pages/profile.html');
-      loginLink.setAttribute('aria-label', `${userName} 프로필`);
-      loginLink.setAttribute('title', `${userName} 프로필`);
+      avatarLink.setAttribute('href', './pages/mypage.html');
     }
   };
   // Keywords Data for Flow B
