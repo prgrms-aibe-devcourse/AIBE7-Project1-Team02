@@ -248,8 +248,8 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="feed-card-actions">
                 <button type="button" class="action-link" data-action="detail" data-post-id="${post.post_id}">상세보기</button>
-                <button type="button" class="action-link" data-action="like" data-post-id="${post.post_id}">좋아요 ${post.like_count || 0}</button>
-                <button type="button" class="action-link" data-action="comment" data-post-id="${post.post_id}">댓글 ${post.comment_count || 0}</button>
+                <button type="button" class="action-link" data-action="like" data-post-id="${post.post_id}">좋아요 ${getLikeCount(post)}</button>
+                <button type="button" class="action-link" data-action="comment" data-post-id="${post.post_id}">댓글 ${getCommentCount(post)}</button>
                 ${isMine ? `<button type="button" class="action-link" data-action="edit" data-post-id="${post.post_id}">수정</button>` : ""}
                 ${isMine ? `<button type="button" class="action-link danger" data-action="delete" data-post-id="${post.post_id}">삭제</button>` : ""}
               </div>
@@ -319,7 +319,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function renderFeaturedStory() {
-    const rows = await request(`${state.api.feed}?select=*&order=like_count.desc&limit=1`, { method: "GET" });
+    const rows = await request(`${state.api.feed}?select=*&order=real_like_count.desc&limit=1`, { method: "GET" });
     const post = Array.isArray(rows) ? rows[0] : null;
     if (!post) {
       els.featuredStory.innerHTML = '<div class="empty-feed">추천 여행 이야기가 없습니다.</div>';
@@ -447,6 +447,14 @@ document.addEventListener("DOMContentLoaded", () => {
       state.likingPostIds.delete(postId);
       setLikeButtonsDisabled(postId, false);
     }
+  }
+
+  function getLikeCount(post) {
+    return Number(post?.real_like_count ?? post?.like_count ?? 0);
+  }
+
+  function getCommentCount(post) {
+    return Number(post?.real_comment_count ?? post?.comment_count ?? 0);
   }
 
   function setLikeButtonsDisabled(postId, disabled) {
