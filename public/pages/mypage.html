@@ -58,11 +58,7 @@
           <section class="dash-header mypage-header">
             <div class="dash-greeting mypage-greeting">
               <div class="mypage-avatar">
-                <img
-                  src=""
-                  alt="프로필"
-                  id="mypage-avatar-img"
-                />
+                <img src="" alt="프로필" id="mypage-avatar-img" />
               </div>
               <div>
                 <h1 class="greeting-title mypage-title">
@@ -79,13 +75,25 @@
             </div>
 
             <div class="dash-header-actions mypage-actions">
-              <button class="btn-primary btn-outline" type="button" id="btn-settings">
+              <button
+                class="btn-primary btn-outline"
+                type="button"
+                id="btn-settings"
+              >
                 <i data-lucide="settings"></i> 설정
               </button>
-              <button class="btn-primary btn-outline" type="button" id="btn-edit-profile">
+              <button
+                class="btn-primary btn-outline"
+                type="button"
+                id="btn-edit-profile"
+              >
                 <i data-lucide="edit-3"></i> 프로필 편집
               </button>
-              <button class="btn-primary btn-glow" type="button" id="btn-new-trip">
+              <button
+                class="btn-primary btn-glow"
+                type="button"
+                id="btn-new-trip"
+              >
                 <i data-lucide="plus"></i> 새 여행 만들기
               </button>
             </div>
@@ -101,14 +109,26 @@
               <div
                 class="bento-bg-image"
                 id="mypage-ai-bg"
-                style="background-color: var(--color-bg-card);"
+                style="background-color: var(--color-bg-card)"
               ></div>
-              <div class="bento-overlay seasonal-overlay ai-recommendation-overlay" style="background: linear-gradient(to right, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.4) 100%);"></div>
+              <div
+                class="bento-overlay seasonal-overlay ai-recommendation-overlay"
+                style="
+                  background: linear-gradient(
+                    to right,
+                    rgba(15, 23, 42, 0.9) 0%,
+                    rgba(15, 23, 42, 0.4) 100%
+                  );
+                "
+              ></div>
               <div
                 class="bento-content seasonal-content"
                 style="align-items: flex-start"
               >
-                <div class="seasonal-badge ai-badge" style="background: rgba(255,255,255,0.2);">
+                <div
+                  class="seasonal-badge ai-badge"
+                  style="background: rgba(255, 255, 255, 0.2)"
+                >
                   <i data-lucide="sparkles"></i>
                   AI 맞춤 제안
                 </div>
@@ -116,13 +136,19 @@
                   아직 여행 취향을 분석하지 않았어요
                 </h3>
                 <p class="ai-desc" id="mypage-ai-desc">
-                  여행 취향 검사를 완료하고 나만의 <strong style="color: #60a5fa">맞춤 여행지</strong>를 추천받아보세요!
+                  여행 취향 검사를 완료하고 나만의
+                  <strong style="color: #60a5fa">맞춤 여행지</strong>를
+                  추천받아보세요!
                 </p>
                 <a
                   href="./survey.html"
                   id="mypage-ai-btn"
                   class="btn-glass seasonal-btn"
-                  style="margin-top: 1.25rem; display: inline-flex; text-decoration: none;"
+                  style="
+                    margin-top: 1.25rem;
+                    display: inline-flex;
+                    text-decoration: none;
+                  "
                 >
                   여행 취향 검사하러 가기 <i data-lucide="arrow-right"></i>
                 </a>
@@ -162,10 +188,29 @@
                   >내 여행 전체 <i data-lucide="chevron-right"></i
                 ></a>
               </div>
-              <div class="trip-list-wrapper" style="justify-content: center; align-items: center; color: var(--color-text-muted); padding: 2rem 0;">
-                <div style="text-align: center;">
-                  <i data-lucide="map" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
-                  <p>아직 다녀온 여행이 없습니다.<br>새로운 여행을 계획해 보세요!</p>
+              <div
+                class="trip-list-wrapper"
+                style="
+                  justify-content: center;
+                  align-items: center;
+                  color: var(--color-text-muted);
+                  padding: 2rem 0;
+                "
+              >
+                <div style="text-align: center">
+                  <i
+                    data-lucide="map"
+                    style="
+                      width: 32px;
+                      height: 32px;
+                      margin-bottom: 0.5rem;
+                      opacity: 0.5;
+                    "
+                  ></i>
+                  <p>
+                    아직 다녀온 여행이 없습니다.<br />새로운 여행을 계획해
+                    보세요!
+                  </p>
                 </div>
               </div>
             </div>
@@ -182,7 +227,15 @@
                 ></a>
               </div>
               <div class="saved-destinations-list" id="saved-destinations-list">
-                <i data-lucide="bookmark" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                <i
+                  data-lucide="bookmark"
+                  style="
+                    width: 32px;
+                    height: 32px;
+                    margin-bottom: 0.5rem;
+                    opacity: 0.5;
+                  "
+                ></i>
                 <p>저장한 여행지를 불러오고 있습니다.</p>
               </div>
             </div>
@@ -216,33 +269,95 @@
 
     <!-- Edit Profile Modal -->
     <div class="modal-overlay" id="edit-profile-modal">
-      <div class="modal-content profile-edit-modal" style="max-width: 400px;">
-        <button class="modal-close-btn" id="edit-profile-close-btn" type="button" aria-label="닫기">
+      <div class="modal-content profile-edit-modal" style="max-width: 400px">
+        <button
+          class="modal-close-btn"
+          id="edit-profile-close-btn"
+          type="button"
+          aria-label="닫기"
+        >
           <i data-lucide="x"></i>
         </button>
-        <div style="text-align: center; margin-bottom: 2rem;">
-          <h2 style="font-size: 1.6rem; font-weight: 700; color: var(--color-text-main);">프로필 편집</h2>
-          <p style="font-size: 0.9rem; color: var(--color-text-muted); margin-top: 0.5rem;">나만의 특별한 프로필을 완성해 보세요</p>
+        <div style="text-align: center; margin-bottom: 2rem">
+          <h2
+            style="
+              font-size: 1.6rem;
+              font-weight: 700;
+              color: var(--color-text-main);
+            "
+          >
+            프로필 편집
+          </h2>
+          <p
+            style="
+              font-size: 0.9rem;
+              color: var(--color-text-muted);
+              margin-top: 0.5rem;
+            "
+          >
+            나만의 특별한 프로필을 완성해 보세요
+          </p>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 1.8rem;">
-          <div style="text-align: center;">
+        <div style="display: flex; flex-direction: column; gap: 1.8rem">
+          <div style="text-align: center">
             <div class="edit-profile-avatar-container">
-              <img id="edit-profile-avatar-preview" src="" alt="Profile Preview" />
-              <label for="edit-profile-image" class="avatar-upload-overlay" aria-label="프로필 이미지 변경">
+              <img
+                id="edit-profile-avatar-preview"
+                src=""
+                alt="Profile Preview"
+              />
+              <label
+                for="edit-profile-image"
+                class="avatar-upload-overlay"
+                aria-label="프로필 이미지 변경"
+              >
                 <i data-lucide="camera"></i>
               </label>
-              <input type="file" id="edit-profile-image" accept="image/*" class="hidden-file-input" />
+              <input
+                type="file"
+                id="edit-profile-image"
+                accept="image/*"
+                class="hidden-file-input"
+              />
             </div>
-            <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.75rem;">이미지를 클릭하여 변경</p>
+            <p
+              style="
+                font-size: 0.8rem;
+                color: var(--color-text-muted);
+                margin-top: 0.75rem;
+              "
+            >
+              이미지를 클릭하여 변경
+            </p>
           </div>
           <div>
-            <label for="edit-profile-nickname" style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-main); display: block; margin-bottom: 0.5rem; text-align: left;">닉네임</label>
+            <label
+              for="edit-profile-nickname"
+              style="
+                font-size: 0.9rem;
+                font-weight: 600;
+                color: var(--color-text-main);
+                display: block;
+                margin-bottom: 0.5rem;
+                text-align: left;
+              "
+              >닉네임</label
+            >
             <div class="profile-input-wrapper">
               <i data-lucide="user" class="profile-input-icon"></i>
-              <input type="text" id="edit-profile-nickname" class="profile-input" placeholder="새로운 닉네임을 입력하세요">
+              <input
+                type="text"
+                id="edit-profile-nickname"
+                class="profile-input"
+                placeholder="새로운 닉네임을 입력하세요"
+              />
             </div>
           </div>
-          <button id="btn-save-profile" class="btn-primary btn-glow profile-save-btn" style="width: 100%; justify-content: center; margin-top: 0.5rem;">
+          <button
+            id="btn-save-profile"
+            class="btn-primary btn-glow profile-save-btn"
+            style="width: 100%; justify-content: center; margin-top: 0.5rem"
+          >
             저장하기
           </button>
         </div>
@@ -252,45 +367,122 @@
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal-overlay">
       <div class="modal-content settings-modal-content">
-        <button id="settings-close-btn" class="modal-close-btn" aria-label="Close Settings">
+        <button
+          id="settings-close-btn"
+          class="modal-close-btn"
+          aria-label="Close Settings"
+        >
           <i data-lucide="x"></i>
         </button>
-        <div style="text-align: center; margin-bottom: 1.5rem;">
-          <h2 style="font-size: 1.6rem; font-weight: 700; color: var(--color-text-main);">설정</h2>
+        <div style="text-align: center; margin-bottom: 1.5rem">
+          <h2
+            style="
+              font-size: 1.6rem;
+              font-weight: 700;
+              color: var(--color-text-main);
+            "
+          >
+            설정
+          </h2>
         </div>
-        
+
         <div class="settings-tabs">
-          <button class="settings-tab active" data-tab="account">계정 관리</button>
+          <button class="settings-tab active" data-tab="account">
+            계정 관리
+          </button>
           <button class="settings-tab" data-tab="data">데이터 관리</button>
           <button class="settings-tab" data-tab="info">서비스 정보</button>
         </div>
 
         <div class="settings-tab-content active" id="settings-tab-account">
           <h3 class="settings-section-title">비밀번호 변경</h3>
-          <div style="margin-bottom: 1.5rem;">
-            <input type="password" id="settings-new-password" class="profile-input" placeholder="새로운 비밀번호 입력 (6자 이상)" style="margin-bottom: 0.5rem; width: 100%;">
-            <button id="btn-change-password" class="btn-primary" style="width: 100%; justify-content: center;">비밀번호 변경</button>
+          <div style="margin-bottom: 1.5rem">
+            <input
+              type="password"
+              id="settings-new-password"
+              class="profile-input"
+              placeholder="새로운 비밀번호 입력 (6자 이상)"
+              style="margin-bottom: 0.5rem; width: 100%"
+            />
+            <button
+              id="btn-change-password"
+              class="btn-primary"
+              style="width: 100%; justify-content: center"
+            >
+              비밀번호 변경
+            </button>
           </div>
-          
-          <h3 class="settings-section-title" style="color: var(--color-danger); border-top: 1px solid var(--color-border); padding-top: 1.5rem;">위험 영역</h3>
-          <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1rem;">회원 탈퇴 시 등록된 모든 정보가 즉시 완전 삭제되며 복구할 수 없습니다.</p>
-          <button id="btn-delete-account" class="btn-danger" style="width: 100%; justify-content: center;">회원 탈퇴</button>
+
+          <h3
+            class="settings-section-title"
+            style="
+              color: var(--color-danger);
+              border-top: 1px solid var(--color-border);
+              padding-top: 1.5rem;
+            "
+          >
+            위험 영역
+          </h3>
+          <p
+            style="
+              font-size: 0.85rem;
+              color: var(--color-text-muted);
+              margin-bottom: 1rem;
+            "
+          >
+            회원 탈퇴 시 등록된 모든 정보가 즉시 완전 삭제되며 복구할 수
+            없습니다.
+          </p>
+          <button
+            id="btn-delete-account"
+            class="btn-danger"
+            style="width: 100%; justify-content: center"
+          >
+            회원 탈퇴
+          </button>
         </div>
 
         <div class="settings-tab-content" id="settings-tab-data">
           <h3 class="settings-section-title">내 데이터 초기화</h3>
-          <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1rem;">
-            MBTI 검사 결과, 저장된 여행지, 생성된 일정 등 회원님의 활동 데이터를 모두 초기화합니다.
+          <p
+            style="
+              font-size: 0.85rem;
+              color: var(--color-text-muted);
+              margin-bottom: 1rem;
+            "
+          >
+            MBTI 검사 결과, 저장된 여행지, 생성된 일정 등 회원님의 활동 데이터를
+            모두 초기화합니다.
           </p>
-          <button id="btn-reset-data" class="btn-danger" style="width: 100%; justify-content: center;">내 데이터 모두 지우기</button>
+          <button
+            id="btn-reset-data"
+            class="btn-danger"
+            style="width: 100%; justify-content: center"
+          >
+            내 데이터 모두 지우기
+          </button>
         </div>
 
         <div class="settings-tab-content" id="settings-tab-info">
           <h3 class="settings-section-title">서비스 정보</h3>
           <ul class="settings-info-list">
             <li><strong>버전</strong> <span>1.0.0 (MVP)</span></li>
-            <li><a href="#" id="link-tos" style="color: var(--color-primary); text-decoration: underline;">이용약관</a></li>
-            <li><a href="#" id="link-privacy" style="color: var(--color-primary); text-decoration: underline;">개인정보처리방침</a></li>
+            <li>
+              <a
+                href="#"
+                id="link-tos"
+                style="color: var(--color-primary); text-decoration: underline"
+                >이용약관</a
+              >
+            </li>
+            <li>
+              <a
+                href="#"
+                id="link-privacy"
+                style="color: var(--color-primary); text-decoration: underline"
+                >개인정보처리방침</a
+              >
+            </li>
           </ul>
         </div>
       </div>
