@@ -1,5 +1,6 @@
 let SUPABASE_URL = "";
 let SUPABASE_ANON_KEY = "";
+let savedDestinationBookmarks = [];
 
 async function loadConfig() {
   if (SUPABASE_URL && SUPABASE_ANON_KEY) return;
@@ -17,6 +18,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const nameEl = document.getElementById("mypage-user-name");
   const imgEl = document.getElementById("mypage-avatar-img");
   const badgeTextEl = document.getElementById("mypage-badge-text");
+  const savedDestinationsList = document.getElementById("saved-destinations-list");
+  const savedDestinationsModal = document.getElementById("saved-destinations-modal");
+  const savedDestinationsModalList = document.getElementById("saved-destinations-modal-list");
+  const savedDestinationsCloseBtn = document.getElementById("saved-destinations-close-btn");
+  const savedDestinationsModalHeader = savedDestinationsModal?.querySelector(
+    ".saved-destinations-modal-header",
+  );
+  let savedDestinationsModalMode = "list";
+  let savedDestinationsDetailReturnMode = "list";
 
   const userRaw = sessionStorage.getItem("sb_user");
   if (!userRaw) return;
@@ -108,6 +118,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (err) {
       console.error("추천 데이터 로드 실패:", err);
     }
+
+    await loadSavedDestinations(accessToken, savedDestinationsList, (bookmark) => {
+      savedDestinationsModalMode = "detail";
+      savedDestinationsDetailReturnMode = "page";
+      renderSavedDestinationDetail(
+        savedDestinationsModalHeader,
+        savedDestinationsModalList,
+        bookmark,
+        () => {
+          savedDestinationsModal?.classList.remove("active");
+          savedDestinationsModalMode = "list";
+        },
+      );
+      savedDestinationsModal?.classList.add("active");
+    });
 
   } catch (error) {
     console.error("사용자 정보 로드 중 오류 발생:", error);
@@ -418,10 +443,353 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  const openSavedDestinationDetail = (bookmark) => {
+    savedDestinationsModalMode = "detail";
+    savedDestinationsDetailReturnMode = "list";
+    renderSavedDestinationDetail(
+      savedDestinationsModalHeader,
+      savedDestinationsModalList,
+      bookmark,
+      () => {
+        savedDestinationsModalMode = "list";
+        renderSavedDestinationsModal(
+          savedDestinationsModalHeader,
+          savedDestinationsModalList,
+          savedDestinationBookmarks,
+          openSavedDestinationDetail,
+        );
+      },
+    );
+  };
+
+  const showSavedDestinationList = () => {
+    savedDestinationsModalMode = "list";
+    renderSavedDestinationsModal(
+      savedDestinationsModalHeader,
+      savedDestinationsModalList,
+      savedDestinationBookmarks,
+      openSavedDestinationDetail,
+    );
+  };
+
   if (linkSavedDest) {
     linkSavedDest.addEventListener("click", (e) => {
       e.preventDefault();
-      window.location.href = "./destinations.html";
+      showSavedDestinationList();
+      if (savedDestinationsModal) {
+        savedDestinationsModal.classList.add("active");
+      }
     });
   }
+
+  const closeSavedDestinationsModal = () => {
+    if (savedDestinationsModalMode === "detail") {
+      if (savedDestinationsDetailReturnMode === "list") {
+        showSavedDestinationList();
+      } else if (savedDestinationsModal) {
+        savedDestinationsModal.classList.remove("active");
+        savedDestinationsModalMode = "list";
+        savedDestinationsDetailReturnMode = "list";
+      }
+      return;
+    }
+
+    if (savedDestinationsModal) {
+      savedDestinationsModal.classList.remove("active");
+    }
+  };
+
+  if (savedDestinationsCloseBtn) {
+    savedDestinationsCloseBtn.addEventListener("click", closeSavedDestinationsModal);
+  }
+
+  if (savedDestinationsModal) {
+    savedDestinationsModal.addEventListener("click", (event) => {
+      if (event.target === savedDestinationsModal) {
+        closeSavedDestinationsModal();
+      }
+    });
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "Escape" &&
+      savedDestinationsModal?.classList.contains("active")
+    ) {
+      closeSavedDestinationsModal();
+    }
+  });
+
 });
+
+function getSafeDestinationImage(imageUrl) {
+  if (!imageUrl) return "";
+
+  try {
+    const parsedUrl = new URL(imageUrl, window.location.href);
+    return ["http:", "https:"].includes(parsedUrl.protocol)
+      ? parsedUrl.href
+      : "";
+  } catch {
+    return "";
+  }
+}
+
+function createNoImagePlaceholder(className) {
+  const placeholder = document.createElement("div");
+  placeholder.className = `${className} no-image-placeholder`;
+  placeholder.innerHTML = '<i data-lucide="image-off"></i><span>이미지 없음</span>';
+  return placeholder;
+}
+
+function getDestinationRegion(destination) {
+  return (
+    destination.address ||
+    [destination.province, destination.city].filter(Boolean).join(" ") ||
+    "대한민국"
+  );
+}
+
+function renderSavedDestinationState(container, message) {
+  if (!container) return;
+
+  container.className = "saved-destinations-list saved-destinations-empty";
+  container.innerHTML = [
+    '<i data-lucide="bookmark" aria-hidden="true"></i>',
+    `<p>${message}</p>`,
+  ].join("");
+  window.lucide?.createIcons();
+}
+
+function renderSavedDestinationsHeader(header, eyebrow, title, description) {
+  if (!header) return;
+
+  header.innerHTML = "";
+
+  const eyebrowEl = document.createElement("span");
+  eyebrowEl.className = "recommendation-eyebrow";
+  eyebrowEl.textContent = eyebrow;
+
+  const titleEl = document.createElement("h2");
+  titleEl.textContent = title;
+
+  const descriptionEl = document.createElement("p");
+  descriptionEl.textContent = description;
+
+  header.append(eyebrowEl, titleEl, descriptionEl);
+}
+
+function renderSavedDestinationsModal(header, container, bookmarks, onSelect) {
+  if (!container) return;
+
+  renderSavedDestinationsHeader(
+    header,
+    "BOOKMARKS",
+    "저장한 여행지",
+    "북마크한 관광지를 위아래로 스크롤하며 확인하세요.",
+  );
+  container.className = "saved-destinations-modal-list";
+  container.innerHTML = "";
+
+  if (!bookmarks.length) {
+    const state = document.createElement("div");
+    state.className = "saved-destinations-modal-empty";
+    state.innerHTML = [
+      '<i data-lucide="bookmark" aria-hidden="true"></i>',
+      "<p>저장한 여행지가 없습니다.</p>",
+    ].join("");
+    container.appendChild(state);
+    window.lucide?.createIcons();
+    return;
+  }
+
+  bookmarks.forEach((bookmark) => {
+    const card = createSavedDestinationCard(bookmark, onSelect);
+    card.classList.add("saved-destination-card--modal");
+    container.appendChild(card);
+  });
+
+  window.lucide?.createIcons();
+}
+
+function renderSavedDestinationDetail(header, container, bookmark, onBack) {
+  if (!container) return;
+
+  const destination = bookmark.destination;
+  const imageUrl = getSafeDestinationImage(destination.imageUrl);
+  const regionText = getDestinationRegion(destination);
+  let description =
+    destination.description ||
+    "저장한 국내 관광지입니다. 여행 일정에 추가해 나만의 코스를 만들어 보세요.";
+  description = description.replace(/(contentType|textRule)[\s:,\d]+/g, "").trim();
+
+  renderSavedDestinationsHeader(
+    header,
+    "BOOKMARK DETAIL",
+    destination.destinationName,
+    "저장한 여행지 상세정보를 확인하세요.",
+  );
+
+  container.innerHTML = "";
+  container.className = "saved-destinations-modal-list saved-destination-detail-view";
+
+  const detail = document.createElement("article");
+  detail.className = "saved-destination-detail-card";
+
+  const image = document.createElement("img");
+  image.className = "saved-destination-detail-image";
+  let media = image;
+
+  if (imageUrl) {
+    image.src = imageUrl;
+    image.alt = destination.destinationName;
+    image.addEventListener("error", () => {
+      image.replaceWith(
+        createNoImagePlaceholder("saved-destination-detail-image"),
+      );
+      window.lucide?.createIcons();
+    });
+  } else {
+    media = createNoImagePlaceholder("saved-destination-detail-image");
+  }
+
+  const content = document.createElement("div");
+  content.className = "saved-destination-detail-content";
+
+  const region = document.createElement("p");
+  region.className = "saved-destination-detail-region";
+  region.innerHTML = '<i data-lucide="map-pin"></i>';
+  const regionTextNode = document.createElement("span");
+  regionTextNode.textContent = regionText;
+  region.appendChild(regionTextNode);
+
+  const descriptionEl = document.createElement("p");
+  descriptionEl.className = "saved-destination-detail-description";
+  descriptionEl.textContent = description;
+
+  const actionGroup = document.createElement("div");
+  actionGroup.className = "saved-destination-detail-actions";
+
+  const backButton = document.createElement("button");
+  backButton.className = "btn-primary btn-outline";
+  backButton.type = "button";
+  backButton.innerHTML = '<i data-lucide="arrow-left"></i> 목록으로';
+  backButton.addEventListener("click", onBack);
+
+  const tripButton = document.createElement("button");
+  tripButton.className = "btn-primary btn-glow";
+  tripButton.type = "button";
+  tripButton.innerHTML = '이 여행지로 일정 만들기 <i data-lucide="arrow-right"></i>';
+  tripButton.addEventListener("click", () => {
+    sessionStorage.setItem(
+      "selected_trip_destination",
+      JSON.stringify({
+        destinationId: destination.destinationId,
+        destinationName: destination.destinationName,
+        address: regionText,
+        imageUrl,
+      }),
+    );
+    window.location.href = `./trip-create.html?destinationId=${encodeURIComponent(destination.destinationId)}`;
+  });
+
+  actionGroup.append(backButton, tripButton);
+  content.append(region, descriptionEl, actionGroup);
+  detail.append(media, content);
+  container.appendChild(detail);
+  window.lucide?.createIcons();
+}
+
+function createSavedDestinationCard(bookmark, onSelect) {
+  const destination = bookmark.destination;
+  const card = document.createElement("article");
+  card.className = "saved-destination-card";
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `${destination.destinationName} 여행지 보기`);
+
+  const image = document.createElement("img");
+  const imageUrl = getSafeDestinationImage(destination.imageUrl);
+  let media = image;
+
+  if (imageUrl) {
+    image.src = imageUrl;
+    image.alt = destination.destinationName;
+    image.loading = "lazy";
+    image.addEventListener("error", () => {
+      image.replaceWith(createNoImagePlaceholder("saved-destination-card-image"));
+      window.lucide?.createIcons();
+    });
+  } else {
+    media = createNoImagePlaceholder("saved-destination-card-image");
+  }
+
+  const content = document.createElement("div");
+  content.className = "saved-destination-content";
+
+  const title = document.createElement("h4");
+  title.textContent = destination.destinationName;
+
+  const region = document.createElement("p");
+  region.textContent = getDestinationRegion(destination);
+
+  const savedAt = document.createElement("span");
+  savedAt.textContent = "♥ 저장됨";
+
+  content.append(title, region, savedAt);
+  card.append(media, content);
+
+  const openDestinationDetail = () => {
+    if (typeof onSelect === "function") {
+      onSelect(bookmark);
+      return;
+    }
+    window.location.href = "./destinations.html";
+  };
+  card.addEventListener("click", openDestinationDetail);
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openDestinationDetail();
+    }
+  });
+
+  return card;
+}
+
+async function loadSavedDestinations(accessToken, container, onSelect) {
+  if (!container || !accessToken) return;
+
+  try {
+    const response = await fetch("/api/user/bookmarks", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "저장한 여행지 조회 실패");
+    }
+
+    const bookmarks = (result.data.bookmarks || []).filter(
+      (bookmark) => bookmark.destination,
+    );
+    savedDestinationBookmarks = bookmarks;
+
+    if (bookmarks.length === 0) {
+      renderSavedDestinationState(container, "저장한 여행지가 없습니다.");
+      return;
+    }
+
+    container.className = "saved-destinations-list";
+    container.innerHTML = "";
+    bookmarks.slice(0, 4).forEach((bookmark) => {
+      container.appendChild(createSavedDestinationCard(bookmark, onSelect));
+    });
+    window.lucide?.createIcons();
+  } catch (error) {
+    console.error("저장한 여행지 로드 실패:", error);
+    renderSavedDestinationState(container, "저장한 여행지를 불러오지 못했습니다.");
+  }
+}

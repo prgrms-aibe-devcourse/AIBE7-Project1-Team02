@@ -6,7 +6,7 @@
 
 MVP 단계에서는 대한민국 국내 여행만 지원한다. 국내 관광지 정보는 한국관광공사 TourAPI 4.0 활용을 우선 고려하며, 해외 여행 지원에 필요한 국가 정보와 다국가 행정구역 구조는 추후 확장한다.
 
-현재 MVP 스키마는 아래 8개 테이블을 사용한다.
+현재 MVP 스키마는 아래 9개 테이블을 사용한다.
 
 - `users`
 - `user_preferences`
@@ -14,6 +14,7 @@ MVP 단계에서는 대한민국 국내 여행만 지원한다. 국내 관광지
 - `destinations`
 - `destination_keywords`
 - `destination_mbti_scores`
+- `user_bookmarks`
 - `trips`
 - `itineraries`
 
@@ -36,6 +37,7 @@ MBTI 16유형 적합도 점수를 Supabase에 적재했다.
 | `itineraries` | 여행별 일차 및 시간대에 따른 세부 방문 일정을 관리한다. |
 | `destination_keywords` | TourAPI 원본을 규칙으로 가공한 여행지 키워드를 관리한다. |
 | `destination_mbti_scores` | 여행지별 MBTI 16유형 적합도 점수를 관리한다. |
+| `user_bookmarks` | 사용자가 저장한 여행지를 관리한다. |
 
 ## users
 
@@ -150,6 +152,20 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 동일 여행지에는 MBTI 유형별 점수를 하나씩 저장하며, 규칙 재실행 시
 `destination_id`, `mbti_type` 조합을 기준으로 upsert한다.
 
+## user_bookmarks
+
+회원이 북마크한 여행지를 저장한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `bookmark_id` | `bigint` | PK, Identity | 북마크 식별자 |
+| `user_id` | `uuid` | FK, NOT NULL | 북마크를 소유한 사용자 (`auth.users.id` 참조) |
+| `destination_id` | `bigint` | FK, NOT NULL | 북마크한 여행지 |
+| `created_at` | `timestamptz` | DEFAULT NOW | 북마크 생성 일시 |
+
+동일 사용자가 같은 여행지를 중복 저장하지 않도록 `user_id`,
+`destination_id` 조합에 UNIQUE 제약조건을 적용한다.
+
 ## trips
 
 사용자가 생성하거나 저장한 여행 단위 정보를 관리한다.
@@ -197,6 +213,10 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
   - 하나의 여행지는 여러 개의 통제 키워드를 가질 수 있다.
 - `destinations` 1 : N `destination_mbti_scores`
   - 하나의 여행지는 MBTI 유형별 적합도 점수를 가질 수 있다.
+- `users` 1 : N `user_bookmarks`
+  - 사용자 한 명은 여러 여행지를 북마크할 수 있다.
+- `destinations` 1 : N `user_bookmarks`
+  - 하나의 여행지는 여러 사용자의 북마크에 포함될 수 있다.
 - `trips` 1 : N `itineraries`
   - 하나의 여행은 여러 개의 세부 일정으로 구성된다.
 
@@ -208,6 +228,8 @@ erDiagram
     destinations ||--o{ trips : selected_for
     destinations ||--o{ destination_keywords : classified_as
     destinations ||--o{ destination_mbti_scores : scored_for
+    users ||--o{ user_bookmarks : bookmarks
+    destinations ||--o{ user_bookmarks : saved_by
     trips ||--o{ itineraries : contains
 ```
 
@@ -302,6 +324,13 @@ Table trips {
   updated_at timestamptz [not null, default: `now()`]
 }
 
+Table user_bookmarks {
+  bookmark_id bigint [pk, increment]
+  user_id uuid [not null]
+  destination_id bigint [not null]
+  created_at timestamptz [default: `now()`]
+}
+
 Table itineraries {
   itinerary_id bigint [pk, increment]
   trip_id bigint [not null]
@@ -320,6 +349,8 @@ Ref: users.user_id < trips.user_id
 Ref: destinations.destination_id < trips.destination_id
 Ref: destinations.destination_id < destination_keywords.destination_id
 Ref: destinations.destination_id < destination_mbti_scores.destination_id
+Ref: users.user_id < user_bookmarks.user_id
+Ref: destinations.destination_id < user_bookmarks.destination_id
 Ref: trips.trip_id < itineraries.trip_id
 ```
 
@@ -329,8 +360,39 @@ Ref: trips.trip_id < itineraries.trip_id
 - 사용자는 자신의 프로필, 성향, 여행, 일정만 조회·생성·수정·삭제할 수 있다.
 - 여행지(`destinations`)는 비로그인 사용자와 로그인 사용자 모두 조회할 수 있다.
 - 여행지 키워드와 MBTI 점수는 비로그인 사용자와 로그인 사용자 모두 조회할 수 있다.
+- 사용자는 자신의 북마크만 조회·생성·삭제할 수 있다.
 - 여행지 생성·수정·삭제는 서버의 `service_role` 또는 별도 관리자 기능에서만 수행한다.
 - 여행지 키워드와 MBTI 점수의 생성·수정·삭제는 서버의 `service_role`에서만 수행한다.
+
+`user_bookmarks` 테이블 추가 후 SQL Editor에서 아래 권한과 정책을 함께
+적용한다.
+
+```sql
+GRANT SELECT, INSERT, DELETE ON public.user_bookmarks TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_bookmarks TO service_role;
+GRANT USAGE, SELECT ON SEQUENCE public.user_bookmarks_bookmark_id_seq TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.user_bookmarks_bookmark_id_seq TO service_role;
+
+ALTER TABLE public.user_bookmarks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own bookmarks"
+ON public.user_bookmarks
+FOR SELECT
+TO authenticated
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own bookmarks"
+ON public.user_bookmarks
+FOR INSERT
+TO authenticated
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own bookmarks"
+ON public.user_bookmarks
+FOR DELETE
+TO authenticated
+USING (auth.uid() = user_id);
+```
 
 ## 추후 확장 예정 테이블
 
@@ -339,7 +401,6 @@ Ref: trips.trip_id < itineraries.trip_id
 | `personality_questions` | 성향 진단 문항과 선택지를 동적으로 관리한다. |
 | `personality_answers` | 사용자의 문항별 응답 이력을 저장한다. |
 | `recommendations` | 추천 점수, 추천 이유, 사용 조건 등 추천 결과를 기록한다. |
-| `bookmarks` | 사용자가 저장한 여행지와 일정을 관리한다. |
 | `reviews` | 여행 후 평점, 만족도, 후기 데이터를 수집한다. |
 
 확장 테이블은 MVP 핵심 플로우가 안정화된 이후 실제 사용 기록과 피드백을 활용하는 단계에서 추가한다.

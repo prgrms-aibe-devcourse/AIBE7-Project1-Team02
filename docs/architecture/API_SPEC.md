@@ -12,6 +12,9 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 - `GET /api/config`
 - `GET /api/destinations/recommended`
 - `GET /api/destinations/recommended/filters`
+- `GET /api/user/bookmarks`
+- `POST /api/user/bookmarks`
+- `DELETE /api/user/bookmarks/:destinationId`
 
 인증은 현재 프런트엔드에서 Supabase Auth를 직접 사용한다. 아래 표에서
 `PLANNED`로 표시한 API는 명세만 정의된 상태다.
@@ -45,6 +48,9 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | DONE | GET | `/api/config` | 없음 | 브라우저용 Supabase URL, Anon Key | 없음, 환경 변수 검증 미구현 | 백엔드 |
 | DONE | GET | `/api/destinations/recommended` | Authorization Bearer Token, 선택 Query `limit`, `page`, `pageSize`, `province`, `keyword` | 사용자 MBTI와 점수순 관광지, 페이지 정보 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
 | DONE | GET | `/api/destinations/recommended/filters` | Authorization Bearer Token | 추천 데이터의 지역, 키워드 옵션 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
+| DONE | GET | `/api/user/bookmarks` | Authorization Bearer Token | 저장한 여행지 ID 목록 | 로그인 만료, Supabase 조회 실패 | 백엔드 |
+| DONE | POST | `/api/user/bookmarks` | Authorization Bearer Token, `destinationId` | 북마크 저장 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 저장 실패 | 백엔드 |
+| DONE | DELETE | `/api/user/bookmarks/:destinationId` | Authorization Bearer Token | 북마크 해제 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 삭제 실패 | 백엔드 |
 | PLANNED | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
 | PLANNED | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | PLANNED | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
@@ -187,6 +193,93 @@ Response:
     "keywords": ["자연", "힐링"]
   },
   "message": "추천 여행지 필터 조회 성공"
+}
+```
+
+### GET /api/user/bookmarks
+
+로그인 사용자가 북마크한 여행지 ID 목록을 조회한다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "destinationIds": [93, 14],
+    "bookmarks": [
+      {
+        "destinationId": 93,
+        "createdAt": "2026-06-09T12:00:00Z",
+        "destination": {
+          "destinationId": 93,
+          "destinationName": "가파도 소망전망대",
+          "description": "제주 본 섬과 한라산, 바다를 조망할 수 있는 장소입니다.",
+          "address": "제주특별자치도 서귀포시 대정읍 가파리 513",
+          "province": "제주특별자치도",
+          "city": "서귀포시",
+          "imageUrl": "https://example.com/destination.jpg"
+        }
+      }
+    ]
+  },
+  "message": "북마크 목록 조회 성공"
+}
+```
+
+### POST /api/user/bookmarks
+
+로그인 사용자의 여행지 북마크를 저장한다. 동일 여행지는 중복 저장하지
+않는다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+Request:
+
+```json
+{
+  "destinationId": 93
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "bookmark_id": 1,
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "destination_id": 93,
+    "created_at": "2026-06-09T12:00:00Z"
+  },
+  "message": "북마크 저장 성공"
+}
+```
+
+### DELETE /api/user/bookmarks/:destinationId
+
+로그인 사용자의 여행지 북마크를 해제한다.
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "destinationId": 93
+  },
+  "message": "북마크 해제 성공"
 }
 ```
 

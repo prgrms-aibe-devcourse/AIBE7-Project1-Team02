@@ -92,6 +92,13 @@ function redirectToMainPage() {
   }, 700);
 }
 
+function redirectToSurveyPage() {
+  if (redirectTimer) clearTimeout(redirectTimer);
+  redirectTimer = setTimeout(() => {
+    window.location.replace('./survey.html');
+  }, 700);
+}
+
 async function signIn(email, password) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: 'POST',
@@ -163,8 +170,8 @@ async function handleSubmit() {
       sessionStorage.setItem('sb_user', JSON.stringify(data.user || { email, user_metadata: { nickname } }));
       sessionStorage.setItem('sb_access_token', data.access_token || '');
       sessionStorage.setItem('sb_refresh_token', data.refresh_token || '');
-      showSuccess(`회원가입 성공\n\n이메일: ${email}\n닉네임: ${nickname}`);
-      setTimeout(() => setMode('login'), 700);
+      showSuccess(`회원가입 성공\n\n이메일: ${email}\n닉네임: ${nickname}\n성향 분석 페이지로 이동합니다.`);
+      redirectToSurveyPage();
     }
   } catch (err) {
     showAlert(err?.message || '요청 실패');

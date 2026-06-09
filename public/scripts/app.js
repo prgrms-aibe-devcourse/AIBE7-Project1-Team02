@@ -14,8 +14,6 @@ document.addEventListener("DOMContentLoaded", () => {
     currentUser?.user_metadata?.name ||
     currentUser?.email?.split("@")?.[0] ||
     "사용자";
-  const fallbackImageUrl = "./images/summer_banner.png";
-
   const recommendationTitle = document.getElementById("recommendation-title");
   const recommendationSubtitle = document.getElementById(
     "recommendation-subtitle",
@@ -36,6 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const destinationDetailImage = document.getElementById(
     "destination-detail-image",
+  );
+  const destinationDetailNoImage = document.getElementById(
+    "destination-detail-no-image",
   );
   const destinationDetailRank = document.getElementById(
     "destination-detail-rank",
@@ -61,8 +62,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const destinationDetailAction = document.getElementById(
     "destination-detail-action",
   );
+  const destinationDetailBookmark = document.getElementById(
+    "destination-detail-bookmark",
+  );
   let featuredRecommendations = [];
   let currentRecommendationIndex = 0;
+  let bookmarkedDestinationIds = new Set();
 
   const ensureAuthBadge = () => {
     if (!authToken) return;
@@ -166,7 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getSafeImageUrl(imageUrl) {
     if (!imageUrl) {
-      return fallbackImageUrl;
+      return "";
     }
 
     try {
@@ -176,10 +181,37 @@ document.addEventListener("DOMContentLoaded", () => {
         return parsedUrl.href;
       }
     } catch {
-      return fallbackImageUrl;
+      return "";
     }
 
-    return fallbackImageUrl;
+    return "";
+  }
+
+  function createNoImagePlaceholder(className) {
+    const placeholder = document.createElement("div");
+    placeholder.className = `${className} no-image-placeholder`;
+    placeholder.innerHTML = '<i data-lucide="image-off"></i><span>이미지 없음</span>';
+    return placeholder;
+  }
+
+  function showDetailImage(imageUrl, altText) {
+    if (!imageUrl) {
+      destinationDetailImage.hidden = true;
+      destinationDetailImage.removeAttribute("src");
+      destinationDetailNoImage.hidden = false;
+      return;
+    }
+
+    destinationDetailNoImage.hidden = true;
+    destinationDetailImage.hidden = false;
+    destinationDetailImage.src = imageUrl;
+    destinationDetailImage.alt = altText;
+    destinationDetailImage.onerror = () => {
+      destinationDetailImage.hidden = true;
+      destinationDetailImage.removeAttribute("src");
+      destinationDetailNoImage.hidden = false;
+      lucide.createIcons();
+    };
   }
 
   function getRegionText(destination) {
@@ -197,6 +229,102 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     tripCreateUrl.searchParams.set("destinationId", String(destinationId));
     return tripCreateUrl.href;
+  }
+
+  function isBookmarked(destinationId) {
+    return bookmarkedDestinationIds.has(String(destinationId));
+  }
+
+  function setBookmarkButtonState(button, destination) {
+    if (!button || !destination) return;
+
+    const bookmarked = isBookmarked(destination.destinationId);
+    button.classList.toggle("active", bookmarked);
+    button.setAttribute("aria-pressed", bookmarked ? "true" : "false");
+    button.setAttribute(
+      "aria-label",
+      `${destination.destinationName} ${bookmarked ? "북마크 해제" : "북마크 저장"}`,
+    );
+    button.textContent = bookmarked ? "♥" : "♡";
+  }
+
+  async function loadBookmarks() {
+    if (!authToken) {
+      bookmarkedDestinationIds = new Set();
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/user/bookmarks", {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok && result.success) {
+        bookmarkedDestinationIds = new Set(
+          (result.data.destinationIds || []).map(String),
+        );
+      }
+    } catch {
+      bookmarkedDestinationIds = new Set();
+    }
+  }
+
+  async function toggleBookmark(destination, button) {
+    if (!authToken) {
+      window.location.href = "./pages/login.html?redirect=/";
+      return;
+    }
+
+    const destinationId = String(destination.destinationId);
+    const bookmarked = bookmarkedDestinationIds.has(destinationId);
+    bookmarked
+      ? bookmarkedDestinationIds.delete(destinationId)
+      : bookmarkedDestinationIds.add(destinationId);
+
+    setBookmarkButtonState(button, destination);
+    setBookmarkButtonState(destinationDetailBookmark, destination);
+    const featuredBookmarkButton = document.querySelector(
+      ".featured-bookmark-button",
+    );
+    setBookmarkButtonState(featuredBookmarkButton, destination);
+    lucide.createIcons();
+
+    try {
+      const response = await fetch(
+        bookmarked
+          ? `/api/user/bookmarks/${destinationId}`
+          : "/api/user/bookmarks",
+        {
+          method: bookmarked ? "DELETE" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: bookmarked
+            ? undefined
+            : JSON.stringify({ destinationId: destination.destinationId }),
+        },
+      );
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "북마크 처리 실패");
+      }
+    } catch (error) {
+      if (bookmarked) {
+        bookmarkedDestinationIds.add(destinationId);
+      } else {
+        bookmarkedDestinationIds.delete(destinationId);
+      }
+      setBookmarkButtonState(button, destination);
+      setBookmarkButtonState(destinationDetailBookmark, destination);
+      setBookmarkButtonState(featuredBookmarkButton, destination);
+      lucide.createIcons();
+      alert(error.message);
+    }
   }
 
   function getRecommendationReason(destination) {
@@ -225,11 +353,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function openDestinationDetail(destination, rank) {
     const imageUrl = getSafeImageUrl(destination.imageUrl);
 
-    destinationDetailImage.src = imageUrl;
-    destinationDetailImage.alt = destination.destinationName;
-    destinationDetailImage.onerror = () => {
-      destinationDetailImage.src = fallbackImageUrl;
-    };
+    showDetailImage(imageUrl, destination.destinationName);
     destinationDetailRank.textContent = `${rank}위 추천`;
     destinationDetailScore.textContent = `${destination.score.toFixed(1)}점`;
     destinationDetailName.textContent = destination.destinationName;
@@ -261,6 +385,10 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       window.location.href = getTripCreateUrl(destination.destinationId);
     };
+    destinationDetailBookmark.onclick = () => {
+      toggleBookmark(destination, destinationDetailBookmark);
+    };
+    setBookmarkButtonState(destinationDetailBookmark, destination);
     destinationDetailModal.classList.add("active");
     destinationDetailModal.setAttribute("aria-hidden", "false");
     document.body.classList.add("modal-open");
@@ -280,15 +408,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const image = document.createElement("img");
     image.className = "featured-recommendation-image";
-    image.src = getSafeImageUrl(destination.imageUrl);
-    image.alt = destination.destinationName;
-    image.loading = "lazy";
-    image.addEventListener("error", () => {
-      image.src = fallbackImageUrl;
-    });
+    const imageUrl = getSafeImageUrl(destination.imageUrl);
+    let media = image;
+
+    if (imageUrl) {
+      image.src = imageUrl;
+      image.alt = destination.destinationName;
+      image.loading = "lazy";
+      image.addEventListener("error", () => {
+        image.replaceWith(
+          createNoImagePlaceholder("featured-recommendation-image"),
+        );
+        lucide.createIcons();
+      });
+    } else {
+      media = createNoImagePlaceholder("featured-recommendation-image");
+    }
 
     const info = document.createElement("div");
     info.className = "featured-recommendation-content";
+
+    const bookmarkButton = document.createElement("button");
+    bookmarkButton.className = "featured-bookmark-button";
+    bookmarkButton.type = "button";
+    bookmarkButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleBookmark(destination, bookmarkButton);
+    });
+    setBookmarkButtonState(bookmarkButton, destination);
 
     const meta = document.createElement("div");
     meta.className = "featured-recommendation-meta";
@@ -322,7 +469,7 @@ document.addEventListener("DOMContentLoaded", () => {
     detailGuide.innerHTML = '상세정보 보기 <i data-lucide="arrow-up-right"></i>';
 
     info.append(meta, name, region, keywordList, description, detailGuide);
-    card.append(image, info);
+    card.append(media, info, bookmarkButton);
     card.addEventListener("click", () => {
       openDestinationDetail(destination, rank);
     });
@@ -724,7 +871,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   ensureAuthBadge();
-  loadMbtiRecommendations();
+  loadBookmarks().then(loadMbtiRecommendations);
 
   // Initialize Lucide Icons
   lucide.createIcons();

@@ -110,9 +110,16 @@
         <img
           class="destination-detail-image"
           id="destination-detail-image"
-          src="./images/summer_banner.png"
           alt=""
         />
+        <div
+          class="destination-detail-image destination-detail-no-image"
+          id="destination-detail-no-image"
+          hidden
+        >
+          <i data-lucide="image-off"></i>
+          <span>이미지 없음</span>
+        </div>
         <div class="destination-detail-content">
           <div class="destination-detail-meta">
             <span id="destination-detail-rank">추천 순위</span>
@@ -141,6 +148,13 @@
             type="button"
           >
             이 여행지로 일정 만들기 <i data-lucide="arrow-right"></i>
+          </button>
+          <button
+            class="destination-detail-bookmark"
+            id="destination-detail-bookmark"
+            type="button"
+          >
+            ♡
           </button>
         </div>
       </article>

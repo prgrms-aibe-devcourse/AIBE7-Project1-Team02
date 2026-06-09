@@ -6,6 +6,7 @@
     <title>여행 일정 생성 | ExploraJourneys</title>
     <link rel="stylesheet" href="../styles/common.css" />
     <link rel="stylesheet" href="../styles/trip-create.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="../scripts/trip-create.js" defer></script>
   </head>
   <body>
@@ -22,9 +23,16 @@
         <article class="selected-destination" id="selected-destination" hidden>
           <img
             id="selected-destination-image"
-            src="../images/summer_banner.png"
             alt=""
           />
+          <div
+            class="selected-destination-no-image no-image-placeholder"
+            id="selected-destination-no-image"
+            hidden
+          >
+            <i data-lucide="image-off"></i>
+            <span>이미지 없음</span>
+          </div>
           <div class="selected-destination-content">
             <span class="selected-label">추가된 여행지</span>
             <h2 id="selected-destination-name"></h2>

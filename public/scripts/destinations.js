@@ -3,7 +3,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const guestMbtiType = "INFP";
 
   const pageSize = 12;
-  const fallbackImageUrl = "../images/summer_banner.png";
   const grid = document.getElementById("destination-explore-grid");
   const subtitle = document.getElementById("destination-explore-subtitle");
   const resultCount = document.getElementById("destination-result-count");
@@ -16,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const detailModal = document.getElementById("destination-detail-modal");
   const detailClose = document.getElementById("destination-detail-close");
   const detailImage = document.getElementById("destination-detail-image");
+  const detailNoImage = document.getElementById("destination-detail-no-image");
   const detailName = document.getElementById("destination-detail-name");
   const detailRegion = document.querySelector(
     "#destination-detail-region span",
@@ -28,21 +28,50 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const detailReason = document.querySelector("#destination-detail-reason p");
   const detailAction = document.getElementById("destination-detail-action");
+  const detailBookmark = document.getElementById("destination-detail-bookmark");
   let latestRequestId = 0;
+  let bookmarkedDestinationIds = new Set();
 
   function getSafeImageUrl(imageUrl) {
     if (!imageUrl) {
-      return fallbackImageUrl;
+      return "";
     }
 
     try {
       const parsedUrl = new URL(imageUrl, window.location.href);
       return ["http:", "https:"].includes(parsedUrl.protocol)
         ? parsedUrl.href
-        : fallbackImageUrl;
+        : "";
     } catch {
-      return fallbackImageUrl;
+      return "";
     }
+  }
+
+  function createNoImagePlaceholder(className) {
+    const placeholder = document.createElement("div");
+    placeholder.className = `${className} no-image-placeholder`;
+    placeholder.innerHTML = '<i data-lucide="image-off"></i><span>이미지 없음</span>';
+    return placeholder;
+  }
+
+  function showDetailImage(imageUrl, altText) {
+    if (!imageUrl) {
+      detailImage.hidden = true;
+      detailImage.removeAttribute("src");
+      detailNoImage.hidden = false;
+      return;
+    }
+
+    detailNoImage.hidden = true;
+    detailImage.hidden = false;
+    detailImage.src = imageUrl;
+    detailImage.alt = altText;
+    detailImage.onerror = () => {
+      detailImage.hidden = true;
+      detailImage.removeAttribute("src");
+      detailNoImage.hidden = false;
+      window.lucide?.createIcons();
+    };
   }
 
   function getRegionText(destination) {
@@ -79,6 +108,102 @@ document.addEventListener("DOMContentLoaded", () => {
     return loginUrl.href;
   }
 
+  function isBookmarked(destinationId) {
+    return bookmarkedDestinationIds.has(String(destinationId));
+  }
+
+  function setBookmarkButtonState(button, destination) {
+    if (!button || !destination) return;
+
+    const bookmarked = isBookmarked(destination.destinationId);
+    button.classList.toggle("active", bookmarked);
+    button.setAttribute("aria-pressed", bookmarked ? "true" : "false");
+    button.setAttribute(
+      "aria-label",
+      `${destination.destinationName} ${bookmarked ? "북마크 해제" : "북마크 저장"}`,
+    );
+    button.textContent = bookmarked ? "♥" : "♡";
+  }
+
+  function updateRenderedBookmarkButtons(destination) {
+    setBookmarkButtonState(detailBookmark, destination);
+    document
+      .querySelectorAll(".destination-bookmark-button")
+      .forEach((button) => {
+        if (button.dataset.destinationId === String(destination.destinationId)) {
+          setBookmarkButtonState(button, destination);
+        }
+      });
+  }
+
+  async function loadBookmarks() {
+    if (!authToken) {
+      bookmarkedDestinationIds = new Set();
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/user/bookmarks", {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok && result.success) {
+        bookmarkedDestinationIds = new Set(
+          (result.data.destinationIds || []).map(String),
+        );
+      }
+    } catch {
+      bookmarkedDestinationIds = new Set();
+    }
+  }
+
+  async function toggleBookmark(destination, button) {
+    if (!authToken) {
+      window.location.href = getLoginUrl(window.location.href);
+      return;
+    }
+
+    const destinationId = String(destination.destinationId);
+    const wasBookmarked = bookmarkedDestinationIds.has(destinationId);
+    wasBookmarked
+      ? bookmarkedDestinationIds.delete(destinationId)
+      : bookmarkedDestinationIds.add(destinationId);
+
+    updateRenderedBookmarkButtons(destination);
+
+    try {
+      const response = await fetch(
+        wasBookmarked
+          ? `/api/user/bookmarks/${destinationId}`
+          : "/api/user/bookmarks",
+        {
+          method: wasBookmarked ? "DELETE" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: wasBookmarked
+            ? undefined
+            : JSON.stringify({ destinationId: destination.destinationId }),
+        },
+      );
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "북마크 처리 실패");
+      }
+    } catch (error) {
+      wasBookmarked
+        ? bookmarkedDestinationIds.add(destinationId)
+        : bookmarkedDestinationIds.delete(destinationId);
+      updateRenderedBookmarkButtons(destination);
+      alert(error.message);
+    }
+  }
+
   function closeDetail() {
     detailModal.classList.remove("active");
     detailModal.setAttribute("aria-hidden", "true");
@@ -87,11 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function openDetail(destination) {
     const imageUrl = getSafeImageUrl(destination.imageUrl);
-    detailImage.src = imageUrl;
-    detailImage.alt = destination.destinationName;
-    detailImage.onerror = () => {
-      detailImage.src = fallbackImageUrl;
-    };
+    showDetailImage(imageUrl, destination.destinationName);
     detailName.textContent = destination.destinationName;
     detailRegion.textContent = getRegionText(destination);
     detailKeywords.innerHTML = "";
@@ -127,6 +248,12 @@ document.addEventListener("DOMContentLoaded", () => {
       );
       window.location.href = tripCreateUrl;
     };
+    if (detailBookmark) {
+      detailBookmark.onclick = () => {
+        toggleBookmark(destination, detailBookmark);
+      };
+      setBookmarkButtonState(detailBookmark, destination);
+    }
     detailModal.classList.add("active");
     detailModal.setAttribute("aria-hidden", "false");
     document.body.classList.add("modal-open");
@@ -145,12 +272,35 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     const image = document.createElement("img");
-    image.src = getSafeImageUrl(destination.imageUrl);
-    image.alt = destination.destinationName;
-    image.loading = "lazy";
-    image.onerror = () => {
-      image.src = fallbackImageUrl;
-    };
+    const imageUrl = getSafeImageUrl(destination.imageUrl);
+    let media = image;
+
+    if (imageUrl) {
+      image.src = imageUrl;
+      image.alt = destination.destinationName;
+      image.loading = "lazy";
+      image.onerror = () => {
+        image.replaceWith(
+          createNoImagePlaceholder("destination-explore-card-image"),
+        );
+        window.lucide?.createIcons();
+      };
+    } else {
+      media = createNoImagePlaceholder("destination-explore-card-image");
+    }
+
+    const bookmarkButton = document.createElement("button");
+    bookmarkButton.className = "destination-bookmark-button";
+    bookmarkButton.type = "button";
+    bookmarkButton.dataset.destinationId = String(destination.destinationId);
+    bookmarkButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleBookmark(destination, bookmarkButton);
+    });
+    bookmarkButton.addEventListener("keydown", (event) => {
+      event.stopPropagation();
+    });
+    setBookmarkButtonState(bookmarkButton, destination);
 
     const content = document.createElement("div");
     content.className = "destination-explore-card-content";
@@ -178,7 +328,7 @@ document.addEventListener("DOMContentLoaded", () => {
     guide.textContent = "상세정보 보기";
 
     content.append(name, region, keywords, guide);
-    card.append(image, content);
+    card.append(media, bookmarkButton, content);
     card.addEventListener("click", () => openDetail(destination));
     card.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -380,7 +530,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  loadFilters();
-  loadDestinations();
+  Promise.all([loadBookmarks(), loadFilters()]).finally(() => {
+    loadDestinations();
+  });
   window.lucide?.createIcons();
 });
