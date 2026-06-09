@@ -19,6 +19,39 @@ document.addEventListener("DOMContentLoaded", () => {
     currentUser?.user_metadata?.name ||
     currentUser?.email?.split('@')?.[0] ||
     '사용자';
+  const fallbackImageUrl = "./images/summer_banner.png";
+
+  const greetingTitle = document.getElementById("greeting-title");
+  const greetingDesc = document.getElementById("greeting-desc");
+  const mbtiProfileSummary = document.getElementById("mbti-profile-summary");
+  const recommendationTitle = document.getElementById("recommendation-title");
+  const recommendationSubtitle = document.getElementById(
+    "recommendation-subtitle",
+  );
+  const recommendationList = document.getElementById("recommendation-list");
+  const recommendationLink = document.getElementById("recommendation-link");
+  const featuredImage = document.getElementById(
+    "featured-recommendation-image",
+  );
+  const featuredBadge = document.getElementById(
+    "featured-recommendation-badge",
+  );
+  const featuredName = document.getElementById(
+    "featured-recommendation-name",
+  );
+  const featuredRegion = document.querySelector(
+    "#featured-recommendation-region span",
+  );
+  const featuredDescription = document.getElementById(
+    "featured-recommendation-description",
+  );
+  const featuredAction = document.getElementById(
+    "featured-recommendation-action",
+  );
+
+  if (greetingTitle) {
+    greetingTitle.textContent = `안녕하세요, ${userName}님!`;
+  }
 
   const ensureAuthBadge = () => {
     const actions = document.querySelector('.header-actions');
@@ -72,6 +105,200 @@ document.addEventListener("DOMContentLoaded", () => {
       avatarLink.setAttribute('href', './pages/profile.html');
     }
   };
+
+  function getSafeImageUrl(imageUrl) {
+    if (!imageUrl) {
+      return fallbackImageUrl;
+    }
+
+    try {
+      const parsedUrl = new URL(imageUrl, window.location.href);
+
+      if (["http:", "https:"].includes(parsedUrl.protocol)) {
+        return parsedUrl.href;
+      }
+    } catch {
+      return fallbackImageUrl;
+    }
+
+    return fallbackImageUrl;
+  }
+
+  function getRegionText(destination) {
+    return (
+      destination.address ||
+      [destination.province, destination.city].filter(Boolean).join(" ") ||
+      "대한민국"
+    );
+  }
+
+  function createRecommendationCard(destination, rank) {
+    const card = document.createElement("article");
+    card.className = "dest-mini-card recommendation-card";
+
+    const image = document.createElement("img");
+    image.src = getSafeImageUrl(destination.imageUrl);
+    image.alt = destination.destinationName;
+    image.loading = "lazy";
+    image.addEventListener("error", () => {
+      image.src = fallbackImageUrl;
+    });
+
+    const rankBadge = document.createElement("span");
+    rankBadge.className = "recommendation-rank";
+    rankBadge.textContent = `${rank}위`;
+
+    const scoreBadge = document.createElement("span");
+    scoreBadge.className = "recommendation-score";
+    scoreBadge.textContent = `${destination.score.toFixed(1)}점`;
+
+    const info = document.createElement("div");
+    info.className = "dest-mini-info";
+
+    const name = document.createElement("h4");
+    name.textContent = destination.destinationName;
+
+    const region = document.createElement("p");
+    region.textContent = getRegionText(destination);
+
+    const keywordList = document.createElement("div");
+    keywordList.className = "recommendation-keywords";
+    destination.keywords.slice(0, 2).forEach((keyword) => {
+      const keywordBadge = document.createElement("span");
+      keywordBadge.textContent = `#${keyword}`;
+      keywordList.appendChild(keywordBadge);
+    });
+
+    info.append(name, region, keywordList);
+    card.append(image, rankBadge, scoreBadge, info);
+    return card;
+  }
+
+  function renderFeaturedRecommendation(destination, mbtiType) {
+    const imageUrl = getSafeImageUrl(destination.imageUrl);
+
+    featuredImage.style.backgroundImage = `url(${JSON.stringify(imageUrl)})`;
+    featuredBadge.textContent = `${mbtiType} 추천 1위 · ${destination.score.toFixed(1)}점`;
+    featuredName.textContent = destination.destinationName;
+    featuredRegion.textContent = getRegionText(destination);
+    featuredDescription.textContent =
+      destination.description || "여행 MBTI 성향과 높은 적합도를 보인 국내 여행지입니다.";
+    featuredAction.disabled = false;
+    featuredAction.innerHTML =
+      '이 여행지로 일정 만들기 <i data-lucide="arrow-right"></i>';
+    featuredAction.addEventListener("click", () => {
+      const tripCreateUrl = new URL("./pages/trip-create.html", window.location.href);
+      tripCreateUrl.searchParams.set(
+        "destinationId",
+        String(destination.destinationId),
+      );
+      window.location.href = tripCreateUrl.href;
+    });
+  }
+
+  function renderRecommendationState(message, actionText) {
+    recommendationList.innerHTML = "";
+
+    const state = document.createElement("div");
+    state.className = "recommendation-state recommendation-state-empty";
+
+    const messageElement = document.createElement("p");
+    messageElement.textContent = message;
+    state.appendChild(messageElement);
+
+    if (actionText) {
+      const action = document.createElement("a");
+      action.className = "btn-primary recommendation-state-action";
+      action.href = "./pages/survey.html";
+      action.textContent = actionText;
+      state.appendChild(action);
+    }
+
+    recommendationList.appendChild(state);
+  }
+
+  async function loadMbtiRecommendations() {
+    try {
+      const response = await fetch("/api/destinations/recommended?limit=6", {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        sessionStorage.removeItem("sb_access_token");
+        sessionStorage.removeItem("sb_refresh_token");
+        window.location.replace("./pages/login.html");
+        return;
+      }
+
+      if (response.status === 404 && result.data?.needsSurvey) {
+        greetingDesc.textContent =
+          "여행 성향 분석을 완료하면 나에게 맞는 여행지를 추천해 드립니다.";
+        mbtiProfileSummary.innerHTML =
+          '<strong style="color: var(--color-primary)">MBTI:</strong> 미검사';
+        recommendationTitle.textContent = "여행 MBTI 분석이 필요합니다";
+        recommendationSubtitle.textContent =
+          "12개 질문에 답하고 나만의 국내 여행지를 추천받아 보세요.";
+        recommendationLink.textContent = "성향 분석 시작";
+        renderRecommendationState(
+          "아직 저장된 여행 MBTI 결과가 없습니다.",
+          "여행 성향 분석하기",
+        );
+        featuredBadge.textContent = "성향 분석 필요";
+        featuredName.textContent = "나에게 맞는 여행지를 발견해 보세요";
+        featuredRegion.textContent = "여행 MBTI 검사 후 추천 결과가 표시됩니다.";
+        featuredDescription.textContent = "";
+        featuredAction.disabled = false;
+        featuredAction.textContent = "여행 성향 분석하기";
+        featuredAction.addEventListener("click", () => {
+          window.location.href = "./pages/survey.html";
+        });
+        return;
+      }
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "추천 조회 실패");
+      }
+
+      const { mbtiType, recommendations } = result.data;
+      greetingDesc.textContent = `${mbtiType} 여행 성향에 잘 맞는 국내 여행지를 추천해 드려요.`;
+      mbtiProfileSummary.innerHTML =
+        `<strong style="color: var(--color-primary)">MBTI:</strong> ${mbtiType}`;
+      recommendationTitle.textContent = `${mbtiType} 맞춤 여행지 TOP ${recommendations.length}`;
+      recommendationSubtitle.textContent =
+        "Supabase에 저장된 관광지별 MBTI 적합도 점수 순위입니다.";
+      recommendationList.innerHTML = "";
+
+      if (recommendations.length === 0) {
+        renderRecommendationState(
+          "해당 MBTI 유형의 관광지 점수가 아직 없습니다.",
+          "성향 다시 분석하기",
+        );
+        return;
+      }
+
+      recommendations.forEach((destination, index) => {
+        recommendationList.appendChild(
+          createRecommendationCard(destination, index + 1),
+        );
+      });
+      renderFeaturedRecommendation(recommendations[0], mbtiType);
+      lucide.createIcons();
+    } catch (error) {
+      greetingDesc.textContent =
+        "맞춤 여행지를 불러오는 중 문제가 발생했습니다.";
+      recommendationTitle.textContent = "추천 결과를 불러오지 못했습니다";
+      recommendationSubtitle.textContent =
+        "잠시 후 페이지를 새로고침해 주세요.";
+      renderRecommendationState("관광지 추천 조회에 실패했습니다.");
+      featuredBadge.textContent = "추천 조회 실패";
+      featuredName.textContent = "잠시 후 다시 시도해 주세요";
+      featuredRegion.textContent = "Supabase 연결 상태를 확인해 주세요.";
+      featuredDescription.textContent = "";
+    }
+  }
   // Keywords Data for Flow B
   const keywords = [
     "#오션뷰",
@@ -304,6 +531,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   ensureAuthBadge();
+  loadMbtiRecommendations();
 
   // Initialize Lucide Icons
   lucide.createIcons();

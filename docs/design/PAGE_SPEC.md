@@ -4,42 +4,46 @@
 
 ### 목적
 
-로그인한 사용자가 주요 기능으로 이동하는 메인 허브 페이지.
+로그인한 사용자의 여행 MBTI에 맞는 국내 여행지를 우선 추천하고 주요
+기능으로 이동하는 메인 허브 페이지.
 
 ### 화면 구성
 
 - Sidebar
 - Top Navbar
-- Hero Banner
+- MBTI 추천 1순위 Hero Banner
+- MBTI 추천 여행지 목록
 - Quick Menu
-- Popular Destinations
 
 ### 주요 컴포넌트
 
 - Sidebar
 - SearchBar
-- HeroBanner
+- RecommendedDestinationHero
+- MbtiRecommendationCard
 - QuickMenuCard
-- DestinationCard
 - PrimaryButton
 
 ### 사용자 액션
 
 - 여행 계획하기 클릭 → 일정 생성 페이지 이동
-- 추천 여행지 보기 클릭 → 추천 여행 리스트 페이지 이동
+- 추천 1순위 여행지로 일정 만들기 클릭 → 여행지 식별자를 포함해 일정 생성 페이지 이동
+- 성향 다시 분석 클릭 → 여행 MBTI 설문 페이지 이동
 - 내 일정 확인 클릭 → 일정 확인 페이지 이동
 - 마이페이지 클릭 → 마이페이지 이동
 
 ### 사용 API
 
-- `GET /api/user/profile`
-- `GET /api/destinations/popular`
+- `GET /api/destinations/recommended`
 - `GET /api/travel/list`
 
 ### 사용 DB
 
 - `users`
+- `travel_mbti_results`
 - `destinations`
+- `destination_keywords`
+- `destination_mbti_scores`
 - `trips`
 
 ### MVP 여부
@@ -50,6 +54,12 @@
 
 - 알림 기능은 MVP에서 제외 가능
 - 커뮤니티 링크는 UI만 두고 실제 기능은 2차 구현 가능
+- 로그인 사용자의 `travel_mbti_results.mbti_type`을 조회한다.
+- 같은 MBTI 유형의 `destination_mbti_scores.score`를 내림차순 정렬한다.
+- 점수가 같으면 `destination_id` 오름차순으로 정렬한다.
+- 상위 6개 관광지를 메인에 표시하고 1순위는 대형 카드로 강조한다.
+- 저장된 여행 MBTI 결과가 없으면 성향 분석 페이지로 안내한다.
+- 관광지 이미지가 없거나 로딩에 실패하면 기본 이미지를 표시한다.
 
 ---
 
