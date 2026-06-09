@@ -18,84 +18,12 @@
     <!-- App Container -->
     <div class="app-container">
       <!-- Sidebar Navigation -->
-      <div class="sidebar-overlay" id="sidebar-overlay"></div>
-      <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-          <div class="logo">ExploraJourneys</div>
-          <div class="logo-desc">당신의 한국 여행 도우미</div>
-        </div>
-
-        <nav class="sidebar-nav">
-          <a href="../index.html" class="nav-item">
-            <i data-lucide="compass" class="nav-icon"></i> 탐색하기
-          </a>
-          <a href="./community.html" class="nav-item">
-            <i data-lucide="users" class="nav-icon"></i> 커뮤니티
-          </a>
-          <a href="#" class="nav-item">
-            <i data-lucide="map" class="nav-icon"></i> 여행 일정
-          </a>
-          <a href="#" class="nav-item active">
-            <i data-lucide="sparkles" class="nav-icon"></i> 성향 분석
-          </a>
-          <a href="./mypage.html" class="nav-item">
-            <i data-lucide="user" class="nav-icon"></i> 마이페이지
-          </a>
-        </nav>
-
-        <div class="sidebar-footer">
-          <button class="btn-create-itinerary" id="btn-sidebar-create">
-            + 새 일정 만들기
-          </button>
-        </div>
-      </aside>
+      <div id="sidebar-container"></div>
 
       <!-- Main Content Area -->
       <div class="main-wrapper">
         <!-- Top Header -->
-        <header class="top-header">
-          <div class="header-left">
-            <button class="mobile-menu-toggle" id="mobile-toggle">
-              <i data-lucide="menu"></i>
-            </button>
-            <div class="header-breadcrumb">
-              <span class="breadcrumb-icon"
-                ><i data-lucide="sparkles"></i
-              ></span>
-              <span class="breadcrumb-text">여행 성향 분석</span>
-            </div>
-          </div>
-          <div class="header-actions">
-            <div class="search-bar">
-              <i data-lucide="search" class="search-icon"></i>
-              <input type="text" placeholder="목적지, 맛집, 액티비티 검색..." />
-            </div>
-            <button class="btn-icon" id="notification-btn">
-              <i data-lucide="bell"></i>
-              <span class="notification-dot"></span>
-            </button>
-            <div class="user-avatar-wrapper">
-              <span
-                id="header-user-name"
-                style="margin-right: 10px; font-weight: 500"
-              ></span>
-              <img
-                src=""
-                alt="User"
-                id="header-user-avatar"
-                class="user-avatar"
-              />
-              <button
-                id="logout-btn"
-                class="btn-icon"
-                style="margin-left: 8px"
-                title="로그아웃"
-              >
-                <i data-lucide="log-out"></i>
-              </button>
-            </div>
-          </div>
-        </header>
+        <div id="header-container"></div>
 
         <!-- Dashboard Content (Survey) -->
         <main class="dashboard-content">
@@ -824,5 +752,6 @@
         });
       }
     </script>
+    <script src="/scripts/layout.js"></script>
   </body>
 </html>
