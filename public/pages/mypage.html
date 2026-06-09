@@ -3,15 +3,331 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>마이페이지 | Tripadvisor AI</title>
-    <link rel="stylesheet" href="../styles/common.css" />
-    <link rel="stylesheet" href="../styles/profile.css" />
-    <script src="../scripts/common.js" defer></script>
-    <script src="../scripts/profile.js" defer></script>
+    <title>마이페이지 | ExploraJourneys</title>
+    <meta
+      name="description"
+      content="내 프로필과 여행 활동, AI 맞춤 추천, 최근 여행 일정 및 저장한 여행지를 한눈에 확인하세요."
+    />
+    <link rel="stylesheet" href="../styles/main.css" />
+    <link rel="stylesheet" href="../styles/mypage.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
-    <main>
-      <h1>마이페이지</h1>
-    </main>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">ExploraJourneys</div>
+          <div class="logo-desc">여행을 더 똑똑하게</div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a href="../index.html" class="nav-item">
+            <i data-lucide="compass" class="nav-icon"></i> 탐색하기
+          </a>
+          <a href="./community.html" class="nav-item">
+            <i data-lucide="users" class="nav-icon"></i> 커뮤니티
+          </a>
+          <a href="./trip-create.html" class="nav-item">
+            <i data-lucide="map" class="nav-icon"></i> 여행 일정
+          </a>
+          <a href="./survey.html" class="nav-item">
+            <i data-lucide="sparkles" class="nav-icon"></i> 성향 분석
+          </a>
+          <a href="./mypage.html" class="nav-item active">
+            <i data-lucide="user" class="nav-icon"></i> 마이페이지
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button
+            class="btn-create-itinerary"
+            id="btn-sidebar-create"
+            type="button"
+          >
+            + 여행 일정 만들기
+          </button>
+        </div>
+      </aside>
+
+      <div class="main-wrapper">
+        <header class="top-header">
+          <div class="header-left">
+            <button
+              class="mobile-menu-toggle"
+              id="mobile-toggle"
+              type="button"
+              aria-label="메뉴 열기"
+            >
+              <i data-lucide="menu"></i>
+            </button>
+            <div class="header-breadcrumb">
+              <span class="breadcrumb-icon"><i data-lucide="user"></i></span>
+              <span class="breadcrumb-text">마이페이지</span>
+            </div>
+          </div>
+
+          <div class="header-actions">
+            <button
+              class="btn-icon"
+              id="notification-btn"
+              type="button"
+              aria-label="알림"
+            >
+              <i data-lucide="bell"></i>
+            </button>
+            <div class="user-avatar-wrapper">
+              <img
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+                alt="User"
+                id="header-user-avatar"
+                class="user-avatar"
+              />
+            </div>
+          </div>
+        </header>
+
+        <main class="dashboard-content">
+          <!-- Profile Header Section -->
+          <section class="dash-header mypage-header">
+            <div class="dash-greeting mypage-greeting">
+              <div class="mypage-avatar">
+                <img
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+                  alt="프로필"
+                  id="mypage-avatar-img"
+                />
+              </div>
+              <div>
+                <h1 class="greeting-title mypage-title">
+                  <span id="mypage-user-name">여행자</span>님
+                  <span class="mypage-badge" id="mypage-user-badge">
+                    <i data-lucide="compass"></i>
+                    <span id="mypage-badge-text">바다 산책형</span>
+                  </span>
+                </h1>
+                <p class="greeting-desc">
+                  오늘도 새로운 여행의 설렘을 찾아 떠나볼까요?
+                </p>
+              </div>
+            </div>
+
+            <div class="dash-header-actions mypage-actions">
+              <button class="btn-primary btn-outline" type="button" id="btn-settings">
+                <i data-lucide="settings"></i> 설정
+              </button>
+              <button class="btn-primary btn-outline" type="button" id="btn-edit-profile">
+                <i data-lucide="edit-3"></i> 프로필 편집
+              </button>
+              <button class="btn-primary btn-glow" type="button" id="btn-new-trip">
+                <i data-lucide="plus"></i> 새 여행 만들기
+              </button>
+            </div>
+          </section>
+
+          <!-- Main Bento Grid -->
+          <section class="bento-grid" aria-label="마이페이지 대시보드">
+            <!-- AI Recommendation Summary (Wide) -->
+            <div
+              class="bento-item bento-wide seasonal-banner"
+              style="min-height: 200px"
+            >
+              <div
+                class="bento-bg-image"
+                style="background-image: url('../images/jeju_night.png');"
+              ></div>
+              <div class="bento-overlay seasonal-overlay ai-recommendation-overlay"></div>
+              <div
+                class="bento-content seasonal-content"
+                style="align-items: flex-start"
+              >
+                <div class="seasonal-badge ai-badge">
+                  <i data-lucide="sparkles"></i>
+                  AI 맞춤 제안
+                </div>
+                <h3 class="ai-title">
+                  여유로운 해변 산책을 즐기는 여행자님을 위해
+                </h3>
+                <p class="ai-desc">
+                  이번 주말에는 선선한 파도소리와 함께
+                  <strong style="color: #60a5fa">강릉 안목해변</strong>은
+                  어떠신가요?
+                </p>
+                <button
+                  class="btn-glass seasonal-btn"
+                  type="button"
+                  id="btn-view-recommendations"
+                  style="margin-top: 1.25rem"
+                >
+                  추천 여행지 전체보기 <i data-lucide="arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Stats (Small) -->
+            <div class="bento-item bento-small widget-stats mypage-stats-bento">
+              <div class="stat-number" style="color: var(--color-primary)">
+                5
+              </div>
+              <div class="stat-label" style="color: var(--color-primary-hover)">
+                지금까지 다녀온 여행
+              </div>
+              <div class="stat-bar" style="background: rgba(59, 130, 246, 0.2)">
+                <div
+                  class="stat-bar-fill"
+                  style="width: 100%; background: var(--color-primary)"
+                ></div>
+              </div>
+              <span class="stat-sub" style="color: var(--color-text-muted)"
+                >새로운 배지 획득까지 1번 남았습니다!</span
+              >
+            </div>
+
+            <!-- Recent Trips (Large) -->
+            <div
+              class="bento-item bento-large popular-destinations"
+              style="display: flex; flex-direction: column"
+            >
+              <div class="bento-header">
+                <h3>최근 다녀온 여행</h3>
+                <a href="#" id="link-view-all-trips" class="btn-text"
+                  >내 여행 전체 <i data-lucide="chevron-right"></i
+                ></a>
+              </div>
+              <div class="trip-list-wrapper">
+                <div class="trip-list-item">
+                  <img
+                    src="../images/bukchon.png"
+                    alt="북촌"
+                    class="trip-list-img"
+                  />
+                  <div style="flex: 1">
+                    <div class="trip-list-date">
+                      <i data-lucide="calendar"></i>
+                      2026.05.10 - 05.12
+                    </div>
+                    <h4 class="trip-list-title">서울 도심 속 역사 탐방</h4>
+                    <p class="trip-list-desc">북촌 한옥마을, 경복궁 외 3곳</p>
+                  </div>
+                  <div class="trip-list-status">완료됨</div>
+                </div>
+
+                <div class="trip-list-item">
+                  <img
+                    src="../images/haeundae.png"
+                    alt="해운대"
+                    class="trip-list-img"
+                  />
+                  <div style="flex: 1">
+                    <div class="trip-list-date">
+                      <i data-lucide="calendar"></i>
+                      2026.04.05 - 04.07
+                    </div>
+                    <h4 class="trip-list-title">봄바람 부는 부산 여행</h4>
+                    <p class="trip-list-desc">해운대 해수욕장, 광안대교 외 2곳</p>
+                  </div>
+                  <div class="trip-list-status">완료됨</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Saved Destinations (Large) -->
+            <div
+              class="bento-item bento-large popular-destinations"
+              style="display: flex; flex-direction: column"
+            >
+              <div class="bento-header">
+                <h3>저장한 여행지</h3>
+                <a href="#" id="link-view-saved-destinations" class="btn-text"
+                  >목록 보기 <i data-lucide="chevron-right"></i
+                ></a>
+              </div>
+              <div class="dest-grid" style="margin-top: 0.5rem">
+                <div class="dest-mini-card">
+                  <img src="../images/gwangalli.png" alt="광안리" />
+                  <div class="dest-mini-info dest-mini-info-wrapper">
+                    <div>
+                      <h4>광안리 해수욕장</h4>
+                      <p>부산 수영구</p>
+                    </div>
+                    <i data-lucide="heart"></i>
+                  </div>
+                </div>
+                <div class="dest-mini-card">
+                  <img src="../images/namsan.png" alt="남산" />
+                  <div class="dest-mini-info dest-mini-info-wrapper">
+                    <div>
+                      <h4>N서울타워</h4>
+                      <p>서울 용산구</p>
+                    </div>
+                    <i data-lucide="heart"></i>
+                  </div>
+                </div>
+                <div class="dest-mini-card">
+                  <img src="../images/jeju_night.png" alt="제주" />
+                  <div class="dest-mini-info dest-mini-info-wrapper">
+                    <div>
+                      <h4>성산일출봉</h4>
+                      <p>제주 서귀포시</p>
+                    </div>
+                    <i data-lucide="heart"></i>
+                  </div>
+                </div>
+                <div class="dest-mini-card">
+                  <img
+                    src="https://images.unsplash.com/photo-1546874177-9e664107314e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60"
+                    alt="경주"
+                  />
+                  <div class="dest-mini-info dest-mini-info-wrapper">
+                    <div>
+                      <h4>동궁과 월지</h4>
+                      <p>경북 경주시</p>
+                    </div>
+                    <i data-lucide="heart"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    <!-- Edit Profile Modal -->
+    <div class="modal-overlay" id="edit-profile-modal">
+      <div class="modal-content" style="max-width: 400px; padding: 2rem;">
+        <button class="modal-close-btn" id="edit-profile-close-btn" type="button" aria-label="닫기">
+          <i data-lucide="x"></i>
+        </button>
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-main);">프로필 편집</h2>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <div style="text-align: center;">
+            <img id="edit-profile-avatar-preview" src="" alt="Profile Preview" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div>
+              <label for="edit-profile-image" style="font-size: 0.85rem; color: var(--color-text-muted); display: block; margin-bottom: 0.5rem; text-align: left;">프로필 이미지 URL</label>
+              <input type="text" id="edit-profile-image" style="width: 100%; padding: 0.75rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(0,0,0,0.2); color: white;" placeholder="이미지 URL을 입력하세요">
+            </div>
+          </div>
+          <div>
+            <label for="edit-profile-nickname" style="font-size: 0.85rem; color: var(--color-text-muted); display: block; margin-bottom: 0.5rem; text-align: left;">닉네임</label>
+            <input type="text" id="edit-profile-nickname" style="width: 100%; padding: 0.75rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(0,0,0,0.2); color: white;">
+          </div>
+          <div>
+            <label for="edit-profile-email" style="font-size: 0.85rem; color: var(--color-text-muted); display: block; margin-bottom: 0.5rem; text-align: left;">이메일 (변경 불가)</label>
+            <input type="email" id="edit-profile-email" disabled style="width: 100%; padding: 0.75rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; background: rgba(0,0,0,0.4); color: var(--color-text-muted); cursor: not-allowed;">
+          </div>
+          <button id="btn-save-profile" class="btn-primary btn-glow" style="width: 100%; justify-content: center; margin-top: 1rem;">
+            저장하기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="../scripts/app.js"></script>
+    <script src="../scripts/mypage.js"></script>
+    <script>
+      // Initialize lucide icons
+      lucide.createIcons();
+    </script>
   </body>
 </html>
