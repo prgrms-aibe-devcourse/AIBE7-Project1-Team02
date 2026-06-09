@@ -641,6 +641,17 @@ select {
   box-shadow: 0 14px 26px rgba(59, 130, 246, 0.24);
 }
 
+.like-button.is-liked {
+  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+  color: #fff;
+  border-color: rgba(20, 184, 166, 0.28);
+  box-shadow: 0 10px 22px rgba(20, 184, 166, 0.18);
+}
+
+.like-button.is-liked:hover {
+  box-shadow: 0 14px 28px rgba(20, 184, 166, 0.22);
+}
+
 .comment-list {
   margin-top: 1rem;
   display: grid;
