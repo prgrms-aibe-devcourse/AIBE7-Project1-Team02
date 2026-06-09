@@ -6,53 +6,49 @@
     <title>ExploraJourneys | AI Travel Planner</title>
     <meta
       name="description"
-      content="AI가 분석한 당신의 취향으로 완벽한 국내 여행을 설계합니다."
+      content="AI가 분석한 여행 키워드로 나만의 국내 여행지를 추천하고 일정까지 만들어주는 서비스입니다."
     />
-    <!-- Lucide Icons CDN -->
+    <link rel="stylesheet" href="./styles/main.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="/public/styles/main.css" />
   </head>
   <body>
     <div class="app-container">
-      <!-- Sidebar Navigation -->
       <div class="sidebar-overlay" id="sidebar-overlay"></div>
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
           <div class="logo">ExploraJourneys</div>
-          <div class="logo-desc">당신의 한국 여행 도우미</div>
+          <div class="logo-desc">여행을 더 똑똑하게</div>
         </div>
 
         <nav class="sidebar-nav">
-          <a href="#" class="nav-item active">
+          <a href="./index.html" class="nav-item active">
             <i data-lucide="compass" class="nav-icon"></i> 탐색하기
           </a>
-          <a href="/public/pages/community.html" class="nav-item">
+          <a href="./pages/community.html" class="nav-item">
             <i data-lucide="users" class="nav-icon"></i> 커뮤니티
           </a>
-          <a href="#" class="nav-item">
-            <i data-lucide="map" class="nav-icon"></i> 내 여행
+          <a href="./pages/trip-create.html" class="nav-item">
+            <i data-lucide="map" class="nav-icon"></i> 여행 일정
           </a>
-          <a href="/public/pages/survey.html" class="nav-item">
-            <i data-lucide="sparkles" class="nav-icon"></i> 생성하기
+          <a href="./pages/survey.html" class="nav-item">
+            <i data-lucide="sparkles" class="nav-icon"></i> 성향 분석
           </a>
-          <a href="#" class="nav-item">
-            <i data-lucide="user" class="nav-icon"></i> 프로필
+          <a href="./pages/profile.html" class="nav-item">
+            <i data-lucide="user" class="nav-icon"></i> 마이페이지
           </a>
         </nav>
 
         <div class="sidebar-footer">
-          <button class="btn-create-itinerary" id="btn-sidebar-create">
-            + 새 일정 만들기
+          <button class="btn-create-itinerary" id="btn-sidebar-create" type="button">
+            + 여행 일정 만들기
           </button>
         </div>
       </aside>
 
-      <!-- Main Content Area -->
       <div class="main-wrapper">
-        <!-- Top Header (Simplified - no duplicate tabs) -->
         <header class="top-header">
           <div class="header-left">
-            <button class="mobile-menu-toggle" id="mobile-toggle">
+            <button class="mobile-menu-toggle" id="mobile-toggle" type="button" aria-label="메뉴 열기">
               <i data-lucide="menu"></i>
             </button>
             <div class="header-breadcrumb">
@@ -60,12 +56,14 @@
               <span class="breadcrumb-text">탐색하기</span>
             </div>
           </div>
+
           <div class="header-actions">
             <div class="search-bar">
               <i data-lucide="search" class="search-icon"></i>
               <input type="text" placeholder="목적지, 맛집, 액티비티 검색..." />
             </div>
-            <button class="btn-icon" id="notification-btn">
+
+            <button class="btn-icon" id="notification-btn" type="button" aria-label="알림">
               <i data-lucide="bell"></i>
               <span class="notification-dot"></span>
             </button>
@@ -86,209 +84,162 @@
           </div>
         </header>
 
-        <!-- Dashboard Content -->
         <main class="dashboard-content">
-          <!-- Dashboard Header -->
-          <div class="dash-header">
+          <section class="dash-header">
             <div class="dash-greeting">
-              <h1 class="greeting-title">안녕하세요, 여행자님! 👋</h1>
-              <p class="greeting-desc">
-                오늘도 새로운 여정을 떠날 준비가 되셨나요?
-              </p>
+              <h1 class="greeting-title">안녕하세요, 여행자님!</h1>
+              <p class="greeting-desc">오늘은 어떤 여행을 준비하고 계신가요?</p>
             </div>
+
             <div class="dash-header-actions">
-              <button class="btn-primary btn-glow" id="btn-quick-create">
-                <i data-lucide="sparkles"></i> AI 맞춤 일정 생성
+              <button class="btn-primary btn-glow" id="btn-quick-create" type="button">
+                <i data-lucide="sparkles"></i> AI 맞춤 여행 계획 생성
               </button>
             </div>
-          </div>
+          </section>
 
-          <!-- Bento Grid Layout -->
-          <div class="bento-grid">
-            <!-- Bento Item 1: Upcoming Trip (Large) -->
+          <section class="bento-grid" aria-label="메인 대시보드">
             <div class="bento-item bento-large summary-card-bento">
-              <div
-                class="bento-bg-image"
-                style="
-                  background-image: url(&quot;./images/jeju_night.png&quot;);
-                "
-              ></div>
+              <div class="bento-bg-image" style="background-image: url('./images/jeju_night.png');"></div>
               <div class="bento-overlay"></div>
               <div class="bento-content summary-content">
                 <div class="badge-d-day">D-12</div>
                 <div class="trip-details">
-                  <h2>제주도 푸른 밤 투어</h2>
+                  <h2>제주도 바다 여행</h2>
                   <p>
-                    <i data-lucide="calendar"></i> 2026.06.20 - 06.23 &nbsp; |
-                    &nbsp; <i data-lucide="map-pin"></i> 제주도
+                    <i data-lucide="calendar"></i> 2026.06.20 - 06.23
+                    &nbsp; | &nbsp;
+                    <i data-lucide="map-pin"></i> 제주
                   </p>
                 </div>
-                <button
-                  class="btn-glass"
-                  style="width: fit-content; border-radius: 30px"
-                >
+                <button class="btn-glass" style="width: fit-content; border-radius: 30px" type="button">
                   일정 상세 보기 <i data-lucide="arrow-right"></i>
                 </button>
               </div>
             </div>
 
-            <!-- Bento Item 2: Quick Weather (Small) -->
             <div class="bento-item bento-small widget-weather">
               <div class="weather-icon"><i data-lucide="sun"></i></div>
               <div class="weather-info">
                 <h3>24°C</h3>
-                <p>제주도 맑음</p>
+                <p>제주 맑음</p>
               </div>
             </div>
 
-            <!-- Bento Item 3: My Profile/Style (Small) -->
             <div class="bento-item bento-small widget-profile">
               <div class="profile-avatar">
                 <img
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-                  alt="Profile"
+                  alt="프로필"
                 />
               </div>
               <div class="profile-info">
-                <span class="profile-title">여유를 즐기는 로컬 탐험가</span>
+                <span class="profile-title">여행 성향 프로필</span>
                 <p style="font-size: 0.8rem; margin-top: 0.5rem">
-                  <strong style="color: var(--color-primary)"
-                    >다음 추천:</strong
-                  >
-                  부산 해운대
+                  <strong style="color: var(--color-primary)">다음 추천:</strong> 바다 산책형
                 </p>
               </div>
             </div>
 
-            <!-- Bento Item 4: Popular Destinations (Wide) -->
             <div class="bento-item bento-wide popular-destinations">
               <div class="bento-header">
-                <h3>🔥 이번 주 인기 여행지</h3>
-                <a href="#" class="btn-text"
-                  >모두 보기 <i data-lucide="chevron-right"></i
-                ></a>
+                <h3>인기 여행지</h3>
+                <a href="./pages/destinations.html" class="btn-text">모두 보기 <i data-lucide="chevron-right"></i></a>
               </div>
               <div class="dest-scroll-container">
                 <div class="dest-mini-card">
-                  <img src="./images/gwangalli.png" alt="Gwangalli" />
+                  <img src="./images/gwangalli.png" alt="광안리" />
                   <div class="dest-mini-info">
                     <h4>광안리</h4>
                     <p>부산</p>
                   </div>
                 </div>
                 <div class="dest-mini-card">
-                  <img src="./images/bukchon.png" alt="Bukchon" />
+                  <img src="./images/bukchon.png" alt="북촌" />
                   <div class="dest-mini-info">
                     <h4>북촌 한옥마을</h4>
                     <p>서울</p>
                   </div>
                 </div>
                 <div class="dest-mini-card">
-                  <img src="./images/haeundae.png" alt="Haeundae" />
+                  <img src="./images/haeundae.png" alt="해운대" />
                   <div class="dest-mini-info">
                     <h4>해운대</h4>
                     <p>부산</p>
                   </div>
                 </div>
                 <div class="dest-mini-card">
-                  <img src="./images/namsan.png" alt="Namsan" />
+                  <img src="./images/namsan.png" alt="남산" />
                   <div class="dest-mini-info">
-                    <h4>남산 타워</h4>
+                    <h4>남산타워</h4>
                     <p>서울</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Bento Item 5: My Stats (Small) -->
             <div class="bento-item bento-small widget-stats">
               <div class="stat-number">2</div>
-              <div class="stat-label">이번 달 예정된 여행</div>
+              <div class="stat-label">이번 달 완료한 여행</div>
               <div class="stat-bar">
                 <div class="stat-bar-fill" style="width: 66%"></div>
               </div>
-              <span class="stat-sub">목표 3건 중 2건 완료</span>
+              <span class="stat-sub">목표 3개 중 2개 완료</span>
             </div>
 
-            <!-- Bento Item 6: Seasonal Banner (Wide) -->
             <div class="bento-item bento-wide seasonal-banner">
-              <div
-                class="bento-bg-image"
-                style="
-                  background-image: url(&quot;./images/summer_banner.png&quot;);
-                "
-              ></div>
+              <div class="bento-bg-image" style="background-image: url('./images/summer_banner.png');"></div>
               <div class="bento-overlay seasonal-overlay"></div>
               <div class="bento-content seasonal-content">
-                <div class="seasonal-badge">🌊 시즌 추천</div>
-                <h3>여름 휴가 시즌! 제주 해변 특집</h3>
-                <p>선선한 바람과 에메랄드빛 바다가 기다리고 있어요</p>
-                <button class="btn-glass seasonal-btn">
-                  특집 보러 가기 <i data-lucide="arrow-right"></i>
+                <div class="seasonal-badge">여름 시즌 추천</div>
+                <h3>시원한 바다와 함께하는 제주 여행</h3>
+                <p>선선한 바람과 여유로운 일정으로 여행을 준비해보세요.</p>
+                <button class="btn-glass seasonal-btn" type="button">
+                  추천 여행지 보기 <i data-lucide="arrow-right"></i>
                 </button>
               </div>
             </div>
 
-            <!-- Bento Item 7: Recent (Small) -->
             <div class="bento-item bento-small widget-recent">
               <div class="bento-header" style="margin-bottom: 0.5rem">
-                <h3 style="font-size: 1rem">🕐 최근 본 곳</h3>
+                <h3 style="font-size: 1rem">최근 본 여행지</h3>
               </div>
               <div class="recent-list">
                 <div class="recent-item">
-                  <img
-                    src="./images/bukchon.png"
-                    alt="Recent 1"
-                    class="recent-thumb"
-                  />
+                  <img src="./images/bukchon.png" alt="북촌" class="recent-thumb" />
                   <span>북촌 한옥마을</span>
                 </div>
                 <div class="recent-item">
-                  <img
-                    src="./images/haeundae.png"
-                    alt="Recent 2"
-                    class="recent-thumb"
-                  />
+                  <img src="./images/haeundae.png" alt="해운대" class="recent-thumb" />
                   <span>해운대 해수욕장</span>
                 </div>
                 <div class="recent-item">
-                  <img
-                    src="./images/gwangalli.png"
-                    alt="Recent 3"
-                    class="recent-thumb"
-                  />
+                  <img src="./images/gwangalli.png" alt="광안리" class="recent-thumb" />
                   <span>광안리 야경</span>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </main>
       </div>
     </div>
 
-    <!-- Modal Overlay for Flow B -->
     <div class="modal-overlay" id="flow-b-modal">
       <div class="modal-content">
-        <button class="modal-close-btn" id="modal-close-btn">
+        <button class="modal-close-btn" id="modal-close-btn" type="button" aria-label="닫기">
           <i data-lucide="x"></i>
         </button>
         <section class="flow-b-section" id="destinations-flow">
-          <div
-            class="section-header"
-            style="text-align: center; max-width: 600px; margin: 0 auto 2rem"
-          >
-            <h2>당신의 리듬에 맞춘 큐레이션</h2>
+          <div class="section-header" style="text-align: center; max-width: 600px; margin: 0 auto 2rem">
+            <h2>나만의 맞춤 여행지 선택</h2>
             <p>
-              완벽한 휴가를 정의하는 키워드를 최대 3개까지 선택하여 당신만을
-              위한 여행지를 미리 만나보세요.
+              원하는 키워드를 최대 3개까지 선택해서 내 스타일에 맞는 국내 여행지를
+              추천받아보세요.
             </p>
           </div>
 
-          <div class="keyword-selector" id="keyword-container">
-            <!-- Keywords will be generated by JS -->
-          </div>
+          <div class="keyword-selector" id="keyword-container"></div>
 
-          <!-- Selection Counter -->
           <div class="selection-counter" id="selection-counter">
             <div class="counter-dots">
               <span class="counter-dot" id="dot-1"></span>
@@ -306,34 +257,21 @@
 
           <div class="preview-results" id="preview-results">
             <div class="empty-state" id="preview-empty">
-              <i
-                data-lucide="compass"
-                style="
-                  width: 48px;
-                  height: 48px;
-                  margin-bottom: 1rem;
-                  opacity: 0.5;
-                "
-              ></i>
+              <i data-lucide="compass" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.5;"></i>
               <br />
-              <span>당신의 선택을 기다리는 중입니다...</span>
+              <span>키워드를 선택하면 추천 결과가 여기에 표시됩니다.</span>
             </div>
-            <!-- Result cards generated by JS -->
           </div>
 
           <div class="preview-action" style="text-align: center">
-            <button
-              class="btn-primary btn-glow disabled"
-              id="btn-generate-itinerary"
-              disabled
-            >
-              내 맞춤 여행지 보기
+            <button class="btn-primary btn-glow disabled" id="btn-generate-itinerary" type="button" disabled>
+              맞춤 여행지 보기
             </button>
           </div>
         </section>
       </div>
     </div>
 
-    <script src="/public/scripts/app.js"></script>
+    <script src="./scripts/app.js"></script>
   </body>
 </html>
