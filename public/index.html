@@ -88,7 +88,7 @@
               ></span>
               <a href="/public/pages/login.html" id="login-link">
                 <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+                  src=""
                   alt="User"
                   id="header-user-avatar"
                   class="user-avatar"
@@ -109,7 +109,9 @@
         <main class="dashboard-content">
           <section class="dash-header">
             <div class="dash-greeting">
-              <h1 class="greeting-title" id="greeting-title">안녕하세요, 여행자님!</h1>
+              <h1 class="greeting-title" id="greeting-title">
+                안녕하세요, 여행자님!
+              </h1>
               <p class="greeting-desc" id="greeting-desc">
                 여행 MBTI에 맞는 국내 여행지를 찾고 있습니다.
               </p>
@@ -134,7 +136,9 @@
               <div
                 class="bento-bg-image"
                 id="featured-recommendation-image"
-                style="background-image: url('./images/summer_banner.png')"
+                style="
+                  background-image: url(&quot;./images/summer_banner.png&quot;);
+                "
               ></div>
               <div class="bento-overlay"></div>
               <div class="bento-content summary-content">
@@ -193,7 +197,9 @@
               </div>
             </div>
 
-            <div class="bento-item bento-wide popular-destinations recommendation-panel">
+            <div
+              class="bento-item bento-wide popular-destinations recommendation-panel"
+            >
               <div class="bento-header">
                 <div>
                   <h3 id="recommendation-title">내 여행 MBTI 추천</h3>
@@ -218,7 +224,10 @@
                 aria-live="polite"
               >
                 <div class="recommendation-state">
-                  <span class="recommendation-spinner" aria-hidden="true"></span>
+                  <span
+                    class="recommendation-spinner"
+                    aria-hidden="true"
+                  ></span>
                   <span>맞춤 여행지를 불러오는 중입니다.</span>
                 </div>
               </div>

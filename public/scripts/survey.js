@@ -26,20 +26,27 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Config 및 사용자 인증 ─────────────────────────────────
   let SUPABASE_URL = "";
   let SUPABASE_ANON_KEY = "";
-  const AUTH_KEYS = { access: 'sb_access_token', refresh: 'sb_refresh_token', user: 'sb_user' };
-  
-  const authToken = sessionStorage.getItem(AUTH_KEYS.access) || '';
+  const AUTH_KEYS = {
+    access: "sb_access_token",
+    refresh: "sb_refresh_token",
+    user: "sb_user",
+  };
+
+  const authToken = sessionStorage.getItem(AUTH_KEYS.access) || "";
   let currentUser = {};
   try {
-    currentUser = JSON.parse(sessionStorage.getItem(AUTH_KEYS.user) || '{}');
-  } catch(e) {}
-  
-  const headerUserName = document.getElementById('header-user-name');
-  const headerUserAvatar = document.getElementById('header-user-avatar');
-  const logoutBtn = document.getElementById('logout-btn');
+    currentUser = JSON.parse(sessionStorage.getItem(AUTH_KEYS.user) || "{}");
+  } catch (e) {}
+
+  const headerUserName = document.getElementById("header-user-name");
+  const headerUserAvatar = document.getElementById("header-user-avatar");
+  const logoutBtn = document.getElementById("logout-btn");
 
   if (authToken && currentUser) {
-    const userNickname = currentUser?.user_metadata?.nickname || currentUser?.email?.split('@')?.[0] || '사용자';
+    const userNickname =
+      currentUser?.user_metadata?.nickname ||
+      currentUser?.email?.split("@")?.[0] ||
+      "사용자";
     if (headerUserName) headerUserName.textContent = `${userNickname}님`;
     if (headerUserAvatar) {
       headerUserAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=1a5c3a&color=fff&size=160`;
@@ -47,11 +54,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
+    logoutBtn.addEventListener("click", () => {
       sessionStorage.removeItem(AUTH_KEYS.access);
       sessionStorage.removeItem(AUTH_KEYS.refresh);
       sessionStorage.removeItem(AUTH_KEYS.user);
-      window.location.replace('/public/pages/login.html');
+      window.location.replace("/public/pages/login.html");
     });
   }
 
@@ -213,16 +220,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Auto-advance: 라디오 클릭 시 0.5초 후 다음 문항
+  // Auto-advance 기능 해제: 라디오 클릭 시 에러 메시지만 숨김 (자동 넘어가기 비활성화)
   surveyForm.addEventListener("change", (e) => {
     if (e.target.type === "radio") {
       validationMsg.classList.remove("visible");
-      if (currentSlide < totalSlides - 1) {
-        setTimeout(() => {
-          currentSlide++;
-          updateUI();
-        }, 450);
-      }
     }
   });
 
@@ -312,16 +313,19 @@ document.addEventListener("DOMContentLoaded", () => {
         raw_answers: rawAnswers,
       };
 
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/travel_mbti_results?on_conflict=user_id`, {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${authToken}`,
-          "Content-Type": "application/json",
-          Prefer: "resolution=merge-duplicates"
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/travel_mbti_results?on_conflict=user_id`,
+        {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+            Prefer: "resolution=merge-duplicates",
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload)
-      });
+      );
 
       if (!res.ok) {
         const errorData = await res.json();
@@ -368,9 +372,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Init ───────────────────────────────────────────────────
   // 모든 문항의 기본값을 '보통'(value="3")으로 설정합니다.
-  document.querySelectorAll('input[type="radio"][value="3"]').forEach((radio) => {
-    radio.checked = true;
-  });
-  
+  document
+    .querySelectorAll('input[type="radio"][value="3"]')
+    .forEach((radio) => {
+      radio.checked = true;
+    });
+
   updateUI();
 });
