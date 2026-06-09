@@ -5,13 +5,37 @@ document.addEventListener("DOMContentLoaded", () => {
   const pageSize = 12;
   const grid = document.getElementById("destination-explore-grid");
   const subtitle = document.getElementById("destination-explore-subtitle");
+  const backLink = document.getElementById("destination-back-link");
   const resultCount = document.getElementById("destination-result-count");
   const pagination = document.getElementById("destination-pagination");
+  const filterForm = document.getElementById("destination-filter-form");
   const provinceFilter = document.getElementById(
     "destination-province-filter",
   );
   const keywordFilter = document.getElementById("destination-keyword-filter");
+  const provinceSummary = document.getElementById(
+    "destination-province-summary",
+  );
+  const keywordSummary = document.getElementById(
+    "destination-keyword-summary",
+  );
   const filterReset = document.getElementById("destination-filter-reset");
+  const filterModal = document.getElementById("destination-filter-modal");
+  const filterModalTitle = document.getElementById(
+    "destination-filter-modal-title",
+  );
+  const filterOptionsContainer = document.getElementById(
+    "destination-filter-options",
+  );
+  const filterModalClose = document.getElementById(
+    "destination-filter-modal-close",
+  );
+  const filterModalClear = document.getElementById(
+    "destination-filter-modal-clear",
+  );
+  const filterModalApply = document.getElementById(
+    "destination-filter-modal-apply",
+  );
   const detailModal = document.getElementById("destination-detail-modal");
   const detailClose = document.getElementById("destination-detail-close");
   const detailImage = document.getElementById("destination-detail-image");
@@ -31,6 +55,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const detailBookmark = document.getElementById("destination-detail-bookmark");
   let latestRequestId = 0;
   let bookmarkedDestinationIds = new Set();
+  const filterOptions = {
+    province: [],
+    keyword: [],
+  };
+  const appliedFilters = {
+    province: new Set(),
+    keyword: new Set(),
+  };
+  let activeFilterType = null;
+  let draftFilterValues = new Set();
+
+  if (!authToken && subtitle) {
+    subtitle.hidden = true;
+  }
+  if (!authToken && backLink) {
+    backLink.hidden = true;
+  }
 
   function getSafeImageUrl(imageUrl) {
     if (!imageUrl) {
@@ -347,6 +388,73 @@ document.addEventListener("DOMContentLoaded", () => {
     grid.appendChild(state);
   }
 
+  function getFilterSummary(type) {
+    const values = [...appliedFilters[type]];
+    if (values.length === 0) {
+      return type === "province" ? "전체 지역" : "전체 키워드";
+    }
+    if (values.length === 1) {
+      return values[0];
+    }
+    return `${values[0]} 외 ${values.length - 1}개`;
+  }
+
+  function updateFilterSummaries() {
+    provinceSummary.textContent = getFilterSummary("province");
+    keywordSummary.textContent = getFilterSummary("keyword");
+  }
+
+  function renderFilterOptions() {
+    filterOptionsContainer.innerHTML = "";
+
+    if (filterOptions[activeFilterType].length === 0) {
+      const emptyState = document.createElement("p");
+      emptyState.className = "destination-filter-options-empty";
+      emptyState.textContent = "선택 가능한 필터가 없습니다.";
+      filterOptionsContainer.appendChild(emptyState);
+      return;
+    }
+
+    filterOptions[activeFilterType].forEach((value) => {
+      const button = document.createElement("button");
+      button.className = "destination-filter-option";
+      button.type = "button";
+      button.textContent = value;
+      button.classList.toggle("selected", draftFilterValues.has(value));
+      button.setAttribute(
+        "aria-pressed",
+        draftFilterValues.has(value) ? "true" : "false",
+      );
+      button.addEventListener("click", () => {
+        draftFilterValues.has(value)
+          ? draftFilterValues.delete(value)
+          : draftFilterValues.add(value);
+        renderFilterOptions();
+      });
+      filterOptionsContainer.appendChild(button);
+    });
+  }
+
+  function openFilterModal(type) {
+    activeFilterType = type;
+    draftFilterValues = new Set(appliedFilters[type]);
+    filterModalTitle.textContent =
+      type === "province" ? "지역 선택" : "키워드 선택";
+    renderFilterOptions();
+    filterModal.classList.add("active");
+    filterModal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+    filterModalClose.focus();
+  }
+
+  function closeFilterModal() {
+    filterModal.classList.remove("active");
+    filterModal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
+    activeFilterType = null;
+    draftFilterValues = new Set();
+  }
+
   function createPageButton(label, page, options = {}) {
     const button = document.createElement("button");
     button.type = "button";
@@ -406,12 +514,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!authToken) {
       params.set("mbtiType", guestMbtiType);
     }
-    if (provinceFilter.value) {
-      params.set("province", provinceFilter.value);
-    }
-    if (keywordFilter.value) {
-      params.set("keyword", keywordFilter.value);
-    }
+    appliedFilters.province.forEach((value) => {
+      params.append("province", value);
+    });
+    appliedFilters.keyword.forEach((value) => {
+      params.append("keyword", value);
+    });
 
     try {
       const response = await fetch(
@@ -441,10 +549,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const { mbtiType, recommendations, pagination: pageInfo } = result.data;
+      subtitle.hidden = !authToken;
       subtitle.textContent =
         authToken
           ? `${mbtiType} 여행 성향에 맞는 관광지를 적합도순으로 보여드려요.`
-          : `로그인 전에는 ${mbtiType} 공개 추천 기준으로 관광지를 보여드려요.`;
+          : "";
       resultCount.textContent =
         `조건에 맞는 관광지 ${pageInfo.totalCount.toLocaleString("ko-KR")}개`;
       grid.innerHTML = "";
@@ -474,15 +583,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function appendOptions(select, values) {
-    values.forEach((value) => {
-      const option = document.createElement("option");
-      option.value = value;
-      option.textContent = value;
-      select.appendChild(option);
-    });
-  }
-
   async function loadFilters() {
     try {
       const filterUrl = new URL(
@@ -503,20 +603,45 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json().catch(() => ({}));
 
       if (response.ok && result.success) {
-        appendOptions(provinceFilter, result.data.provinces);
-        appendOptions(keywordFilter, result.data.keywords);
+        filterOptions.province = (result.data.provinces || []).filter(
+          (province) => province !== "경기",
+        );
+        filterOptions.keyword = result.data.keywords || [];
       }
     } catch {
       // 목록 조회는 필터 옵션 조회 실패와 별개로 계속 사용할 수 있다.
     }
   }
 
-  provinceFilter.addEventListener("change", () => loadDestinations(1));
-  keywordFilter.addEventListener("change", () => loadDestinations(1));
-  filterReset.addEventListener("click", () => {
-    provinceFilter.value = "";
-    keywordFilter.value = "";
+  provinceFilter.addEventListener("click", () => openFilterModal("province"));
+  keywordFilter.addEventListener("click", () => openFilterModal("keyword"));
+  filterForm.addEventListener("submit", (event) => {
+    event.preventDefault();
     loadDestinations(1);
+  });
+  filterReset.addEventListener("click", () => {
+    appliedFilters.province.clear();
+    appliedFilters.keyword.clear();
+    updateFilterSummaries();
+  });
+  filterModalClear.addEventListener("click", () => {
+    draftFilterValues.clear();
+    renderFilterOptions();
+  });
+  filterModalApply.addEventListener("click", () => {
+    if (!activeFilterType) {
+      return;
+    }
+
+    appliedFilters[activeFilterType] = new Set(draftFilterValues);
+    updateFilterSummaries();
+    closeFilterModal();
+  });
+  filterModalClose.addEventListener("click", closeFilterModal);
+  filterModal.addEventListener("click", (event) => {
+    if (event.target === filterModal) {
+      closeFilterModal();
+    }
   });
   detailClose.addEventListener("click", closeDetail);
   detailModal.addEventListener("click", (event) => {
@@ -525,7 +650,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && detailModal.classList.contains("active")) {
+    if (event.key === "Escape" && filterModal.classList.contains("active")) {
+      closeFilterModal();
+    } else if (
+      event.key === "Escape" &&
+      detailModal.classList.contains("active")
+    ) {
       closeDetail();
     }
   });

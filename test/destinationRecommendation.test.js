@@ -5,6 +5,7 @@ const {
   getRecommendedDestinations,
   normalizeLimit,
   normalizeMbtiType,
+  normalizeFilterValues,
   normalizePage,
   normalizePageSize,
 } = require("../src/services/supabase/destinationRecommendation");
@@ -145,7 +146,14 @@ test("전체 추천 조회의 페이지와 페이지 크기를 안전한 범위�
   assert.equal(normalizePageSize("100"), 24);
 });
 
-test("지역과 키워드 조건을 적용하고 전체 개수를 포함해 페이지 조회한다", async () => {
+test("복수 필터 값을 중복 없이 정규화한다", () => {
+  assert.deepEqual(
+    normalizeFilterValues(["서울특별시", "부산광역시,서울특별시"]),
+    ["서울특별시", "부산광역시"],
+  );
+});
+
+test("복수 지역과 키워드 조건을 적용하고 전체 개수를 포함해 페이지 조회한다", async () => {
   const requestedUrls = [];
   const responses = [
     createJsonResponse([{ mbti_type: "INFP" }]),
@@ -183,8 +191,8 @@ test("지역과 키워드 조건을 적용하고 전체 개수를 포함해 페�
     accessToken: "access-token",
     page: "2",
     pageSize: "12",
-    province: "제주특별자치도",
-    keyword: "힐링",
+    provinces: ["제주특별자치도", "서울특별시"],
+    keywords: ["힐링", "자연"],
     fetchImpl,
   });
 
@@ -194,12 +202,13 @@ test("지역과 키워드 조건을 적용하고 전체 개수를 포함해 페�
     totalCount: 37,
     totalPages: 4,
   });
-  assert.match(requestedUrls[1], /keyword=eq\.%ED%9E%90%EB%A7%81/);
+  assert.match(requestedUrls[1], /keyword=in\./);
+  assert.match(requestedUrls[1], /%ED%9E%90%EB%A7%81/);
+  assert.match(requestedUrls[1], /%EC%9E%90%EC%97%B0/);
   assert.match(requestedUrls[2], /destinations%21inner/);
-  assert.match(
-    requestedUrls[2],
-    /destinations\.province=eq\.%EC%A0%9C%EC%A3%BC/,
-  );
+  assert.match(requestedUrls[2], /destinations\.province=in\./);
+  assert.match(requestedUrls[2], /%EC%A0%9C%EC%A3%BC/);
+  assert.match(requestedUrls[2], /%EC%84%9C%EC%9A%B8/);
   assert.match(requestedUrls[2], /destination_id=in\.%283%29/);
   assert.match(requestedUrls[2], /limit=12/);
   assert.match(requestedUrls[2], /offset=12/);

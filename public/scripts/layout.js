@@ -36,6 +36,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       loginUrl.searchParams.set('redirect', redirectPath || '/');
       return loginUrl.href;
     };
+    const exploreNavItem = document.querySelector('.nav-item[data-path="/"]');
+
+    if (exploreNavItem && !authToken) {
+      exploreNavItem.href = '/pages/destinations.html';
+    }
+
+    const isHomePath = currentPath === '/' || currentPath === '/index.html';
+    if (!authToken && isHomePath) {
+      window.location.replace('/pages/destinations.html');
+      return;
+    }
 
     if (!authToken && isProtectedPath(currentPath)) {
       window.location.replace(getLoginUrl(`${currentPath}${window.location.search}`));
@@ -46,10 +57,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     navItems.forEach(item => {
       const itemPath = item.getAttribute('data-path');
       item.classList.remove('active');
-      const isHomePath = currentPath === '/' || currentPath === '/index.html';
+      const isGuestExplorePath =
+        !authToken && currentPath.includes('/pages/destinations.html');
       const isTripPath = currentPath.includes('/pages/trip-create.html') || currentPath.includes('/pages/saved-trips.html');
 
-      if (isHomePath && itemPath === '/') {
+      if ((isHomePath || isGuestExplorePath) && itemPath === '/') {
         item.classList.add('active');
       } else if (isTripPath && itemPath === '/pages/saved-trips.html') {
         item.classList.add('active');
@@ -81,7 +93,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (currentPath.includes('community')) {
         breadcrumbIcon.innerHTML = '<i data-lucide="users"></i>';
         breadcrumbText.textContent = 'Local Stories';
-      } else if (currentPath.includes('trip-create') || currentPath.includes('saved-trips') || currentPath.includes('destinations')) {
+      } else if (currentPath.includes('destinations')) {
+        breadcrumbIcon.innerHTML = '<i data-lucide="compass"></i>';
+        breadcrumbText.textContent = '탐색하기';
+      } else if (currentPath.includes('trip-create') || currentPath.includes('saved-trips')) {
         breadcrumbIcon.innerHTML = '<i data-lucide="map"></i>';
         breadcrumbText.textContent = '여행 일정';
       } else if (currentPath.includes('survey')) {
@@ -169,7 +184,7 @@ async function updateHeaderProfile() {
       sessionStorage.removeItem("sb_access_token");
       sessionStorage.removeItem("sb_refresh_token");
       sessionStorage.removeItem("sb_user");
-      window.location.replace('/pages/login.html');
+      window.location.replace('/pages/destinations.html');
     });
   }
 

@@ -65,6 +65,7 @@ function setMode(nextMode) {
 
   if (mode === 'signup') {
     titleEl.textContent = '회원가입';
+    subtitleEl.hidden = false;
     subtitleEl.textContent = '새 계정을 만들고 여행 계획을 시작하세요.';
     nicknameWrapEl.hidden = false;
     submitBtn.textContent = '회원가입';
@@ -72,7 +73,8 @@ function setMode(nextMode) {
     switchToLoginBtn.hidden = false;
   } else {
     titleEl.textContent = '로그인';
-    subtitleEl.textContent = 'Supabase 계정으로 로그인하세요.';
+    subtitleEl.hidden = true;
+    subtitleEl.textContent = '';
     nicknameWrapEl.hidden = true;
     submitBtn.textContent = '로그인';
     switchToSignupBtn.hidden = false;

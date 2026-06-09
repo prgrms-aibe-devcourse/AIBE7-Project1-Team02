@@ -29,34 +29,59 @@
                   내 여행 MBTI와 잘 맞는 국내 관광지를 불러오고 있습니다.
                 </p>
               </div>
-              <a class="destination-back-link" href="../index.html">
+              <a
+                class="destination-back-link"
+                id="destination-back-link"
+                href="../index.html"
+              >
                 <i data-lucide="arrow-left"></i>
                 TOP 10으로 돌아가기
               </a>
             </div>
 
             <form class="destination-filter-panel" id="destination-filter-form">
-              <label>
+              <div class="destination-filter-field">
                 <span>지역</span>
-                <select id="destination-province-filter">
-                  <option value="">전체 지역</option>
-                </select>
-              </label>
-              <label>
+                <button
+                  class="destination-filter-select"
+                  id="destination-province-filter"
+                  type="button"
+                >
+                  <span id="destination-province-summary">전체 지역</span>
+                  <i data-lucide="chevron-down"></i>
+                </button>
+              </div>
+              <div class="destination-filter-field">
                 <span>키워드</span>
-                <select id="destination-keyword-filter">
-                  <option value="">전체 키워드</option>
-                </select>
-              </label>
-              <button class="destination-filter-reset" id="destination-filter-reset" type="button">
+                <button
+                  class="destination-filter-select"
+                  id="destination-keyword-filter"
+                  type="button"
+                >
+                  <span id="destination-keyword-summary">전체 키워드</span>
+                  <i data-lucide="chevron-down"></i>
+                </button>
+              </div>
+              <button
+                class="destination-filter-reset"
+                id="destination-filter-reset"
+                type="button"
+              >
                 <i data-lucide="rotate-ccw"></i>
                 필터 초기화
+              </button>
+              <button
+                class="btn-primary destination-filter-search"
+                id="destination-filter-search"
+                type="submit"
+              >
+                <i data-lucide="search"></i>
+                검색
               </button>
             </form>
 
             <div class="destination-result-summary">
               <p id="destination-result-count">관광지를 불러오는 중입니다.</p>
-              <span>MBTI 적합도순</span>
             </div>
 
             <div
@@ -147,6 +172,54 @@
           </button>
         </div>
       </article>
+    </div>
+
+    <div
+      class="destination-filter-modal"
+      id="destination-filter-modal"
+      aria-hidden="true"
+    >
+      <section
+        class="destination-filter-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="destination-filter-modal-title"
+      >
+        <header class="destination-filter-modal-header">
+          <div>
+            <span class="recommendation-eyebrow">FILTER</span>
+            <h2 id="destination-filter-modal-title">필터 선택</h2>
+          </div>
+          <button
+            class="destination-filter-modal-close"
+            id="destination-filter-modal-close"
+            type="button"
+            aria-label="필터 선택 닫기"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </header>
+        <div
+          class="destination-filter-options"
+          id="destination-filter-options"
+        ></div>
+        <footer class="destination-filter-modal-actions">
+          <button
+            class="destination-filter-modal-clear"
+            id="destination-filter-modal-clear"
+            type="button"
+          >
+            선택 해제
+          </button>
+          <button
+            class="btn-primary"
+            id="destination-filter-modal-apply"
+            type="button"
+          >
+            완료
+          </button>
+        </footer>
+      </section>
     </div>
 
     <script src="/scripts/layout.js"></script>

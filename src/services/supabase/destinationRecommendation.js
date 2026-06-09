@@ -102,6 +102,23 @@ function normalizePageSize(pageSize) {
   return Math.min(parsedPageSize, MAX_PAGE_SIZE);
 }
 
+function normalizeFilterValues(values) {
+  const valueList = Array.isArray(values) ? values : [values];
+
+  return [
+    ...new Set(
+      valueList
+        .flatMap((value) => String(value || "").split(","))
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+function createInFilter(values) {
+  return `in.(${values.map((value) => JSON.stringify(value)).join(",")})`;
+}
+
 function groupKeywords(keywordRows) {
   return keywordRows.reduce((keywordMap, row) => {
     const destinationId = String(row.destination_id);
@@ -162,19 +179,19 @@ async function getUserMbti({
   return preferenceRows[0]?.mbti_type || null;
 }
 
-async function getDestinationIdsByKeyword({
+async function getDestinationIdsByKeywords({
   supabaseUrl,
   headers,
-  keyword,
+  keywords,
   fetchImpl,
 }) {
-  if (!keyword) {
+  if (keywords.length === 0) {
     return null;
   }
 
   const keywordUrl = new URL("/rest/v1/destination_keywords", supabaseUrl);
   keywordUrl.searchParams.set("select", "destination_id");
-  keywordUrl.searchParams.set("keyword", `eq.${keyword}`);
+  keywordUrl.searchParams.set("keyword", createInFilter(keywords));
 
   const keywordRows = await requestSupabaseJson(fetchImpl, keywordUrl, headers);
   return [
@@ -189,14 +206,15 @@ async function getDestinationIdsByKeyword({
 function createScoreUrl({
   supabaseUrl,
   mbtiType,
-  province,
+  provinces,
   destinationIds,
 }) {
   const scoreUrl = new URL(
     "/rest/v1/destination_mbti_scores",
     supabaseUrl,
   );
-  const destinationRelation = province ? "destinations!inner" : "destinations";
+  const destinationRelation =
+    provinces.length > 0 ? "destinations!inner" : "destinations";
 
   scoreUrl.searchParams.set(
     "select",
@@ -222,8 +240,11 @@ function createScoreUrl({
   scoreUrl.searchParams.set("mbti_type", `eq.${mbtiType}`);
   scoreUrl.searchParams.set("order", "score.desc,destination_id.asc");
 
-  if (province) {
-    scoreUrl.searchParams.set("destinations.province", `eq.${province}`);
+  if (provinces.length > 0) {
+    scoreUrl.searchParams.set(
+      "destinations.province",
+      createInFilter(provinces),
+    );
   }
   if (destinationIds) {
     scoreUrl.searchParams.set(
@@ -282,13 +303,15 @@ async function getRecommendedDestinations({
   limit,
   page,
   pageSize,
-  province = "",
-  keyword = "",
+  provinces = [],
+  keywords = [],
   fetchImpl = fetch,
 }) {
   validateSupabaseConfig(supabaseUrl, anonKey);
   const headers = createSupabaseHeaders(anonKey, accessToken);
   const normalizedRequestedMbtiType = normalizeMbtiType(requestedMbtiType);
+  const normalizedProvinces = normalizeFilterValues(provinces);
+  const normalizedKeywords = normalizeFilterValues(keywords);
 
   if (requestedMbtiType && !normalizedRequestedMbtiType) {
     const error = new Error("지원하지 않는 MBTI 유형입니다.");
@@ -312,10 +335,10 @@ async function getRecommendedDestinations({
     };
   }
 
-  const destinationIds = await getDestinationIdsByKeyword({
+  const destinationIds = await getDestinationIdsByKeywords({
     supabaseUrl,
     headers,
-    keyword,
+    keywords: normalizedKeywords,
     fetchImpl,
   });
   const isPaginated = page !== undefined || pageSize !== undefined;
@@ -340,7 +363,7 @@ async function getRecommendedDestinations({
   const scoreUrl = createScoreUrl({
     supabaseUrl,
     mbtiType,
-    province,
+    provinces: normalizedProvinces,
     destinationIds,
   });
   scoreUrl.searchParams.set("limit", String(normalizedPageSize));
@@ -467,4 +490,5 @@ module.exports = {
   normalizeMbtiType,
   normalizePage,
   normalizePageSize,
+  normalizeFilterValues,
 };

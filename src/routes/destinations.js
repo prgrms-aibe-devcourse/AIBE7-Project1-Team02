@@ -37,8 +37,8 @@ router.get("/recommended", async (request, response) => {
       limit: request.query.limit,
       page: request.query.page,
       pageSize: request.query.pageSize,
-      province: request.query.province,
-      keyword: request.query.keyword,
+      provinces: request.query.province,
+      keywords: request.query.keyword,
     });
 
     if (!result.mbtiType) {

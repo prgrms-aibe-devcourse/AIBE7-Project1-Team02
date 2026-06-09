@@ -46,7 +46,7 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | --- | --- | --- | --- | --- | --- | --- |
 | DONE | GET | `/api/health` | 없음 | 서버 상태, 확인 시각 | 서버 미실행 | 백엔드 |
 | DONE | GET | `/api/config` | 없음 | 브라우저용 Supabase URL, Anon Key | 없음, 환경 변수 검증 미구현 | 백엔드 |
-| DONE | GET | `/api/destinations/recommended` | Authorization Bearer Token, 선택 Query `limit`, `page`, `pageSize`, `province`, `keyword` | 사용자 MBTI와 점수순 관광지, 페이지 정보 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
+| DONE | GET | `/api/destinations/recommended` | Authorization Bearer Token, 선택 Query `limit`, `page`, `pageSize`, `province`(복수), `keyword`(복수) | 사용자 MBTI와 점수순 관광지, 페이지 정보 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
 | DONE | GET | `/api/destinations/recommended/filters` | Authorization Bearer Token | 추천 데이터의 지역, 키워드 옵션 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
 | DONE | GET | `/api/user/bookmarks` | Authorization Bearer Token | 저장한 여행지 ID 목록 | 로그인 만료, Supabase 조회 실패 | 백엔드 |
 | DONE | POST | `/api/user/bookmarks` | Authorization Bearer Token, `destinationId` | 북마크 저장 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 저장 실패 | 백엔드 |
@@ -118,8 +118,15 @@ mbtiType: 선택, 공개 조회용 MBTI 유형, 16개 유형만 허용
 limit: 선택, 상위 추천용 기본 6, 최대 10
 page: 선택, 전체 탐색용 페이지 번호, 기본 1
 pageSize: 선택, 전체 탐색용 페이지 크기, 기본 12, 최대 24
-province: 선택, 광역시/도 일치 필터
-keyword: 선택, 여행지 키워드 일치 필터
+province: 선택/반복 가능, 광역시/도 일치 필터
+keyword: 선택/반복 가능, 여행지 키워드 일치 필터
+```
+
+복수 `province`는 지역 간 OR, 복수 `keyword`는 키워드 간 OR로 처리한다.
+지역 필터와 키워드 필터를 함께 전달하면 두 분류 사이는 AND로 처리한다.
+
+```http
+GET /api/destinations/recommended?page=1&pageSize=12&province=서울특별시&province=부산광역시&keyword=힐링&keyword=자연
 ```
 
 Response:

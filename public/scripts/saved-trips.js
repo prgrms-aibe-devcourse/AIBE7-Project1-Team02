@@ -321,6 +321,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      if (response.status === 404) {
+        trips = [];
+        renderTrips();
+        return;
+      }
+
       if (!response.ok || !result.success) {
         throw new Error(result.message || "저장된 일정을 불러오지 못했습니다.");
       }
