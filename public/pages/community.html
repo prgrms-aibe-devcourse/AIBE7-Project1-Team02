@@ -20,49 +20,25 @@
         <div id="header-container"></div>
 
         <main class="community-page" id="community-page">
-          <div class="community-hero">
-            <div>
-              <p class="community-kicker">Local Stories</p>
-              <h1 class="community-title">국내 여행 커뮤니티</h1>
-              <p class="community-desc">
-                여행 경험과 후기를 공유하고, 마음에 드는 게시글에 좋아요와
-                댓글로 반응해보세요.
-              </p>
-            </div>
-            <button
-              class="btn-primary btn-glow"
-              id="btn-write-post"
-              type="button"
-            >
-              <i data-lucide="pen-line"></i> 새 글 작성
-            </button>
-          </div>
-
-          <div class="community-layout">
-            <div class="community-main">
-              <div class="community-feed" id="community-feed"></div>
-            </div>
-
-            <aside class="community-side">
-              <div class="community-panel">
-                <h3>인기 태그</h3>
-                <div class="tag-list" id="popular-tags"></div>
+          <div class="travel-community-wrapper">
+            <header class="community-header-minimal">
+              <div class="header-minimal-top">
+                <h1>어디로 떠나시나요?</h1>
               </div>
-
-              <div class="community-panel">
-                <h3>추천 사용자</h3>
-                <div class="recommend-list" id="recommended-users"></div>
+              <div class="category-pills-scroll">
+                <div class="tag-list-horizontal" id="popular-tags"></div>
               </div>
+            </header>
 
-              <div class="community-panel featured-story">
-                <h3>추천 여행 이야기</h3>
-                <div id="featured-story"></div>
-              </div>
-            </aside>
+            <div class="community-gallery-grid" id="community-feed"></div>
           </div>
         </main>
       </div>
     </div>
+
+    <button class="btn-write-fab" id="btn-write-post" type="button" aria-label="작성하기">
+      <i data-lucide="plus"></i>
+    </button>
 
     <div class="modal-overlay" id="post-modal">
       <div class="modal-content community-modal">
