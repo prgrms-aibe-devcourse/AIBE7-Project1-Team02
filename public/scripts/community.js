@@ -43,6 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     hasMoreFeed: true,
     isLoadingFeed: false,
     draftTags: [],
+    currentGalleryIndex: 0,
   };
 
   const els = {
@@ -86,6 +87,9 @@ document.addEventListener("DOMContentLoaded", () => {
     detailModal: document.getElementById("post-detail-modal"),
     detailModalClose: document.getElementById("detail-modal-close"),
     detailGallery: document.getElementById("detail-gallery"),
+    galleryPrevBtn: document.getElementById("gallery-prev-btn"),
+    galleryNextBtn: document.getElementById("gallery-next-btn"),
+    galleryPagination: document.getElementById("gallery-pagination"),
     detailTitle: document.getElementById("detail-title"),
     detailAuthor: document.getElementById("detail-author"),
     detailTime: document.getElementById("detail-time"),
@@ -152,6 +156,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function bindEvents() {
+    if (els.galleryPrevBtn) {
+      els.galleryPrevBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (state.currentGalleryIndex > 0) {
+          state.currentGalleryIndex--;
+          updateGallerySlide();
+        }
+      });
+    }
+    if (els.galleryNextBtn) {
+      els.galleryNextBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const total = els.detailGallery.children.length;
+        if (state.currentGalleryIndex < total - 1) {
+          state.currentGalleryIndex++;
+          updateGallerySlide();
+        }
+      });
+    }
+
     els.logoutBtn?.addEventListener("click", handleLogout);
     els.btnSidebarCreate?.addEventListener("click", openPostModal);
     els.btnWritePost?.addEventListener("click", openPostModal);
@@ -486,9 +510,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!post) return;
 
     state.detailPost = post;
+    state.currentGalleryIndex = 0;
     if (els.detailTitle) els.detailTitle.textContent = post.title || "";
-    if (els.detailAuthor)
-      els.detailAuthor.textContent = post.nickname || userNickname;
+    const authorName = post.nickname || userNickname;
+    if (els.detailAuthor) els.detailAuthor.textContent = authorName;
+    
+    const detailAuthorAvatar = document.getElementById("detail-author-avatar");
+    if (detailAuthorAvatar) {
+      detailAuthorAvatar.src = `https://ui-avatars.com/api/?name=${escapeAttr(authorName.charAt(0))}&background=random&color=fff`;
+      detailAuthorAvatar.hidden = false;
+    }
+
     if (els.detailTime)
       els.detailTime.textContent = formatRelative(
         post.updated_at || post.created_at,
@@ -496,12 +528,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (els.detailSummary)
       els.detailSummary.innerHTML = renderBody(
         post.summary || "",
-        getPostImages(post),
+        [],
       );
     if (els.detailTags) {
       const tags = splitTags(post.tags);
       els.detailTags.innerHTML = tags
-        .map((tag) => `<span class="community-tag">#${escapeHtml(tag)}</span>`)
+        .map((tag) => `<span class="keyword-chip">#${escapeHtml(tag)}</span>`)
         .join("");
     }
     renderDetailGallery(post);
@@ -523,28 +555,65 @@ document.addEventListener("DOMContentLoaded", () => {
     renderComments(state.comments, els.detailCommentList);
   }
 
+  function updateGallerySlide() {
+    if (!els.detailGallery) return;
+    const total = els.detailGallery.children.length;
+    els.detailGallery.style.transform = `translateX(-${state.currentGalleryIndex * 100}%)`;
+    
+    if (els.galleryPrevBtn) els.galleryPrevBtn.hidden = state.currentGalleryIndex === 0;
+    if (els.galleryNextBtn) els.galleryNextBtn.hidden = state.currentGalleryIndex === total - 1;
+    
+    if (els.galleryPagination) {
+      Array.from(els.galleryPagination.children).forEach((dot, index) => {
+        dot.classList.toggle("active", index === state.currentGalleryIndex);
+      });
+    }
+  }
+
   function renderDetailGallery(post) {
     if (!els.detailGallery) return;
     const images = getPostImages(post);
     if (!images.length) {
       els.detailGallery.innerHTML = "";
       els.detailGallery.style.display = "none";
+      if (els.galleryPrevBtn) els.galleryPrevBtn.hidden = true;
+      if (els.galleryNextBtn) els.galleryNextBtn.hidden = true;
+      if (els.galleryPagination) els.galleryPagination.innerHTML = "";
       return;
     }
-    els.detailGallery.style.display = "grid";
+    els.detailGallery.style.display = "flex";
     els.detailGallery.innerHTML = images
       .map(
         (src) => `
         <button type="button" class="detail-gallery-item" data-gallery-src="${escapeAttr(src)}">
-          <img src="${escapeAttr(src)}" alt="게시글 첨부 사진">
+          <div class="blur-bg" style="background-image: url('${escapeAttr(src)}')"></div>
+          <img src="${escapeAttr(src)}" alt="게시글 첨부 사진" class="main-img">
         </button>
       `,
       )
       .join("");
+      
+    if (els.galleryPagination) {
+      els.galleryPagination.innerHTML = images.length > 1 
+        ? images.map((_, i) => `<button type="button" class="gallery-dot" data-index="${i}" aria-label="Go to slide ${i + 1}"></button>`).join("") 
+        : "";
+        
+      els.galleryPagination.querySelectorAll(".gallery-dot").forEach(dot => {
+        dot.addEventListener("click", (e) => {
+          e.stopPropagation();
+          state.currentGalleryIndex = parseInt(dot.dataset.index, 10);
+          updateGallerySlide();
+        });
+      });
+    }
+    
+    updateGallerySlide();
+
     els.detailGallery
       .querySelectorAll("[data-gallery-src]")
       .forEach((button) => {
         button.addEventListener("click", () => {
+
           openImageLightbox(button.dataset.gallerySrc || "");
         });
       });

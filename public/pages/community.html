@@ -209,15 +209,25 @@
         <div class="detail-layout">
           <div class="detail-media">
             <div id="detail-gallery" class="detail-gallery"></div>
+            <button type="button" id="gallery-prev-btn" class="gallery-nav-btn prev-btn" hidden>
+              <i data-lucide="chevron-left"></i>
+            </button>
+            <button type="button" id="gallery-next-btn" class="gallery-nav-btn next-btn" hidden>
+              <i data-lucide="chevron-right"></i>
+            </button>
+            <div id="gallery-pagination" class="gallery-pagination"></div>
           </div>
           <div class="detail-content">
-            <p class="community-kicker">Post Detail</p>
+            <p class="community-kicker">게시글 상세</p>
             <h2 id="detail-title" class="detail-title"></h2>
             <div class="detail-meta">
-              <span id="detail-author"></span>
-              <span id="detail-time"></span>
+              <img id="detail-author-avatar" src="" alt="프로필" class="detail-author-avatar" loading="lazy" hidden>
+              <div class="detail-meta-text">
+                <span id="detail-author"></span>
+                <span id="detail-time"></span>
+              </div>
             </div>
-            <div id="detail-tags" class="feed-card-tags"></div>
+            <div id="detail-tags" class="tag-list-horizontal detail-tags"></div>
             <p id="detail-summary" class="detail-summary"></p>
             <div class="detail-actions">
               <button type="button" class="action-link" id="detail-like-btn">
@@ -240,11 +250,11 @@
                 삭제
               </button>
             </div>
+            <div class="detail-comments">
+              <h3>댓글</h3>
+              <div id="detail-comment-list" class="comment-list"></div>
+            </div>
           </div>
-        </div>
-        <div class="detail-comments">
-          <h3>댓글</h3>
-          <div id="detail-comment-list" class="comment-list"></div>
         </div>
       </div>
     </div>
