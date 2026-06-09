@@ -13,98 +13,10 @@
   </head>
   <body>
     <div class="app-container">
-      <div class="sidebar-overlay" id="sidebar-overlay"></div>
-      <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-          <div class="logo">ExploraJourneys</div>
-          <div class="logo-desc">여행을 더 똑똑하게</div>
-        </div>
-
-        <nav class="sidebar-nav">
-          <a href="./index.html" class="nav-item active">
-            <i data-lucide="compass" class="nav-icon"></i> 탐색하기
-          </a>
-          <a href="./pages/community.html" class="nav-item">
-            <i data-lucide="users" class="nav-icon"></i> 커뮤니티
-          </a>
-          <a href="./pages/trip-create.html" class="nav-item">
-            <i data-lucide="map" class="nav-icon"></i> 여행 일정
-          </a>
-          <a href="./pages/survey.html" class="nav-item">
-            <i data-lucide="sparkles" class="nav-icon"></i> 성향 분석
-          </a>
-          <a href="./pages/mypage.html" class="nav-item">
-            <i data-lucide="user" class="nav-icon"></i> 마이페이지
-          </a>
-        </nav>
-
-        <div class="sidebar-footer">
-          <button
-            class="btn-create-itinerary"
-            id="btn-sidebar-create"
-            type="button"
-          >
-            + 여행 일정 만들기
-          </button>
-        </div>
-      </aside>
+      <div id="sidebar-container"></div>
 
       <div class="main-wrapper">
-        <header class="top-header">
-          <div class="header-left">
-            <button
-              class="mobile-menu-toggle"
-              id="mobile-toggle"
-              type="button"
-              aria-label="메뉴 열기"
-            >
-              <i data-lucide="menu"></i>
-            </button>
-            <div class="header-breadcrumb">
-              <span class="breadcrumb-icon"><i data-lucide="compass"></i></span>
-              <span class="breadcrumb-text">탐색하기</span>
-            </div>
-          </div>
-
-          <div class="header-actions">
-            <div class="search-bar">
-              <i data-lucide="search" class="search-icon"></i>
-              <input type="text" placeholder="목적지, 맛집, 액티비티 검색..." />
-            </div>
-
-            <button
-              class="btn-icon"
-              id="notification-btn"
-              type="button"
-              aria-label="알림"
-            >
-              <i data-lucide="bell"></i>
-              <span class="notification-dot"></span>
-            </button>
-            <div class="user-avatar-wrapper">
-              <span
-                id="header-user-name"
-                style="margin-right: 10px; font-weight: 500"
-              ></span>
-              <a href="/public/pages/login.html" id="login-link">
-                <img
-                  src=""
-                  alt="User"
-                  id="header-user-avatar"
-                  class="user-avatar"
-                />
-              </a>
-              <button
-                id="logout-btn"
-                class="btn-icon"
-                style="margin-left: 8px; display: none"
-                title="로그아웃"
-              >
-                <i data-lucide="log-out"></i>
-              </button>
-            </div>
-          </div>
-        </header>
+        <div id="header-container"></div>
 
         <main class="dashboard-content">
           <section
@@ -115,10 +27,7 @@
               <div>
                 <span class="recommendation-eyebrow">TRAVEL MATCH</span>
                 <h1 id="recommendation-title">내 여행 MBTI 추천</h1>
-                <p
-                  class="recommendation-subtitle"
-                  id="recommendation-subtitle"
-                >
+                <p class="recommendation-subtitle" id="recommendation-subtitle">
                   Supabase에 저장된 관광지 적합도 점수를 조회하고 있습니다.
                 </p>
               </div>
@@ -281,6 +190,7 @@
       </div>
     </div>
 
+    <script src="/scripts/layout.js"></script>
     <script src="./scripts/app.js"></script>
   </body>
 </html>

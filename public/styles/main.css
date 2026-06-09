@@ -342,6 +342,7 @@ a {
   border: 2px solid var(--color-border);
   cursor: pointer;
   transition: border-color 0.2s;
+  flex-shrink: 0;
 }
 
 .user-avatar-wrapper:hover {
@@ -352,6 +353,70 @@ a {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Profile Dropdown */
+.profile-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  z-index: 200;
+}
+
+.profile-dropdown-menu.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  color: var(--color-text-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: var(--color-bg-card-hover);
+}
+
+.dropdown-item i {
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-muted);
+}
+
+.dropdown-logout {
+  color: var(--color-error);
+  border-top: 1px solid var(--color-border);
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+}
+
+.dropdown-logout i {
+  color: var(--color-error);
 }
 
 .mobile-menu-toggle {
@@ -368,6 +433,17 @@ a {
 .dashboard-content {
   padding: 2rem 2.5rem;
   max-width: 1400px;
+}
+
+.dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.dash-greeting {
+  padding: 0;
 }
 
 .btn-primary {
@@ -1632,5 +1708,13 @@ a {
   }
   .recommendation-card img {
     height: 210px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
   }
 }

@@ -88,7 +88,11 @@ document.addEventListener("DOMContentLoaded", async () => {
           aiBannerTitle.textContent = `${recData.data.mbtiType} 여행자님을 위한 추천!`;
         }
         if (aiBannerDesc) {
-          aiBannerDesc.innerHTML = `이번 여행은 <strong style="color: #fbbf24">${rec.destinationName}</strong> 어떠신가요?<br><span style="font-size:0.9rem; opacity:0.9; margin-top:0.3rem; display:block;">${rec.reason || rec.description}</span>`;
+          let descText = rec.reason || rec.description || "";
+          // DB에 포함된 불필요한 메타데이터(TourAPI 찌꺼기) 제거
+          descText = descText.replace(/(contentType|textRule)[\s:,\d]+/g, '').trim();
+          
+          aiBannerDesc.innerHTML = `이번 여행은 <strong style="color: #fbbf24">${rec.destinationName}</strong> 어떠신가요?<br><span style="font-size:0.9rem; opacity:0.9; margin-top:0.3rem; display:block;">${descText}</span>`;
         }
         if (aiBannerBtn) {
           aiBannerBtn.innerHTML = `추천 여행지 전체보기 <i data-lucide="arrow-right"></i>`;
@@ -205,16 +209,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnResetData.disabled = true;
         btnResetData.textContent = "삭제 중...";
         
-        const headers = {
-          "apikey": SUPABASE_ANON_KEY,
-          "Authorization": `Bearer ${accessToken}`
-        };
+        const res = await fetch("/api/user/data", {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`
+          }
+        });
 
-        await Promise.all([
-          fetch(`${SUPABASE_URL}/rest/v1/user_preferences?user_id=eq.${userId}`, { method: 'DELETE', headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/travel_mbti_results?user_id=eq.${userId}`, { method: 'DELETE', headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/trips?user_id=eq.${userId}`, { method: 'DELETE', headers })
-        ]);
+        const data = await res.json().catch(()=>({}));
+        
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || "데이터 초기화에 실패했습니다.");
+        }
 
         alert("모든 데이터가 성공적으로 초기화되었습니다.");
         window.location.reload();

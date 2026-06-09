@@ -51,41 +51,7 @@
       </aside>
 
       <div class="main-wrapper">
-        <header class="top-header">
-          <div class="header-left">
-            <button
-              class="mobile-menu-toggle"
-              id="mobile-toggle"
-              type="button"
-              aria-label="메뉴 열기"
-            >
-              <i data-lucide="menu"></i>
-            </button>
-            <div class="header-breadcrumb">
-              <span class="breadcrumb-icon"><i data-lucide="user"></i></span>
-              <span class="breadcrumb-text">마이페이지</span>
-            </div>
-          </div>
-
-          <div class="header-actions">
-            <button
-              class="btn-icon"
-              id="notification-btn"
-              type="button"
-              aria-label="알림"
-            >
-              <i data-lucide="bell"></i>
-            </button>
-            <div class="user-avatar-wrapper">
-              <img
-                src=""
-                alt="User"
-                id="header-user-avatar"
-                class="user-avatar"
-              />
-            </div>
-          </div>
-        </header>
+        <div id="header-container"></div>
 
         <main class="dashboard-content">
           <!-- Profile Header Section -->
@@ -311,5 +277,6 @@
       // Initialize lucide icons
       lucide.createIcons();
     </script>
+    <script src="/scripts/layout.js"></script>
   </body>
 </html>
