@@ -188,11 +188,10 @@
               <div class="profile-info">
                 <span class="profile-title">여행 성향 프로필</span>
                 <p
-                  id="mbti-profile-summary"
-                  style="font-size: 0.8rem; margin-top: 0.5rem"
+                  class="recommendation-subtitle"
+                  id="recommendation-subtitle"
                 >
-                  <strong style="color: var(--color-primary)">MBTI:</strong>
-                  조회 중
+                  Supabase에 저장된 관광지 적합도 점수를 조회하고 있습니다.
                 </p>
               </div>
             </div>
@@ -259,41 +258,86 @@
                 </button>
               </div>
             </div>
-
-            <div class="bento-item bento-small widget-recent">
-              <div class="bento-header" style="margin-bottom: 0.5rem">
-                <h3 style="font-size: 1rem">최근 본 여행지</h3>
-              </div>
-              <div class="recent-list">
-                <div class="recent-item">
-                  <img
-                    src="./images/bukchon.png"
-                    alt="북촌"
-                    class="recent-thumb"
-                  />
-                  <span>북촌 한옥마을</span>
-                </div>
-                <div class="recent-item">
-                  <img
-                    src="./images/haeundae.png"
-                    alt="해운대"
-                    class="recent-thumb"
-                  />
-                  <span>해운대 해수욕장</span>
-                </div>
-                <div class="recent-item">
-                  <img
-                    src="./images/gwangalli.png"
-                    alt="광안리"
-                    class="recent-thumb"
-                  />
-                  <span>광안리 야경</span>
-                </div>
+            <div
+              class="recommendation-list"
+              id="recommendation-list"
+              aria-live="polite"
+            >
+              <div class="recommendation-state">
+                <span class="recommendation-spinner" aria-hidden="true"></span>
+                <span>맞춤 여행지를 불러오는 중입니다.</span>
               </div>
             </div>
           </section>
+
+          <button
+            class="btn-primary btn-glow floating-create-button"
+            id="btn-quick-create"
+            type="button"
+          >
+            <i data-lucide="sparkles"></i>
+            <span>AI 맞춤 여행 계획 생성</span>
+          </button>
         </main>
       </div>
+    </div>
+
+    <div
+      class="destination-detail-overlay"
+      id="destination-detail-modal"
+      aria-hidden="true"
+    >
+      <article
+        class="destination-detail-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="destination-detail-name"
+      >
+        <button
+          class="destination-detail-close"
+          id="destination-detail-close"
+          type="button"
+          aria-label="여행지 상세 닫기"
+        >
+          <i data-lucide="x"></i>
+        </button>
+        <img
+          class="destination-detail-image"
+          id="destination-detail-image"
+          src="./images/summer_banner.png"
+          alt=""
+        />
+        <div class="destination-detail-content">
+          <div class="destination-detail-meta">
+            <span id="destination-detail-rank">추천 순위</span>
+            <span id="destination-detail-score">적합도 점수</span>
+          </div>
+          <h2 id="destination-detail-name">여행지 상세정보</h2>
+          <p class="destination-detail-region" id="destination-detail-region">
+            <i data-lucide="map-pin"></i>
+            <span>대한민국</span>
+          </p>
+          <div
+            class="destination-detail-keywords"
+            id="destination-detail-keywords"
+          ></div>
+          <p
+            class="destination-detail-description"
+            id="destination-detail-description"
+          ></p>
+          <div class="destination-detail-reason" id="destination-detail-reason">
+            <strong>추천 이유</strong>
+            <p></p>
+          </div>
+          <button
+            class="btn-primary destination-detail-action"
+            id="destination-detail-action"
+            type="button"
+          >
+            이 여행지로 일정 만들기 <i data-lucide="arrow-right"></i>
+          </button>
+        </div>
+      </article>
     </div>
 
     <div class="modal-overlay" id="flow-b-modal">

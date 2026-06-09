@@ -1,17 +1,47 @@
 <!doctype html>
 <html lang="ko">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>여행 정보 입력 | Tripadvisor AI</title>
-    <link rel="stylesheet" href="../styles/common.css">
-    <link rel="stylesheet" href="../styles/trip-create.css">
-    <script src="../scripts/common.js" defer></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>여행 일정 생성 | ExploraJourneys</title>
+    <link rel="stylesheet" href="../styles/common.css" />
+    <link rel="stylesheet" href="../styles/trip-create.css" />
     <script src="../scripts/trip-create.js" defer></script>
   </head>
   <body>
-    <main>
-      <h1>여행 정보 입력</h1>
+    <main class="trip-create-page">
+      <a class="back-link" href="../index.html">← 추천 여행지로 돌아가기</a>
+
+      <section class="trip-create-panel">
+        <div class="trip-create-heading">
+          <span>TRIP PLANNER</span>
+          <h1>여행 일정 생성</h1>
+          <p>선택한 여행지를 포함해 새로운 일정을 시작합니다.</p>
+        </div>
+
+        <article class="selected-destination" id="selected-destination" hidden>
+          <img
+            id="selected-destination-image"
+            src="../images/summer_banner.png"
+            alt=""
+          />
+          <div class="selected-destination-content">
+            <span class="selected-label">추가된 여행지</span>
+            <h2 id="selected-destination-name"></h2>
+            <p id="selected-destination-address"></p>
+            <div
+              class="selected-destination-keywords"
+              id="selected-destination-keywords"
+            ></div>
+          </div>
+        </article>
+
+        <div class="trip-create-empty" id="trip-create-empty" hidden>
+          <h2>선택된 여행지가 없습니다.</h2>
+          <p>메인 추천 목록에서 여행지를 선택해 주세요.</p>
+          <a href="../index.html">추천 여행지 선택하기</a>
+        </div>
+      </section>
     </main>
   </body>
 </html>
