@@ -423,6 +423,7 @@
   width: 38px;
   text-align: center;
   flex-shrink: 0;
+  transition: opacity var(--transition-fast), font-size var(--transition-fast);
 }
 
 .score-label-left {
@@ -433,34 +434,110 @@
   color: var(--accent-pink);
 }
 
+/* 강조: 선택된 방향 레이블을 굵게 */
+.score-row.dominant-left .score-label-left {
+  font-size: 0.88rem;
+  opacity: 1;
+}
+.score-row.dominant-left .score-label-right {
+  opacity: 0.45;
+}
+.score-row.dominant-right .score-label-right {
+  font-size: 0.88rem;
+  opacity: 1;
+}
+.score-row.dominant-right .score-label-left {
+  opacity: 0.45;
+}
+
+/* ── 양방향 바 트랙 ─── */
 .score-bar-track {
   flex: 1;
   height: 10px;
   background: var(--color-border);
   border-radius: 100px;
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* 중앙선이 트랙 위에 올라올 수 있도록 */
 }
 
+/* 중앙 기준선 */
+.score-bar-track::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 18px;
+  background: var(--color-text-main);
+  opacity: 0.18;
+  border-radius: 2px;
+  z-index: 2;
+}
+
+/* 바 fill: 중앙에서 퍼지는 방식 */
 .score-bar-fill {
   height: 100%;
   border-radius: 100px;
-  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+  top: 0;
+  transition:
+    width 1s cubic-bezier(0.4, 0, 0.2, 1),
+    left 1s cubic-bezier(0.4, 0, 0.2, 1),
+    right 1s cubic-bezier(0.4, 0, 0.2, 1);
   width: 0%;
 }
 
+/* 좌측 방향 (A 성향: score > 50) — 중앙에서 왼쪽으로 */
+.score-bar-fill.direction-left {
+  right: 50%;
+  left: auto;
+}
+
+/* 우측 방향 (B 성향: score < 50) — 중앙에서 오른쪽으로 */
+.score-bar-fill.direction-right {
+  left: 50%;
+  right: auto;
+}
+
+/* 정중앙 (score == 50) — 양쪽 모두 아주 살짝 */
+.score-bar-fill.direction-center {
+  left: 50%;
+  right: 50%;
+  width: 0%;
+}
+
+/* 축별 색상 */
 .score-bar-fill.ei { background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); }
 .score-bar-fill.sn { background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue)); }
 .score-bar-fill.tf { background: linear-gradient(90deg, var(--accent-purple), var(--accent-pink)); }
 .score-bar-fill.jp { background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); }
 
+/* 우측 방향일 때 그라디언트 반전 */
+.score-bar-fill.direction-right.ei { background: linear-gradient(90deg, var(--accent-purple), var(--accent-pink)); }
+.score-bar-fill.direction-right.sn { background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); }
+.score-bar-fill.direction-right.tf { background: linear-gradient(90deg, var(--accent-pink), var(--accent-purple)); }
+.score-bar-fill.direction-right.jp { background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue)); }
+
+/* 퍼센트 표시 */
 .score-value {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  width: 36px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  width: 52px;
   text-align: center;
   flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 우세 방향에 따라 색상 */
+.score-row.dominant-left .score-value {
+  color: var(--accent-blue);
+}
+.score-row.dominant-right .score-value {
+  color: var(--accent-pink);
+}
+.score-row:not(.dominant-left):not(.dominant-right) .score-value {
+  color: var(--text-secondary);
 }
 
 /* ── CTA Button ────────────────────────────────────────────── */
