@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>내 여행 일정 | ExploraJourneys</title>
+    <title>Packing | 여행 일정</title>
+    <link rel="icon" type="image/png" href="/images/packing-logo.png" />
+    <link rel="apple-touch-icon" href="/images/packing-logo.png" />
     <meta
       name="description"
       content="저장한 여행 일정의 기간, 여행지, 진행 상태와 날짜별 세부 일정을 확인합니다."
@@ -12,6 +14,7 @@
     <link rel="stylesheet" href="../styles/saved-trips.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="../scripts/layout.js" defer></script>
+    <script src="../scripts/traveler-profile.js" defer></script>
     <script src="../scripts/saved-trips.js" defer></script>
   </head>
   <body>
@@ -34,22 +37,11 @@
             </a>
           </section>
 
-          <section class="saved-trips-toolbar" aria-label="일정 검색 및 필터">
-            <label class="saved-trips-search">
-              <i data-lucide="search"></i>
-              <span class="sr-only">일정 검색</span>
-              <input
-                id="trip-search"
-                type="search"
-                placeholder="여행 제목 또는 여행지 검색"
-              />
-            </label>
-
-            <div class="saved-trips-filters" id="trip-status-filters">
-              <button class="active" type="button" data-status="all">전체</button>
-              <button type="button" data-status="planning">계획 중</button>
-              <button type="button" data-status="ongoing">여행 중</button>
-              <button type="button" data-status="completed">완료</button>
+          <section class="saved-trips-toolbar" aria-label="일정 상태 필터">
+            <div class="trip-status-tabs" role="tablist" id="trip-status-tabs">
+              <button type="button" role="tab" aria-selected="false" data-filter="planning">시작 전</button>
+              <button type="button" role="tab" aria-selected="true" data-filter="in_progress">진행중</button>
+              <button type="button" role="tab" aria-selected="false" data-filter="completed">완료</button>
             </div>
           </section>
 
@@ -63,6 +55,12 @@
               <p>저장된 여행 일정을 불러오고 있습니다.</p>
             </div>
           </section>
+
+          <nav class="trip-pagination" id="trip-pagination" aria-label="일정 페이지 내비게이션" hidden>
+            <button type="button" id="trip-page-prev" class="page-btn" aria-label="이전 페이지"><i data-lucide="chevron-left"></i></button>
+            <span id="trip-page-info">1 / 1</span>
+            <button type="button" id="trip-page-next" class="page-btn" aria-label="다음 페이지"><i data-lucide="chevron-right"></i></button>
+          </nav>
         </main>
       </div>
     </div>
@@ -80,7 +78,12 @@
       >
         <header class="trip-detail-header">
           <div>
-            <span id="trip-detail-status">여행 일정</span>
+            <span
+              class="traveler-title-badge traveler-title-badge-compact"
+              id="trip-detail-status"
+            >
+              여행 일정
+            </span>
             <h2 id="trip-detail-title">일정 상세</h2>
             <p id="trip-detail-period"></p>
           </div>
@@ -95,6 +98,42 @@
         </header>
 
         <div class="trip-detail-body" id="trip-detail-body"></div>
+      </article>
+    </div>
+
+    <div
+      class="trip-detail-overlay trip-day-detail-overlay"
+      id="trip-day-detail-modal"
+      aria-hidden="true"
+    >
+      <article
+        class="trip-detail-dialog trip-day-detail-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trip-day-detail-title"
+      >
+        <header class="trip-detail-header">
+          <div>
+            <span
+              class="traveler-title-badge traveler-title-badge-compact"
+              id="trip-day-detail-status"
+            >
+              DAY ROUTE
+            </span>
+            <h2 id="trip-day-detail-title">DAY 일정</h2>
+            <p id="trip-day-detail-period"></p>
+          </div>
+          <button
+            class="trip-detail-close"
+            id="trip-day-detail-close"
+            type="button"
+            aria-label="DAY 일정 닫기"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </header>
+
+        <div class="trip-detail-body" id="trip-day-detail-body"></div>
       </article>
     </div>
   </body>

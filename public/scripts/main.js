@@ -1,1 +1,0 @@
-// Main hub page behavior.

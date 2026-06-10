@@ -19,6 +19,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const imgEl = document.getElementById("mypage-avatar-img");
   const badgeTextEl = document.getElementById("mypage-badge-text");
   const savedDestinationsList = document.getElementById("saved-destinations-list");
+  const completedTripList = document.getElementById("completed-trip-list");
+  const completedTripCount = document.getElementById("completed-trip-count");
+  const completedTripStatFill = document.getElementById("completed-trip-stat-fill");
+  const completedTripStatSub = document.getElementById("completed-trip-stat-sub");
   const savedDestinationsModal = document.getElementById("saved-destinations-modal");
   const savedDestinationsModalList = document.getElementById("saved-destinations-modal-list");
   const savedDestinationsCloseBtn = document.getElementById("saved-destinations-close-btn");
@@ -95,7 +99,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         const aiBannerBg = document.getElementById("mypage-ai-bg");
 
         if (aiBannerTitle) {
-          aiBannerTitle.textContent = `${recData.data.mbtiType} 여행자님을 위한 추천!`;
+          const travelerTitle =
+            window.TravelerProfile?.getTitle(recData.data.mbtiType) ||
+            "취향 맞춤 여행가";
+          aiBannerTitle.textContent = `${travelerTitle}님을 위한 추천!`;
         }
         if (aiBannerDesc) {
           let descText = rec.reason || rec.description || "";
@@ -133,6 +140,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
       savedDestinationsModal?.classList.add("active");
     });
+    await loadCompletedTrips(
+      accessToken,
+      completedTripList,
+      completedTripCount,
+      completedTripStatFill,
+      completedTripStatSub,
+    );
 
   } catch (error) {
     console.error("사용자 정보 로드 중 오류 발생:", error);
@@ -228,7 +242,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 데이터 초기화
   if (btnResetData) {
     btnResetData.addEventListener("click", async () => {
-      if (!confirm("모든 활동 데이터(MBTI 결과, 여행지 저장, 일정 등)를 삭제합니다.\n이 작업은 복구할 수 없습니다. 계속하시겠습니까?")) return;
+      if (!confirm("모든 활동 데이터(성향 분석 결과, 여행지 저장, 일정 등)를 삭제합니다.\n이 작업은 복구할 수 없습니다. 계속하시겠습니까?")) return;
 
       try {
         btnResetData.disabled = true;
@@ -755,6 +769,165 @@ function createSavedDestinationCard(bookmark, onSelect) {
   });
 
   return card;
+}
+
+function formatCompletedDate(value) {
+  if (!value) return "완료일 미정";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "완료일 미정";
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
+
+function createCompletedTripCard(trip) {
+  const card = document.createElement("article");
+  card.className = "trip-list-item";
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+
+  const firstDestination = trip.items?.[0]?.destination || {};
+  const imageUrl = firstDestination.imageUrl || "";
+  let media;
+  if (imageUrl) {
+    const image = document.createElement("img");
+    image.className = "trip-list-img";
+    image.src = imageUrl;
+    image.alt = trip.title || "완료한 여행";
+    image.loading = "lazy";
+    image.addEventListener("error", () => {
+      image.replaceWith(createNoImagePlaceholder("trip-list-img"));
+      window.lucide?.createIcons();
+    });
+    media = image;
+  } else {
+    media = createNoImagePlaceholder("trip-list-img");
+  }
+
+  const content = document.createElement("div");
+  content.style.flex = "1";
+
+  const date = document.createElement("div");
+  date.className = "trip-list-date";
+  date.innerHTML = '<i data-lucide="calendar-check"></i>';
+  const dateText = document.createElement("span");
+  dateText.textContent = formatCompletedDate(trip.completedAt);
+  date.appendChild(dateText);
+
+  const title = document.createElement("h4");
+  title.className = "trip-list-title";
+  title.textContent = trip.title || "완료한 여행";
+
+  const description = document.createElement("p");
+  description.className = "trip-list-desc";
+  const region = trip.region || "국내 여행";
+  const totalDays = trip.totalDays || 1;
+  const itemCount = trip.itemCount ?? trip.items?.length ?? 0;
+  description.textContent = `${region} · ${totalDays}일 · ${itemCount}곳 방문`;
+
+  content.append(date, title, description);
+
+  const status = document.createElement("span");
+  status.className = "trip-list-status";
+  status.textContent = "완료";
+
+  const openTrip = () => {
+    window.location.href = "./saved-trips.html";
+  };
+  card.addEventListener("click", openTrip);
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openTrip();
+    }
+  });
+
+  card.append(media, content, status);
+  return card;
+}
+
+function renderCompletedTripsState(container, message) {
+  if (!container) return;
+
+  container.innerHTML = [
+    '<div style="text-align: center">',
+    '<i data-lucide="map" style="width:32px;height:32px;margin-bottom:0.5rem;opacity:0.5;"></i>',
+    `<p>${message}</p>`,
+    "</div>",
+  ].join("");
+  window.lucide?.createIcons();
+}
+
+async function loadCompletedTrips(
+  accessToken,
+  container,
+  countElement,
+  fillElement,
+  subElement,
+) {
+  if (!accessToken) return;
+
+  try {
+    const response = await fetch("/api/travel/list", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "완료한 여행 조회 실패");
+    }
+
+    const completedTrips = (result.data.plans || [])
+      .filter((trip) => trip.status === "completed")
+      .sort(
+        (firstTrip, secondTrip) =>
+          new Date(secondTrip.completedAt || 0) -
+          new Date(firstTrip.completedAt || 0),
+      );
+
+    if (countElement) {
+      countElement.textContent = String(completedTrips.length);
+    }
+    if (fillElement) {
+      fillElement.style.width = `${Math.min(completedTrips.length * 20, 100)}%`;
+    }
+    if (subElement) {
+      subElement.textContent =
+        completedTrips.length > 0
+          ? `최근 완료한 여행 ${Math.min(completedTrips.length, 3)}개를 보여드려요.`
+          : "첫 여행을 기록해 보세요!";
+    }
+
+    if (!container) return;
+
+    if (completedTrips.length === 0) {
+      renderCompletedTripsState(
+        container,
+        "아직 다녀온 여행이 없습니다.<br />여행지 완료를 기록해 보세요!",
+      );
+      return;
+    }
+
+    container.removeAttribute("style");
+    container.className = "trip-list-wrapper";
+    container.innerHTML = "";
+    completedTrips.slice(0, 3).forEach((trip) => {
+      container.appendChild(createCompletedTripCard(trip));
+    });
+    window.lucide?.createIcons();
+  } catch (error) {
+    console.error("완료한 여행 로드 실패:", error);
+    renderCompletedTripsState(
+      container,
+      "완료한 여행을 불러오지 못했습니다.<br />잠시 후 다시 시도해 주세요.",
+    );
+  }
 }
 
 async function loadSavedDestinations(accessToken, container, onSelect) {

@@ -15,6 +15,8 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 - `GET /api/user/bookmarks`
 - `POST /api/user/bookmarks`
 - `DELETE /api/user/bookmarks/:destinationId`
+- `GET /api/travel/list` (임시 일정 테이블)
+- `GET /api/travel/:id` (임시 일정 테이블)
 
 인증은 현재 프런트엔드에서 Supabase Auth를 직접 사용한다. 아래 표에서
 `PLANNED`로 표시한 API는 명세만 정의된 상태다.
@@ -51,13 +53,14 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | DONE | GET | `/api/user/bookmarks` | Authorization Bearer Token | 저장한 여행지 ID 목록 | 로그인 만료, Supabase 조회 실패 | 백엔드 |
 | DONE | POST | `/api/user/bookmarks` | Authorization Bearer Token, `destinationId` | 북마크 저장 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 저장 실패 | 백엔드 |
 | DONE | DELETE | `/api/user/bookmarks/:destinationId` | Authorization Bearer Token | 북마크 해제 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 삭제 실패 | 백엔드 |
+| DONE | PATCH | `/api/travel/:id/status` | Authorization Bearer Token, `status` | 변경된 일정 상태 | 로그인 만료, 유효하지 않은 상태, 일정 없음 | 백엔드 |
 | PLANNED | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
 | PLANNED | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | PLANNED | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
 | PLANNED | POST | `/api/travel/recommend` | 광역시/도, 시/군/구, 날짜, 동반자 유형, 키워드 | 맞춤 여행지 추천 결과 | 필수 입력값 누락, 지원하지 않는 지역, 외부 API 호출 실패 | 백엔드 |
 | PLANNED | POST | `/api/travel/plan` | 추천 여행지, 기간, 사용자 성향, 관광 데이터 | AI 여행 일정 | 관광 데이터 없음, AI 응답 실패 | 백엔드 |
-| PLANNED | GET | `/api/travel/list` | 없음 | 저장된 여행 일정 목록 | 로그인 정보 없음 | 백엔드 |
-| PLANNED | GET | `/api/travel/:id` | 없음 | 특정 여행 일정 상세 | 일정 없음, 권한 없음 | 백엔드 |
+| DONE | GET | `/api/travel/list` | Authorization Bearer Token | 임시 저장 일정 목록 | 로그인 정보 없음, 임시 테이블 조회 실패 | 백엔드 |
+| DONE | GET | `/api/travel/:id` | Authorization Bearer Token | 임시 일정과 일차별 여행지 | 일정 없음, 로그인 정보 없음 | 백엔드 |
 | PLANNED | PATCH | `/api/travel/:id` | 수정할 일정 정보 | 수정된 여행 일정 | 일정 없음, 권한 없음 | 백엔드 |
 
 ## 상세 예시
@@ -84,15 +87,17 @@ Response:
 ```json
 {
   "success": true,
-  "data": {
-    "supabaseUrl": "https://example.supabase.co",
-    "supabaseAnonKey": "public-anon-key"
+    "data": {
+      "supabaseUrl": "https://example.supabase.co",
+      "supabaseAnonKey": "public-anon-key",
+      "kakaoJavascriptKey": "public-javascript-key"
   },
   "message": "설정 정보 조회 성공"
 }
 ```
 
-이 API는 브라우저에서 사용 가능한 Supabase Anon Key만 반환한다.
+이 API는 브라우저에서 사용 가능한 Supabase Anon Key와 카카오맵
+JavaScript 키만 반환한다.
 `SUPABASE_SERVICE_ROLE_KEY`는 절대 응답에 포함하지 않는다.
 
 ### GET /api/destinations/recommended
@@ -206,6 +211,8 @@ Response:
 ### GET /api/user/bookmarks
 
 로그인 사용자가 북마크한 여행지 ID 목록을 조회한다.
+서버는 사용자의 Supabase access token과 anon key로 RLS 정책을 적용해
+조회하며, service role key에 의존하지 않는다.
 
 Request Header:
 
@@ -243,7 +250,9 @@ Response:
 ### POST /api/user/bookmarks
 
 로그인 사용자의 여행지 북마크를 저장한다. 동일 여행지는 중복 저장하지
-않는다.
+않는다. 이미 저장된 여행지를 다시 저장 요청해도 성공 응답으로 처리한다.
+서버는 사용자의 Supabase access token과 anon key로 RLS 정책을 적용해
+저장하며, service role key에 의존하지 않는다.
 
 Request Header:
 
@@ -277,6 +286,8 @@ Response:
 ### DELETE /api/user/bookmarks/:destinationId
 
 로그인 사용자의 여행지 북마크를 해제한다.
+서버는 사용자의 Supabase access token과 anon key로 RLS 정책을 적용해
+삭제하며, service role key에 의존하지 않는다.
 
 Response:
 
@@ -331,6 +342,7 @@ Request:
 ```json
 {
   "mbtiType": "INFP",
+  "badge": "꿈꾸는 이야기 여행가",
   "travelTempo": "relaxed",
   "foodPreference": "local"
 }
@@ -343,13 +355,16 @@ Response:
   "success": true,
   "data": {
     "mbtiType": "INFP",
-    "badge": "여유를 즐기는 로컬 탐험가",
+    "badge": "꿈꾸는 이야기 여행가",
     "travelTempo": "relaxed",
     "foodPreference": "local"
   },
   "message": "성향 분석 완료"
 }
 ```
+
+프런트엔드 화면에서는 내부 추천 기준인 `mbtiType` 코드보다 `badge`
+칭호를 우선 표시한다.
 
 Error Case:
 
@@ -471,23 +486,34 @@ Error Case:
 
 ### GET /api/travel/list
 
+로그인 사용자가 일정 확인 페이지를 개발하는 동안 임시 `trip_plans`,
+`trip_plan_items` 테이블의 테스트 데이터를 조회한다. 임시 테이블에는
+`user_id`가 없으므로 인증된 사용자에게 테스트 일정 전체를 반환한다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
 Response:
 
 ```json
 {
   "success": true,
   "data": {
-    "trips": [
+    "plans": [
       {
-        "tripId": 1,
+        "planId": 1,
         "title": "제주 힐링 여행",
-        "destinationName": "제주도",
-        "imageUrl": "https://example.com/jeju.jpg",
-        "startDate": "2026-07-10",
-        "endDate": "2026-07-12",
-        "companionType": "친구",
-        "status": "planning",
-        "itineraryCount": 6
+        "mbtiType": "INFP",
+        "region": "제주특별자치도",
+        "totalDays": 2,
+        "aiSummary": "자연 속에서 여유롭게 쉬는 일정입니다.",
+        "status": "completed",
+        "completedAt": "2026-06-10T10:00:00Z",
+        "itemCount": 2,
+        "items": []
       }
     ]
   },
@@ -506,26 +532,41 @@ Error Case:
 
 ### GET /api/travel/:id
 
+임시 일정 ID에 해당하는 DAY별 관광지와 메모를 조회한다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
 Response:
 
 ```json
 {
   "success": true,
   "data": {
-    "trip": {
-      "tripId": 1,
+    "plan": {
+      "planId": 1,
       "title": "제주 힐링 여행",
-      "destinationName": "제주도",
-      "startDate": "2026-07-10",
-      "endDate": "2026-07-12",
-      "status": "planning",
-      "itineraries": [
+      "mbtiType": "INFP",
+      "region": "제주특별자치도",
+      "totalDays": 2,
+      "status": "completed",
+      "completedAt": "2026-06-10T10:00:00Z",
+      "items": [
         {
+          "itemId": 1,
           "dayNumber": 1,
-          "startTime": "10:00",
-          "locationName": "협재해수욕장",
-          "description": "해변 산책",
-          "sortOrder": 1
+          "orderIndex": 1,
+          "memo": "해변 산책",
+          "destination": {
+            "destinationId": 93,
+            "destinationName": "협재해수욕장",
+            "address": "제주특별자치도 제주시 한림읍",
+            "latitude": 33.3947,
+            "longitude": 126.2397
+          }
         }
       ]
     }
@@ -534,11 +575,53 @@ Response:
 }
 ```
 
+### PATCH /api/travel/:id/status
+
+임시 일정의 상태를 변경한다. 일정은 `planning`, `in_progress`,
+`completed` 세 상태를 가진다. 일정 확인 페이지에서 여행 시작 버튼을
+누르면 `in_progress`로 변경하고, 모든 여행지를 완료하면 `completed`로
+저장하며 `completedAt`을 기록한다. `planning` 또는 `in_progress`로
+변경하면 `completedAt`은 `null`로 초기화한다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+Request:
+
+```json
+{
+  "status": "in_progress"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "plan": {
+      "planId": 1,
+      "title": "제주 힐링 여행",
+      "status": "completed",
+      "completedAt": "2026-06-10T10:00:00Z"
+    }
+  },
+  "message": "일정 상태 변경 성공"
+}
+```
+
 Error Case:
 
 ```json
 {
   "success": false,
-  "message": "일정을 찾을 수 없거나 조회 권한이 없습니다."
+  "message": "일정을 찾을 수 없습니다."
 }
 ```
+
+임시 테이블은 정식 일정 스키마 병합 후 제거하며, API 응답 계약은 병합된
+테이블 구조에 맞춰 다시 조정한다.

@@ -19,7 +19,15 @@ document.addEventListener("DOMContentLoaded", () => {
     currentUser?.user_metadata?.name ||
     currentUser?.email?.split("@")?.[0] ||
     "사용자";
-  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=random&color=fff&size=160`;
+  const userProfileImage = currentUser?.user_metadata?.profile_image || "";
+
+  function getAvatarUrl(profileImage, nickname) {
+    if (profileImage) return profileImage;
+    const name = nickname || "사용자";
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name.charAt(0))}&background=random&color=fff`;
+  }
+
+  const defaultAvatar = getAvatarUrl(userProfileImage, userNickname);
 
   const state = {
     supabaseUrl: "",
@@ -31,6 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
     detailPost: null,
     editingPostId: null,
     editingCommentId: null,
+    replyingToCommentId: null,
     activeCommentPostId: null,
     postImages: [],
     existingPostImages: [],
@@ -44,6 +53,9 @@ document.addEventListener("DOMContentLoaded", () => {
     isLoadingFeed: false,
     draftTags: [],
     currentGalleryIndex: 0,
+    likedCommentIds: [],
+    currentWizardStep: 1,
+    currentTagFilter: null,
   };
 
   const els = {
@@ -57,21 +69,25 @@ document.addEventListener("DOMContentLoaded", () => {
     widgetUserName: document.getElementById("widget-user-name"),
     btnSidebarCreate: document.getElementById("btn-sidebar-create"),
     btnWritePost: document.getElementById("btn-write-post"),
-    postModal: document.getElementById("post-modal"),
+    btnWritePostTop: document.getElementById("btn-write-post-top"),
+    postFullscreenEditor: document.getElementById("post-fullscreen-editor"),
     postModalClose: document.getElementById("post-modal-close"),
     postForm: document.getElementById("post-form"),
-    postType: document.getElementById("post-type"),
     postTitle: document.getElementById("post-title"),
+    postTitleCount: document.getElementById("post-title-count"),
     postSummary: document.getElementById("post-summary"),
+    postSummaryCount: document.getElementById("post-summary-count"),
     postImageFile: document.getElementById("post-image-file"),
+    postImageCount: document.getElementById("post-image-count"),
     postImageOrderList: document.getElementById("post-image-order-list"),
     postImageGallery: document.getElementById("post-image-gallery"),
     postImageDropzone: document.getElementById("post-image-dropzone"),
+    btnAddPhoto: document.getElementById("btn-add-photo"),
     tagInputContainer: document.getElementById("tag-input-container"),
     tagChipList: document.getElementById("tag-chip-list"),
     postTags: document.getElementById("post-tags"),
     postLocation: document.getElementById("post-location"),
-    postCategory: document.getElementById("post-category"),
+    btnFsPublish: document.getElementById("btn-fs-publish"),
     btnViewGrid: document.getElementById("btn-view-grid"),
     btnViewList: document.getElementById("btn-view-list"),
     commentModal: document.getElementById("comment-modal"),
@@ -147,6 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
       posts: `${state.supabaseUrl}/rest/v1/community_posts`,
       likes: `${state.supabaseUrl}/rest/v1/community_likes`,
       comments: `${state.supabaseUrl}/rest/v1/community_comments`,
+      commentLikes: `${state.supabaseUrl}/rest/v1/community_comment_likes`,
       shares: `${state.supabaseUrl}/rest/v1/community_shares`,
       tags: `${state.supabaseUrl}/rest/v1/community_tags_popular`,
       users: `${state.supabaseUrl}/rest/v1/users`,
@@ -179,14 +196,16 @@ document.addEventListener("DOMContentLoaded", () => {
     els.logoutBtn?.addEventListener("click", handleLogout);
     els.btnSidebarCreate?.addEventListener("click", openPostModal);
     els.btnWritePost?.addEventListener("click", openPostModal);
+    els.btnWritePostTop?.addEventListener("click", openPostModal);
     els.mobileToggle?.addEventListener("click", () => toggleSidebar(true));
     els.sidebarOverlay?.addEventListener("click", () => toggleSidebar(false));
     els.postModalClose?.addEventListener("click", closePostModal);
     els.commentModalClose?.addEventListener("click", closeCommentModal);
     els.detailModalClose?.addEventListener("click", closeDetailModal);
-    els.postModal?.addEventListener("click", (e) => {
-      if (e.target === els.postModal) closePostModal();
-    });
+    // Background click disabled to prevent accidental post loss
+    // els.postFullscreenEditor?.addEventListener("click", (e) => {
+    //   if (e.target === els.postFullscreenEditor) closePostModal();
+    // });
     els.commentModal?.addEventListener("click", (e) => {
       if (e.target === els.commentModal) closeCommentModal();
     });
@@ -197,11 +216,86 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.target === els.imageLightbox) closeImageLightbox();
     });
     els.postForm?.addEventListener("submit", handlePostSubmit);
+    els.postTitle?.addEventListener("input", updateEditorStats);
+    els.postSummary?.addEventListener("input", updateEditorStats);
+
+    function updateToolbarState() {
+      const blockFormat = document.queryCommandValue("formatBlock");
+      const isHeading = blockFormat === "h2" || blockFormat === "H2";
+      const isBold = document.queryCommandState("bold") && !isHeading;
+      const isItalic = document.queryCommandState("italic");
+
+      const btnBold = document.querySelector('.toolbar-btn[data-cmd="bold"]');
+      if (btnBold) {
+        btnBold.classList.toggle("active", isBold);
+        btnBold.disabled = isHeading;
+        btnBold.style.opacity = isHeading ? "0.4" : "1";
+        btnBold.style.cursor = isHeading ? "not-allowed" : "pointer";
+      }
+
+      document
+        .querySelector('.toolbar-btn[data-cmd="italic"]')
+        ?.classList.toggle("active", isItalic);
+      document
+        .querySelector('.toolbar-btn[data-cmd="heading"]')
+        ?.classList.toggle("active", isHeading);
+    }
+
+    els.postSummary?.addEventListener("keyup", updateToolbarState);
+    els.postSummary?.addEventListener("mouseup", updateToolbarState);
+    els.postSummary?.addEventListener("focus", updateToolbarState);
+
+    document.querySelectorAll(".toolbar-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const cmd = btn.dataset.cmd;
+        if (!cmd) return;
+
+        if (document.activeElement !== els.postSummary) {
+          els.postSummary?.focus();
+        }
+
+        switch (cmd) {
+          case "heading":
+            const currentBlock = document.queryCommandValue("formatBlock");
+            if (currentBlock === "h2" || currentBlock === "H2") {
+              document.execCommand("formatBlock", false, "P");
+            } else {
+              document.execCommand("formatBlock", false, "H2");
+            }
+            break;
+          case "bold":
+            document.execCommand("bold", false, null);
+            break;
+          case "italic":
+            document.execCommand("italic", false, null);
+            break;
+        }
+        updateEditorStats();
+        updateToolbarState();
+      });
+    });
     els.commentForm?.addEventListener("submit", handleCommentSubmit);
+    els.commentTextarea?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        els.commentForm?.requestSubmit();
+      }
+    });
     els.postImageFile?.addEventListener("change", handlePostFilesSelected);
-    els.postImageDropzone?.addEventListener("click", () =>
-      els.postImageFile?.click(),
-    );
+    els.btnAddPhoto?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      els.postImageFile?.click();
+    });
+    els.postImageDropzone?.addEventListener("click", () => {
+      els.postImageFile?.click();
+    });
+    els.postImageDropzone?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        els.postImageFile?.click();
+      }
+    });
     els.postImageDropzone?.addEventListener("dragover", (e) => {
       e.preventDefault();
       els.postImageDropzone.classList.add("is-dragover");
@@ -223,9 +317,39 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     els.detailLikeBtn?.addEventListener("click", async () => {
       if (!state.detailPost) return;
+
+      // Optimistic UI update for modal button
+      const isLikedBefore = isPostLiked(state.detailPost.post_id);
+      const isLikedNow = !isLikedBefore;
+      els.detailLikeBtn.classList.toggle("liked", isLikedNow);
+      const iconHtml = isLikedNow
+        ? `<i data-lucide="heart" style="fill: currentColor; color: #ef4444;"></i>`
+        : `<i data-lucide="heart"></i>`;
+      let count = getLikeCount(state.detailPost);
+      if (isLikedNow && !isLikedBefore) count++;
+      else if (!isLikedNow && isLikedBefore) count = Math.max(0, count - 1);
+
+      els.detailLikeBtn.innerHTML = `${iconHtml} 좋아요 ${count > 0 ? count : ""}`;
+      if (window.lucide) window.lucide.createIcons({ root: els.detailLikeBtn });
+
+      // Sync background feed card immediately
+      const feedBtn = document.querySelector(
+        `[data-post-id="${CSS.escape(state.detailPost.post_id)}"][data-action="like"]`,
+      );
+      if (feedBtn) {
+        const wrapper = feedBtn.closest(".travel-card-like") || feedBtn;
+        if (isLikedNow) wrapper.classList.add("is-liked");
+        else wrapper.classList.remove("is-liked");
+      }
+
       await toggleLike(state.detailPost);
-      await openPostDetail(state.detailPost.post_id, { refresh: true });
-      await refreshCommunity();
+
+      // Update local state without full refresh
+      state.detailPost.like_count = count;
+      const postInFeed = state.posts.find(
+        (p) => String(p.post_id) === String(state.detailPost.post_id),
+      );
+      if (postInFeed) postInFeed.like_count = count;
     });
     els.detailCommentBtn?.addEventListener("click", () => {
       if (state.detailPost) openCommentModal(state.detailPost);
@@ -251,6 +375,16 @@ document.addEventListener("DOMContentLoaded", () => {
       await refreshCommunity();
     });
     els.imageLightboxClose?.addEventListener("click", closeImageLightbox);
+
+    els.fsCategorySelect?.addEventListener("change", (e) => {
+      if (els.postType) {
+        els.postType.value = e.target.value;
+      }
+    });
+
+    els.btnFsPublish?.addEventListener("click", () => {
+      els.postForm?.requestSubmit();
+    });
   }
 
   async function refreshCommunity(likesPromise = Promise.resolve()) {
@@ -310,10 +444,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const from = state.feedPage * state.feedLimit;
-      const feedPromise = request(
-        `${state.api.feed}?select=*&order=created_at.desc&limit=${state.feedLimit}&offset=${from}`,
-        { method: "GET" },
-      );
+      let url = `${state.api.feed}?select=*&order=created_at.desc&limit=${state.feedLimit}&offset=${from}`;
+      if (state.currentTagFilter) {
+        url += `&tags=ilike.*${encodeURIComponent(state.currentTagFilter)}*`;
+      }
+      const feedPromise = request(url, { method: "GET" });
 
       const [rows] = await Promise.all([feedPromise, likesPromise]);
 
@@ -322,9 +457,45 @@ document.addEventListener("DOMContentLoaded", () => {
         state.hasMoreFeed = false;
       }
 
+      if (newPosts.length > 0) {
+        const userIds = [...new Set(newPosts.map((p) => p.user_id))].filter(
+          Boolean,
+        );
+        if (userIds.length > 0) {
+          try {
+            const usersRes = await request(
+              `${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`,
+              { method: "GET" },
+            );
+            if (Array.isArray(usersRes)) {
+              const userMap = {};
+              usersRes.forEach((u) => (userMap[u.user_id] = u));
+              newPosts.forEach((p) => {
+                if (userMap[p.user_id]) {
+                  p.profile_image = userMap[p.user_id].profile_image;
+                  p.nickname = userMap[p.user_id].nickname || p.nickname;
+                }
+              });
+            }
+          } catch (e) {
+            console.error("작성자 프로필 조회 실패:", e);
+          }
+        }
+      }
+
+      const writeCardHtml = state.feedPage === 0 ? `
+        <article class="travel-card write-post-card" data-action="write" style="box-shadow: none; background: transparent; cursor: pointer;">
+          <div class="travel-card-image-wrap" style="aspect-ratio: 1 / 1; border-radius: 12px; background: rgba(59, 130, 246, 0.04); display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed rgba(59, 130, 246, 0.25); transition: all 0.2s ease;">
+            <i data-lucide="plus-circle" style="width: 42px; height: 42px; color: var(--color-primary); margin-bottom: 0.5rem; opacity: 0.8;"></i>
+            <span style="font-weight: 600; color: var(--color-primary);">새 글 작성하기</span>
+          </div>
+        </article>
+      ` : "";
+
       if (newPosts.length === 0 && state.feedPage === 0) {
-        els.feed.innerHTML =
-          '<div class="empty-feed">아직 게시글이 없습니다. 첫 게시글을 작성해보세요.</div>';
+        els.feed.innerHTML = writeCardHtml + '<div class="empty-feed" style="grid-column: 1 / -1;">아직 게시글이 없습니다. 첫 게시글을 작성해보세요.</div>';
+        if (window.lucide) window.lucide.createIcons({ root: els.feed });
+        bindCardEvents();
         return;
       }
 
@@ -359,7 +530,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="travel-card-info">
                 <div class="travel-card-title">${escapeHtml(post.title || "무제")}</div>
                 <div class="travel-card-meta">
-                  <img src="https://ui-avatars.com/api/?name=${escapeAttr((post.nickname || userNickname).charAt(0))}&background=random&color=fff" alt="프로필" loading="lazy">
+                  <img src="${escapeAttr(getAvatarUrl(post.profile_image, post.nickname || userNickname))}" alt="프로필" loading="lazy">
                   <span>${escapeHtml(post.nickname || userNickname)}</span>
                 </div>
               </div>
@@ -369,7 +540,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .join("");
 
       if (state.feedPage === 0) {
-        els.feed.innerHTML = html;
+        els.feed.innerHTML = writeCardHtml + html;
       } else {
         els.feed.insertAdjacentHTML("beforeend", html);
       }
@@ -393,13 +564,20 @@ document.addEventListener("DOMContentLoaded", () => {
       el.addEventListener("click", async (e) => {
         e.stopPropagation();
         const action = el.dataset.action;
+
+        if (action === "write") {
+          openPostModal();
+          return;
+        }
+
         const postId = el.dataset.postId;
         const post = state.posts.find(
           (row) => String(row.post_id) === String(postId),
         );
         if (!post) return;
 
-        if (action === "detail") await openPostDetail(post.post_id);
+        if (action === "detail")
+          openPostDetail(post.post_id, { initialData: post });
         if (action === "like") {
           await toggleLike(post);
           const btn = el.closest(".travel-card-like") || el;
@@ -413,7 +591,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function getTagEmoji(tagName) {
+  function getTagIcon(tagName) {
     const text = String(tagName).toLowerCase();
     if (
       text.includes("부산") ||
@@ -421,23 +599,27 @@ document.addEventListener("DOMContentLoaded", () => {
       text.includes("해운대") ||
       text.includes("광안리")
     )
-      return "🌊";
+      return '<i data-lucide="palmtree"></i>';
     if (
       text.includes("일본") ||
       text.includes("도쿄") ||
       text.includes("교토") ||
       text.includes("오사카")
     )
-      return "🗾";
-    if (text.includes("제주")) return "🍊";
-    if (text.includes("산") || text.includes("등산")) return "⛰️";
-    if (text.includes("카페") || text.includes("커피")) return "☕";
-    if (text.includes("맛집") || text.includes("식당")) return "🍴";
-    if (text.includes("호텔") || text.includes("숙소")) return "🏨";
-    if (text.includes("가족")) return "👨‍👩‍👧‍👦";
-    if (text.includes("친구")) return "👯";
-    if (text.includes("혼자")) return "🎒";
-    return "✨";
+      return '<i data-lucide="ticket"></i>';
+    if (text.includes("제주")) return '<i data-lucide="sun"></i>';
+    if (text.includes("산") || text.includes("등산"))
+      return '<i data-lucide="mountain"></i>';
+    if (text.includes("카페") || text.includes("커피"))
+      return '<i data-lucide="coffee"></i>';
+    if (text.includes("맛집") || text.includes("식당"))
+      return '<i data-lucide="utensils"></i>';
+    if (text.includes("호텔") || text.includes("숙소"))
+      return '<i data-lucide="bed"></i>';
+    if (text.includes("가족")) return '<i data-lucide="heart"></i>';
+    if (text.includes("친구")) return '<i data-lucide="smile"></i>';
+    if (text.includes("혼자")) return '<i data-lucide="backpack"></i>';
+    return '<i data-lucide="hash"></i>';
   }
 
   async function renderTags() {
@@ -446,14 +628,41 @@ document.addEventListener("DOMContentLoaded", () => {
       { method: "GET" },
     );
     const tags = Array.isArray(rows) ? rows : [];
-    els.popularTags.innerHTML = tags.length
-      ? tags
-          .map(
-            (tag) =>
-              `<span class="keyword-chip">${getTagEmoji(tag.tag_name)} #${escapeHtml(tag.tag_name)}</span>`,
-          )
-          .join("")
-      : '<span class="keyword-chip">✨ #여행</span>';
+
+    let html = "";
+    const isAllActive = state.currentTagFilter === null ? " active" : "";
+    html += `<button class="keyword-chip${isAllActive}" data-tag="all"><i data-lucide="globe"></i> 전체</button>`;
+
+    if (tags.length > 0) {
+      html += tags
+        .map((tag) => {
+          const isActive =
+            state.currentTagFilter === tag.tag_name ? " active" : "";
+          return `<button class="keyword-chip${isActive}" data-tag="${escapeAttr(tag.tag_name)}">${getTagIcon(tag.tag_name)} ${escapeHtml(tag.tag_name)}</button>`;
+        })
+        .join("");
+    }
+
+    els.popularTags.innerHTML = html;
+
+    if (window.lucide) {
+      window.lucide.createIcons({ root: els.popularTags });
+    }
+
+    els.popularTags.querySelectorAll(".keyword-chip").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tag = btn.dataset.tag;
+        if (!tag) return;
+
+        if (tag === "all") {
+          state.currentTagFilter = null;
+        } else {
+          state.currentTagFilter = state.currentTagFilter === tag ? null : tag;
+        }
+
+        refreshCommunity();
+      });
+    });
   }
 
   async function fetchUserLikes() {
@@ -501,6 +710,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function openPostDetail(postId, options = {}) {
     if (!postId) return;
+
+    if (options.initialData) {
+      state.detailPost = options.initialData;
+      renderDetailContent(options.initialData);
+      els.detailModal?.classList.add("active");
+      if (window.lucide) {
+        window.lucide.createIcons({ root: els.detailModal });
+      }
+      updateBodyScroll();
+
+      fetchPostById(postId)
+        .then((updatedPost) => {
+          if (
+            updatedPost &&
+            state.detailPost &&
+            String(state.detailPost.post_id) === String(postId)
+          ) {
+            state.detailPost = updatedPost;
+            renderDetailContent(updatedPost);
+            if (window.lucide) {
+              window.lucide.createIcons({ root: els.detailModal });
+            }
+          }
+        })
+        .catch(console.error);
+      return;
+    }
+
     const post =
       options.refresh ||
       !state.detailPost ||
@@ -510,26 +747,35 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!post) return;
 
     state.detailPost = post;
+    renderDetailContent(post);
+    els.detailModal?.classList.add("active");
+    if (window.lucide) {
+      window.lucide.createIcons({ root: els.detailModal });
+    }
+    updateBodyScroll();
+  }
+
+  function renderDetailContent(post) {
     state.currentGalleryIndex = 0;
     if (els.detailTitle) els.detailTitle.textContent = post.title || "";
+    const detailCategory = document.getElementById("detail-category");
+    if (detailCategory)
+      detailCategory.textContent = post.type || post.category || "게시글 상세";
     const authorName = post.nickname || userNickname;
     if (els.detailAuthor) els.detailAuthor.textContent = authorName;
-    
+
     const detailAuthorAvatar = document.getElementById("detail-author-avatar");
     if (detailAuthorAvatar) {
-      detailAuthorAvatar.src = `https://ui-avatars.com/api/?name=${escapeAttr(authorName.charAt(0))}&background=random&color=fff`;
+      detailAuthorAvatar.src = getAvatarUrl(post.profile_image, authorName);
       detailAuthorAvatar.hidden = false;
     }
 
     if (els.detailTime)
       els.detailTime.textContent = formatRelative(
-        post.updated_at || post.created_at,
+        post.created_at || post.updated_at,
       );
     if (els.detailSummary)
-      els.detailSummary.innerHTML = renderBody(
-        post.summary || "",
-        [],
-      );
+      els.detailSummary.innerHTML = renderBody(post.summary || "", []);
     if (els.detailTags) {
       const tags = splitTags(post.tags);
       els.detailTags.innerHTML = tags
@@ -550,19 +796,32 @@ document.addEventListener("DOMContentLoaded", () => {
     if (els.detailDeleteBtn)
       els.detailDeleteBtn.style.display = isMine ? "inline-flex" : "none";
 
-    els.detailModal?.classList.add("active");
-    await loadComments(post.post_id);
-    renderComments(state.comments, els.detailCommentList);
+    if (els.detailLikeBtn) {
+      const isLiked = isPostLiked(post.post_id);
+      els.detailLikeBtn.classList.toggle("liked", isLiked);
+      const iconHtml = isLiked
+        ? `<i data-lucide="heart" style="fill: currentColor; color: #ef4444;"></i>`
+        : `<i data-lucide="heart"></i>`;
+      const count = getLikeCount(post);
+      els.detailLikeBtn.innerHTML = `${iconHtml} 좋아요 ${count > 0 ? count : ""}`;
+    }
+
+    if (els.detailCommentBtn) {
+      const count = getCommentCount(post);
+      els.detailCommentBtn.innerHTML = `<i data-lucide="message-circle"></i> 댓글 ${count > 0 ? count : ""}`;
+    }
   }
 
   function updateGallerySlide() {
     if (!els.detailGallery) return;
     const total = els.detailGallery.children.length;
     els.detailGallery.style.transform = `translateX(-${state.currentGalleryIndex * 100}%)`;
-    
-    if (els.galleryPrevBtn) els.galleryPrevBtn.hidden = state.currentGalleryIndex === 0;
-    if (els.galleryNextBtn) els.galleryNextBtn.hidden = state.currentGalleryIndex === total - 1;
-    
+
+    if (els.galleryPrevBtn)
+      els.galleryPrevBtn.hidden = state.currentGalleryIndex === 0;
+    if (els.galleryNextBtn)
+      els.galleryNextBtn.hidden = state.currentGalleryIndex === total - 1;
+
     if (els.galleryPagination) {
       Array.from(els.galleryPagination.children).forEach((dot, index) => {
         dot.classList.toggle("active", index === state.currentGalleryIndex);
@@ -592,13 +851,19 @@ document.addEventListener("DOMContentLoaded", () => {
       `,
       )
       .join("");
-      
+
     if (els.galleryPagination) {
-      els.galleryPagination.innerHTML = images.length > 1 
-        ? images.map((_, i) => `<button type="button" class="gallery-dot" data-index="${i}" aria-label="Go to slide ${i + 1}"></button>`).join("") 
-        : "";
-        
-      els.galleryPagination.querySelectorAll(".gallery-dot").forEach(dot => {
+      els.galleryPagination.innerHTML =
+        images.length > 1
+          ? images
+              .map(
+                (_, i) =>
+                  `<button type="button" class="gallery-dot" data-index="${i}" aria-label="Go to slide ${i + 1}"></button>`,
+              )
+              .join("")
+          : "";
+
+      els.galleryPagination.querySelectorAll(".gallery-dot").forEach((dot) => {
         dot.addEventListener("click", (e) => {
           e.stopPropagation();
           state.currentGalleryIndex = parseInt(dot.dataset.index, 10);
@@ -606,14 +871,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
     }
-    
+
     updateGallerySlide();
 
     els.detailGallery
       .querySelectorAll("[data-gallery-src]")
       .forEach((button) => {
         button.addEventListener("click", () => {
-
           openImageLightbox(button.dataset.gallerySrc || "");
         });
       });
@@ -622,6 +886,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeDetailModal() {
     els.detailModal?.classList.remove("active");
     state.detailPost = null;
+    updateBodyScroll();
   }
 
   function openImageLightbox(src) {
@@ -629,6 +894,7 @@ document.addEventListener("DOMContentLoaded", () => {
     els.imageLightboxImg.src = src;
     els.imageLightbox.classList.add("active");
     els.imageLightbox.setAttribute("aria-hidden", "false");
+    updateBodyScroll();
   }
 
   function closeImageLightbox() {
@@ -636,6 +902,7 @@ document.addEventListener("DOMContentLoaded", () => {
     els.imageLightbox.classList.remove("active");
     els.imageLightbox.setAttribute("aria-hidden", "true");
     els.imageLightboxImg.src = "";
+    updateBodyScroll();
   }
 
   async function fetchPostById(postId) {
@@ -643,7 +910,22 @@ document.addEventListener("DOMContentLoaded", () => {
       `${state.api.feed}?post_id=eq.${encodeURIComponent(postId)}&select=*`,
       { method: "GET" },
     );
-    return Array.isArray(rows) ? rows[0] : null;
+    const post = Array.isArray(rows) ? rows[0] : null;
+    if (post && post.user_id) {
+      try {
+        const usersRes = await request(
+          `${state.api.users}?user_id=eq.${encodeURIComponent(post.user_id)}&select=profile_image,nickname`,
+          { method: "GET" },
+        );
+        if (Array.isArray(usersRes) && usersRes[0]) {
+          post.profile_image = usersRes[0].profile_image;
+          post.nickname = usersRes[0].nickname || post.nickname;
+        }
+      } catch (e) {
+        console.error("작성자 프로필 조회 실패:", e);
+      }
+    }
+    return post;
   }
 
   async function toggleLike(post) {
@@ -741,11 +1023,15 @@ document.addEventListener("DOMContentLoaded", () => {
     state.postSummarySelectionEnd = 0;
     state.draftTags = [];
     els.postForm?.reset();
+    if (els.postSummary) els.postSummary.innerHTML = "";
+
     renderDraftTags();
     renderPostImageGallery();
-    setPostSubmitLabel("게시글 등록");
-    bringModalToFront(els.postModal, 210);
-    els.postModal?.classList.add("active");
+    setPostSubmitLabel("작성하기");
+    updateEditorStats();
+
+    els.postFullscreenEditor?.classList.add("active");
+    updateBodyScroll();
   }
 
   function openPostEditModal(post) {
@@ -753,24 +1039,26 @@ document.addEventListener("DOMContentLoaded", () => {
     state.editingPostId = post.post_id;
     state.existingPostImages = getPostImages(post);
     state.postImages = [...state.existingPostImages];
-    els.postType.value = post.type || "여행후기";
+
     els.postTitle.value = post.title || "";
-    els.postSummary.value = post.summary || "";
+    if (els.postSummary) els.postSummary.innerHTML = post.summary || "";
 
     state.draftTags = splitTags(post.tags);
     renderDraftTags();
     els.postTags.value = "";
 
     els.postLocation.value = post.location || "";
-    els.postCategory.value = post.category || "";
-    setPostSubmitLabel("게시글 수정");
+    setPostSubmitLabel("수정 완료");
     renderPostImageGallery();
-    bringModalToFront(els.postModal, 210);
-    els.postModal?.classList.add("active");
+    updateEditorStats();
+
+    els.postFullscreenEditor?.classList.add("active");
+    updateBodyScroll();
   }
 
   function closePostModal() {
-    els.postModal?.classList.remove("active");
+    els.postFullscreenEditor?.classList.remove("active");
+    updateBodyScroll();
   }
 
   function clearPostImagePreview() {
@@ -816,9 +1104,25 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.key === "Enter" || e.code === "Space" || e.key === ",") {
         e.preventDefault();
         const tags = splitTags(els.postTags.value);
+        let countExceeded = false;
+
         tags.forEach((t) => {
+          if (t.length > 10) {
+            alert(
+              `태그는 최대 10자까지만 입력 가능합니다: '${t.slice(0, 10)}...'`,
+            );
+            return;
+          }
+          if (state.draftTags.length >= 5) {
+            if (!countExceeded) {
+              alert("태그는 최대 5개까지만 등록할 수 있습니다.");
+              countExceeded = true;
+            }
+            return;
+          }
           if (!state.draftTags.includes(t)) state.draftTags.push(t);
         });
+
         renderDraftTags();
         els.postTags.value = "";
       } else if (e.key === "Backspace" && els.postTags.value === "") {
@@ -837,9 +1141,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderPostImageGallery() {
     if (!els.postImageGallery) return;
     if (!state.postImages.length) {
-      els.postImageGallery.innerHTML =
-        '<div class="image-gallery-empty">업로드한 사진이 없습니다. 드래그 앤 드랍 또는 클릭으로 추가해보세요.</div>';
+      els.postImageGallery.innerHTML = "";
       renderPostImageOrderList();
+      updateEditorStats();
       return;
     }
     els.postImageGallery.innerHTML = state.postImages
@@ -847,11 +1151,9 @@ document.addEventListener("DOMContentLoaded", () => {
         (src, index) => `
           <div class="image-gallery-item" draggable="true" data-drag-index="${index}">
             <img src="${escapeAttr(src)}" alt="업로드된 사진 ${index + 1}">
-            <div class="image-gallery-actions">
-              <button type="button" class="image-gallery-move" data-move-up="${index}">위</button>
-              <button type="button" class="image-gallery-move" data-move-down="${index}">아래</button>
-              <button type="button" class="image-gallery-remove" data-remove-index="${index}">삭제</button>
-            </div>
+            <button type="button" class="image-gallery-remove" data-remove-index="${index}" aria-label="삭제">
+              <i data-lucide="x"></i>
+            </button>
           </div>
         `,
       )
@@ -865,20 +1167,9 @@ document.addEventListener("DOMContentLoaded", () => {
           renderPostImageGallery();
         });
       });
-    els.postImageGallery
-      .querySelectorAll("[data-move-up]")
-      .forEach((button) => {
-        button.addEventListener("click", () =>
-          movePostImage(Number(button.dataset.moveUp), -1),
-        );
-      });
-    els.postImageGallery
-      .querySelectorAll("[data-move-down]")
-      .forEach((button) => {
-        button.addEventListener("click", () =>
-          movePostImage(Number(button.dataset.moveDown), 1),
-        );
-      });
+    if (window.lucide) {
+      window.lucide.createIcons({ root: els.postImageGallery });
+    }
     els.postImageGallery
       .querySelectorAll("[data-drag-index]")
       .forEach((item) => {
@@ -908,6 +1199,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
     renderPostImageOrderList();
+    updateEditorStats();
   }
 
   async function handlePostFilesSelected() {
@@ -926,7 +1218,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    for (const file of validFiles) {
+    const maxRemaining = 10 - state.postImages.length;
+    const filesToUpload = validFiles.slice(0, maxRemaining);
+
+    if (validFiles.length > maxRemaining) {
+      alert(`사진은 최대 10장까지만 업로드할 수 있습니다. (초과된 파일 제외)`);
+    }
+
+    for (const file of filesToUpload) {
       const uploadedUrl = await uploadPostImage(file);
       if (uploadedUrl) {
         state.postImages.push(uploadedUrl);
@@ -1005,16 +1304,41 @@ document.addEventListener("DOMContentLoaded", () => {
   function setPostSubmitLabel(text) {
     const btn = els.postForm?.querySelector('button[type="submit"]');
     if (btn) btn.textContent = text;
+    if (els.btnFsPublish) els.btnFsPublish.textContent = text;
+  }
+
+  function updateEditorStats() {
+    if (els.postTitleCount) {
+      const titleLength = (els.postTitle?.value || "").length;
+      const titleMax = els.postTitle?.maxLength || 80;
+      els.postTitleCount.textContent = `${titleLength}/${titleMax}`;
+    }
+    if (els.postSummaryCount) {
+      const summaryLength = (els.postSummary?.innerText || "").replace(
+        /\n/g,
+        "",
+      ).length;
+      els.postSummaryCount.textContent = `${summaryLength.toLocaleString()}/2000자`;
+    }
+    if (els.postImageCount) {
+      els.postImageCount.textContent = `${state.postImages.length}/10장`;
+    }
   }
 
   function openCommentModal(post) {
     state.activeCommentPostId = post.post_id;
     state.editingCommentId = null;
     els.commentPostId.value = post.post_id;
-    els.commentPostTitle.textContent = post.title || "댓글";
+    const commentSubtitle = document.getElementById("comment-post-subtitle");
+    if (commentSubtitle)
+      commentSubtitle.textContent = post.title || "게시글 상세";
     els.commentTextarea.value = "";
+    const userAvatar = document.getElementById("comment-user-avatar");
+    if (userAvatar)
+      userAvatar.src = getAvatarUrl(userProfileImage, userNickname);
     bringModalToFront(els.commentModal, 210);
     els.commentModal?.classList.add("active");
+    updateBodyScroll();
     loadComments(post.post_id).catch(console.error);
   }
 
@@ -1022,6 +1346,8 @@ document.addEventListener("DOMContentLoaded", () => {
     els.commentModal?.classList.remove("active");
     state.activeCommentPostId = null;
     state.editingCommentId = null;
+    state.replyingToCommentId = null;
+    updateBodyScroll();
   }
 
   function bringModalToFront(modal, zIndex) {
@@ -1029,75 +1355,222 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.style.zIndex = String(zIndex);
   }
 
+  function updateBodyScroll() {
+    const hasActiveModal =
+      document.querySelectorAll(".modal-overlay.active").length > 0;
+    document.body.classList.toggle("modal-open", hasActiveModal);
+  }
+
   async function loadComments(postId) {
     const rows = await request(
-      `${state.api.comments}?post_id=eq.${encodeURIComponent(postId)}&select=*&order=created_at.asc`,
+      `${state.api.comments}?post_id=eq.${encodeURIComponent(postId)}&select=*,likes:community_comment_likes(count)&order=created_at.asc`,
       {
         method: "GET",
       },
     );
     state.comments = Array.isArray(rows) ? rows : [];
-    renderComments(state.comments, els.commentList);
-    if (
-      els.detailCommentList &&
-      els.detailModal?.classList.contains("active")
-    ) {
-      renderComments(state.comments, els.detailCommentList);
+
+    if (state.comments.length > 0) {
+      const userIds = [...new Set(state.comments.map((c) => c.user_id))].filter(
+        Boolean,
+      );
+      if (userIds.length > 0) {
+        try {
+          const usersRes = await request(
+            `${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`,
+            { method: "GET" },
+          );
+          if (Array.isArray(usersRes)) {
+            const userMap = {};
+            usersRes.forEach((u) => (userMap[u.user_id] = u));
+            state.comments.forEach((c) => {
+              if (userMap[c.user_id]) {
+                c.profile_image = userMap[c.user_id].profile_image;
+                c.nickname = userMap[c.user_id].nickname || c.nickname;
+              }
+            });
+          }
+        } catch (e) {
+          console.error("댓글 작성자 프로필 조회 실패:", e);
+        }
+      }
     }
+
+    if (userId) {
+      try {
+        const likes = await request(
+          `${state.api.commentLikes}?user_id=eq.${encodeURIComponent(userId)}&select=comment_id`,
+          { method: "GET" },
+        );
+        state.likedCommentIds = Array.isArray(likes)
+          ? likes.map((l) => String(l.comment_id))
+          : [];
+      } catch (e) {
+        console.error("댓글 좋아요 정보 불러오기 실패:", e);
+      }
+    }
+
+    renderComments(state.comments, els.commentList);
   }
 
   function renderComments(rows, targetList = els.commentList) {
-    targetList.innerHTML =
-      Array.isArray(rows) && rows.length
-        ? rows
-            .map((comment) => {
-              const isMine = String(comment.user_id) === String(userId);
-              const isEditing =
-                String(state.editingCommentId) === String(comment.comment_id);
-              const isEdited =
-                comment.updated_at &&
-                comment.created_at &&
-                comment.updated_at !== comment.created_at;
-              return `
-              <article class="comment-item${isEditing ? " is-editing" : ""}" data-comment-id="${comment.comment_id}">
-                <div class="comment-item-head">
-                  <div class="comment-author-block">
-                    <strong class="comment-author">${escapeHtml(comment.nickname || "사용자")}</strong>
-                    ${isEdited ? '<span class="comment-edited-badge">수정됨</span>' : ""}
-                  </div>
-                  <span class="comment-timestamp">${formatRelative(comment.updated_at || comment.created_at)}</span>
+    if (!Array.isArray(rows) || !rows.length) {
+      targetList.innerHTML =
+        '<div class="empty-feed">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</div>';
+      return;
+    }
+
+    const threads = [];
+    rows.forEach((c) => {
+      let displayContent = c.content || "";
+      let targetParentId = null;
+      let isReply = false;
+
+      // Extract hidden reply metadata if exists
+      const replyMatch = displayContent.match(/<!--reply:([^>]+)-->$/);
+      if (replyMatch) {
+        targetParentId = replyMatch[1];
+        displayContent = displayContent.replace(replyMatch[0], "").trim();
+      } else if (displayContent.startsWith("@")) {
+        isReply = true;
+      }
+
+      // Try explicit target parent first
+      if (targetParentId) {
+        const parent = threads.find(
+          (t) => String(t.comment_id) === String(targetParentId),
+        );
+        if (parent) {
+          parent.replies.push({ ...c, content: displayContent });
+          return;
+        }
+      }
+
+      // Fallback for legacy comments or missing parent
+      if (isReply && threads.length > 0) {
+        threads[threads.length - 1].replies.push({
+          ...c,
+          content: displayContent,
+        });
+        return;
+      }
+
+      // Otherwise it's a main thread
+      threads.push({ ...c, content: displayContent, replies: [] });
+    });
+
+    const generateCommentHtml = (
+      comment,
+      isReply = false,
+      repliesHtml = "",
+    ) => {
+      const isMine = String(comment.user_id) === String(userId);
+      const isEditing =
+        String(state.editingCommentId) === String(comment.comment_id);
+      const authorName = comment.nickname || "사용자";
+      const avatarUrl = getAvatarUrl(comment.profile_image, authorName);
+      const isLiked = state.likedCommentIds.includes(
+        String(comment.comment_id),
+      );
+      const likeCount =
+        comment.likes && comment.likes.length > 0 ? comment.likes[0].count : 0;
+
+      return `
+        <article class="comment-item${isEditing ? " is-editing" : ""}${isReply ? " is-reply" : ""}" data-comment-id="${comment.comment_id}">
+          <div class="comment-avatar-col">
+            <img src="${avatarUrl}" alt="프로필" loading="lazy">
+          </div>
+          <div class="comment-content-col">
+            ${
+              isEditing
+                ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3" style="width:100%; resize:none; padding:0.5rem; border:1px solid #ddd; border-radius:4px; font-family:inherit; margin-bottom:0.5rem;">${escapeHtml(comment.content || "")}</textarea>`
+                : `
+                <div class="comment-text-block">
+                  <span class="comment-author-name">${escapeHtml(authorName)}</span>
+                  <span class="comment-text-body">${escapeHtml(comment.content || "").replace(/\n/g, "<br>")}</span>
                 </div>
-                <div class="comment-body">
-                  ${
-                    isEditing
-                      ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3">${escapeHtml(comment.content || "")}</textarea>`
-                      : `<p class="comment-content">${escapeHtml(comment.content || "")}</p>`
-                  }
-                </div>
-                ${
-                  isMine
-                    ? `
-                  <div class="comment-item-actions">
-                    ${
-                      isEditing
-                        ? `
-                      <button type="button" class="action-link" data-comment-action="save" data-comment-id="${comment.comment_id}">저장</button>
-                      <button type="button" class="action-link" data-comment-action="cancel" data-comment-id="${comment.comment_id}">취소</button>
-                    `
-                        : `
-                      <button type="button" class="action-link" data-comment-action="edit" data-comment-id="${comment.comment_id}">수정</button>
-                      <button type="button" class="action-link danger" data-comment-action="delete" data-comment-id="${comment.comment_id}">삭제</button>
-                    `
-                    }
-                  </div>
+              `
+            }
+            <div class="comment-actions-row">
+              ${
+                isEditing
+                  ? `
+                <button type="button" class="comment-opt-btn" data-comment-action="save" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px; margin-right: 0.5rem;"><i data-lucide="check"></i> 저장</button>
+                <button type="button" class="comment-opt-btn" data-comment-action="cancel" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px;"><i data-lucide="x"></i> 취소</button>
                 `
-                    : ""
-                }
-              </article>
-            `;
-            })
-            .join("")
-        : '<div class="empty-feed">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</div>';
+                  : `
+                <span class="comment-time">${formatRelative(comment.updated_at || comment.created_at)}</span>
+                <span class="comment-like-count" style="${likeCount > 0 ? "" : "display:none;"} font-weight: 600; font-size: 0.8rem; color: #666; cursor: pointer;">좋아요 ${likeCount}개</span>
+                ${!isReply ? `<span class="comment-reply-text" data-comment-action="reply" data-comment-id="${comment.comment_id}">답글 달기</span>` : ""}
+                `
+              }
+            </div>
+            ${repliesHtml}
+          </div>
+          ${
+            !isEditing
+              ? `
+          <div class="comment-right-col" style="display: flex; align-items: flex-start; gap: 0.5rem;">
+            <button type="button" class="comment-heart-btn${isLiked ? " liked" : ""}" aria-label="좋아요" data-comment-action="like" data-comment-id="${comment.comment_id}"><i data-lucide="heart"></i></button>
+            ${
+              isMine
+                ? `
+            <div class="comment-more-wrapper">
+              <button type="button" class="comment-more-opts-btn" data-comment-action="toggle-opts" data-comment-id="${comment.comment_id}"><i data-lucide="more-horizontal"></i></button>
+              <div class="comment-opts-dropdown" id="comment-opts-${comment.comment_id}" style="right: 0; left: auto; transform: translateX(0);">
+                <button type="button" class="comment-opt-btn" data-comment-action="edit" data-comment-id="${comment.comment_id}"><i data-lucide="edit-2"></i> 수정</button>
+                <button type="button" class="comment-opt-btn danger" data-comment-action="delete" data-comment-id="${comment.comment_id}"><i data-lucide="trash-2"></i> 삭제</button>
+              </div>
+            </div>
+            `
+                : ""
+            }
+          </div>
+          `
+              : ""
+          }
+        </article>
+      `;
+    };
+
+    targetList.innerHTML = threads
+      .map((thread) => {
+        let repliesWrapperHtml = "";
+        if (thread.replies.length > 0) {
+          const repliesHtmlInner = thread.replies
+            .map((r) => generateCommentHtml(r, true))
+            .join("");
+          repliesWrapperHtml = `
+          <div class="comment-replies-wrapper">
+            <button type="button" class="comment-replies-toggle" data-comment-action="toggle-replies" data-comment-id="${thread.comment_id}">
+              <span class="line"></span> 답글 보기(${thread.replies.length}개)
+            </button>
+            <div class="comment-replies-list" style="display: none;">
+              ${repliesHtmlInner}
+            </div>
+          </div>
+        `;
+        }
+        return generateCommentHtml(thread, false, repliesWrapperHtml);
+      })
+      .join("");
+
+    if (window.lucide) {
+      window.lucide.createIcons({ root: targetList });
+    }
+
+    targetList.querySelectorAll(".comment-inline-edit").forEach((textarea) => {
+      textarea.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          const commentId = textarea.dataset.inlineEditInput;
+          const saveBtn = targetList.querySelector(
+            `button[data-comment-action="save"][data-comment-id="${commentId}"]`,
+          );
+          if (saveBtn) saveBtn.click();
+        }
+      });
+    });
 
     targetList.querySelectorAll("[data-comment-action]").forEach((button) => {
       button.addEventListener("click", async () => {
@@ -1106,7 +1579,93 @@ document.addEventListener("DOMContentLoaded", () => {
         const comment = state.comments.find(
           (row) => String(row.comment_id) === String(commentId),
         );
-        if (!comment || String(comment.user_id) !== String(userId)) return;
+        if (!comment) return;
+
+        if (action === "reply") {
+          state.replyingToCommentId = comment.comment_id;
+          const input = document.getElementById("comment-text");
+          if (input) {
+            input.value = `@${comment.nickname || "사용자"} `;
+            input.focus();
+          }
+          return;
+        }
+
+        if (action === "toggle-replies") {
+          const wrapper = button.closest(".comment-replies-wrapper");
+          const list = wrapper.querySelector(".comment-replies-list");
+          const isHidden = list.style.display === "none";
+          list.style.display = isHidden ? "block" : "none";
+          const count = list.children.length;
+          button.innerHTML = isHidden
+            ? `<span class="line"></span> 답글 숨기기`
+            : `<span class="line"></span> 답글 보기(${count}개)`;
+          return;
+        }
+
+        if (action === "like") {
+          button.classList.toggle("liked");
+          const isLiked = button.classList.contains("liked");
+          const cIdStr = String(commentId);
+
+          const countSpan = button
+            .closest(".comment-item")
+            .querySelector(".comment-like-count");
+          let currentCount = countSpan
+            ? parseInt(countSpan.textContent.replace(/[^0-9]/g, "")) || 0
+            : 0;
+
+          if (isLiked) {
+            currentCount++;
+            if (!state.likedCommentIds.includes(cIdStr))
+              state.likedCommentIds.push(cIdStr);
+            request(state.api.commentLikes, {
+              method: "POST",
+              headers: { Prefer: "return=minimal" },
+              body: JSON.stringify({ comment_id: commentId, user_id: userId }),
+            }).catch((e) => console.error("댓글 좋아요 실패:", e));
+          } else {
+            currentCount--;
+            state.likedCommentIds = state.likedCommentIds.filter(
+              (id) => id !== cIdStr,
+            );
+            request(
+              `${state.api.commentLikes}?comment_id=eq.${encodeURIComponent(commentId)}&user_id=eq.${encodeURIComponent(userId)}`,
+              {
+                method: "DELETE",
+                headers: { Prefer: "return=minimal" },
+              },
+            ).catch((e) => console.error("댓글 좋아요 취소 실패:", e));
+          }
+
+          if (countSpan) {
+            if (currentCount > 0) {
+              countSpan.textContent = `좋아요 ${currentCount}개`;
+              countSpan.style.display = "inline-block";
+            } else {
+              countSpan.textContent = `좋아요 0개`;
+              countSpan.style.display = "none";
+            }
+          }
+          return;
+        }
+
+        if (String(comment.user_id) !== String(userId)) return;
+
+        if (action === "toggle-opts") {
+          const dropdown = targetList.querySelector(
+            `#comment-opts-${commentId}`,
+          );
+          if (dropdown) {
+            dropdown.classList.toggle("active");
+            targetList
+              .querySelectorAll(".comment-opts-dropdown.active")
+              .forEach((d) => {
+                if (d !== dropdown) d.classList.remove("active");
+              });
+          }
+          return;
+        }
 
         if (action === "edit") {
           state.editingCommentId = comment.comment_id;
@@ -1163,9 +1722,10 @@ document.addEventListener("DOMContentLoaded", () => {
   async function handlePostSubmit(e) {
     e.preventDefault();
     const title = els.postTitle.value.trim();
-    const summary = els.postSummary.value.trim();
+    const summary = els.postSummary.innerHTML;
+    const summaryText = els.postSummary.innerText.trim();
 
-    if (!title || !summary) {
+    if (!title || !summaryText) {
       alert("제목과 후기는 필수입니다.");
       return;
     }
@@ -1175,6 +1735,11 @@ document.addEventListener("DOMContentLoaded", () => {
       : state.existingPostImages.length
         ? [...state.existingPostImages]
         : [];
+
+    if (images.length === 0) {
+      alert("최소 한 장 이상의 사진을 업로드해주세요.");
+      return;
+    }
     const payload = {
       user_id: userId,
       nickname: userNickname,
@@ -1188,9 +1753,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         return state.draftTags.join(",");
       })(),
-      location: els.postLocation.value.trim(),
-      category: els.postCategory.value.trim(),
-      type: els.postType.value || "여행후기",
+      location: els.postLocation ? els.postLocation.value.trim() : "",
+      category: "",
+      type: "여행후기",
       updated_at: new Date().toISOString(),
     };
 
@@ -1219,10 +1784,22 @@ document.addEventListener("DOMContentLoaded", () => {
   async function handleCommentSubmit(e) {
     e.preventDefault();
     const postId = state.activeCommentPostId || els.commentPostId.value;
-    const content = els.commentTextarea.value.trim();
+    let content = els.commentTextarea.value.trim();
     if (!postId || !content) {
       alert("댓글 내용을 입력해주세요.");
       return;
+    }
+
+    if (state.replyingToCommentId) {
+      const parent = state.comments.find(
+        (c) => String(c.comment_id) === String(state.replyingToCommentId),
+      );
+      const expectedPrefix = parent ? `@${parent.nickname || "사용자"}` : "";
+      if (content.startsWith(expectedPrefix) || content.startsWith("@")) {
+        content += `\n<!--reply:${state.replyingToCommentId}-->`;
+      } else {
+        state.replyingToCommentId = null;
+      }
     }
 
     if (state.editingCommentId) {
@@ -1260,6 +1837,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }),
     });
     els.commentTextarea.value = "";
+    state.replyingToCommentId = null;
     await loadComments(postId);
     await refreshCommunity();
   }

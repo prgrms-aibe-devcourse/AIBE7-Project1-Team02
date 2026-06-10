@@ -35,9 +35,11 @@ MBTI 16유형 적합도 점수를 Supabase에 적재했다.
 | `destinations` | 추천과 일정 생성에 사용하는 도시 및 여행지 기본 정보를 관리한다. |
 | `trips` | 사용자가 생성한 여행의 기간, 동반자 유형, 상태를 관리한다. |
 | `itineraries` | 여행별 일차 및 시간대에 따른 세부 방문 일정을 관리한다. |
+| `trip_plans` | 일정 확인 페이지 개발 중 사용하는 임시 일정과 완료 상태를 관리한다. |
 | `destination_keywords` | TourAPI 원본을 규칙으로 가공한 여행지 키워드를 관리한다. |
 | `destination_mbti_scores` | 여행지별 MBTI 16유형 적합도 점수를 관리한다. |
 | `user_bookmarks` | 사용자가 저장한 여행지를 관리한다. |
+| `community_comment_likes` | 사용자의 커뮤니티 댓글 좋아요 정보를 관리한다. |
 
 ## users
 
@@ -116,6 +118,19 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 
 `tour_content_id`는 TourAPI 데이터를 반복 수집할 때 동일 여행지를
 중복 생성하지 않고 upsert하기 위한 외부 식별자로 사용한다.
+
+TourAPI 적재는 응답의 `totalCount`로 전체 페이지 수를 계산한 뒤,
+제한된 수의 페이지를 전체 구간에 균등하게 분산 선택한다. 예를 들어
+전체 127페이지에서 3페이지를 수집하면 `1`, `64`, `127`페이지를
+조회한다. 선택한 페이지는 가공 후 일괄 upsert하며, 실행이 중단돼도
+`tour_content_id`를 기준으로 다시 실행할 수 있다.
+
+대량 적재 환경 변수:
+
+- `TOUR_API_PAGE_SIZE`: 페이지당 조회 개수, 기본값 `50`
+- `TOUR_API_MAX_PAGES`: 콘텐츠 유형별 분산 조회 페이지 수, 기본값 `3`
+  (`0`이면 전체 페이지)
+- `TOUR_API_REQUEST_DELAY_MS`: API 페이지 요청 간격, 기본값 `150`
 
 ## destination_keywords
 
@@ -198,6 +213,24 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 | `latitude` | `decimal(10,7)` | NULL | 장소 위도 |
 | `longitude` | `decimal(10,7)` | NULL | 장소 경도 |
 | `sort_order` | `int` | NOT NULL, DEFAULT 0 | 같은 날짜 안에서의 노출 및 방문 순서 |
+
+## trip_plans
+
+일정 확인 페이지 개발 중 사용하는 임시 일정 단위 테이블이다. 정식 일정
+테이블 병합 전까지 완료한 여행 상태를 마이페이지와 공유하는 용도로 사용한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `plan_id` | `bigint` | PK, Identity | 임시 일정 식별자 |
+| `title` | `varchar(100)` | NOT NULL | 일정 제목 |
+| `mbti_type` | `varchar(4)` | NULL | 일정 생성 당시 여행 성향 코드 |
+| `region` | `varchar(50)` | NULL | 대표 지역 |
+| `total_days` | `integer` | DEFAULT 1 | 총 여행 일수 |
+| `ai_summary` | `text` | NULL | 일정 요약 |
+| `status` | `varchar(30)` | DEFAULT `planning` | 일정 상태 (`planning`, `in_progress`, `completed`) |
+| `completed_at` | `timestamptz` | NULL | 모든 여행지 완료 시각 |
+| `created_at` | `timestamptz` | DEFAULT NOW | 생성 일시 |
+| `updated_at` | `timestamptz` | DEFAULT NOW | 수정 일시 |
 
 ## 테이블 관계
 
@@ -393,6 +426,18 @@ FOR DELETE
 TO authenticated
 USING (auth.uid() = user_id);
 ```
+
+## community_comment_likes
+
+사용자의 커뮤니티 댓글 좋아요 정보를 저장한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `comment_id` | `bigint` | PK, FK, NOT NULL | 좋아요 대상 댓글 (`community_comments.comment_id` 참조, ON DELETE CASCADE) |
+| `user_id` | `uuid` | PK, FK, NOT NULL | 좋아요를 누른 사용자 (`auth.users.id` 참조, ON DELETE CASCADE) |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+
+복합 기본키(`comment_id`, `user_id`)를 사용하여 한 사용자가 한 댓글에 한 번만 좋아요를 누를 수 있도록 한다.
 
 ## 추후 확장 예정 테이블
 

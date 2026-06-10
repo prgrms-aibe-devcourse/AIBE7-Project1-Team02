@@ -4,31 +4,35 @@ const {
 } = require("../services/destination-processing/tourDataNormalizer");
 
 const router = express.Router();
-const itineraryCache = new Map();
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAdmin =
+  supabaseUrl && supabaseServiceRoleKey
+    ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      })
+    : null;
 
-function getBearerToken(authorizationHeader) {
-  const [scheme, token] = String(authorizationHeader || "").split(" ");
-  return scheme === "Bearer" && token ? token : null;
+function getBearerToken(request) {
+  const authorization = request.headers.authorization || "";
+  return authorization.startsWith("Bearer ")
+    ? authorization.slice("Bearer ".length)
+    : "";
 }
 
-function createSupabaseHeaders(anonKey, accessToken) {
-  return {
-    apikey: anonKey,
-    Authorization: `Bearer ${accessToken}`,
-    "Content-Type": "application/json",
-  };
-}
+async function requireAuthenticatedUser(request, response) {
+  const accessToken = getBearerToken(request);
 
-async function requestSupabaseJson(fetchImpl, url, headers) {
-  const response = await fetchImpl(url, { headers });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(body?.message || "Supabase 요청에 실패했습니다.");
-    error.status = response.status;
-    throw error;
+  if (!accessToken) {
+    response.status(401).json({
+      success: false,
+      message: "로그인이 필요한 서비스입니다.",
+    });
+    return null;
   }
-  return body;
-}
 
 function currentUserFromAccessToken(accessToken) {
   const payload = String(accessToken || "").split(".")[1];
@@ -43,28 +47,15 @@ function currentUserFromAccessToken(accessToken) {
   } catch {
     return "";
   }
-}
 
-function parseJsonBlock(text) {
-  const raw = String(text || "").trim();
-  if (!raw) return null;
-  const fenced = raw.match(/```json\s*([\s\S]*?)```/i);
-  const payload = fenced ? fenced[1] : raw;
-  try {
-    return JSON.parse(payload);
-  } catch {
-    const start = payload.indexOf("{");
-    const end = payload.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try {
-        return JSON.parse(payload.slice(start, end + 1));
-      } catch {
-        return null;
-      }
-    }
+  const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
+  if (error || !data?.user) {
+    response.status(401).json({
+      success: false,
+      message: "로그인 정보가 유효하지 않습니다.",
+    });
     return null;
   }
-}
 
 function normalizeRegion(value) {
   return String(value || "")
@@ -351,11 +342,10 @@ async function fetchDestinationScores({ supabaseUrl, headers, mbtiType }) {
   return Array.isArray(rows) ? rows : [];
 }
 
-async function fetchTourApiItems({ tourApiKey, region, keyword }) {
-  const contentTypeIds = [12, 14, 15, 25, 28, 39];
-  const results = [];
-  const hasKeyword = Boolean(String(keyword || "").trim());
-  const hasRegion = Boolean(String(region || "").trim());
+router.get("/:planId", async (request, response) => {
+  try {
+    const user = await requireAuthenticatedUser(request, response);
+    if (!user) return;
 
   for (const contentTypeId of contentTypeIds) {
     const url = new URL(
@@ -376,14 +366,12 @@ async function fetchTourApiItems({ tourApiKey, region, keyword }) {
       url.searchParams.set("keyword", region);
     }
 
-    const response = await fetch(url);
-    if (!response.ok) continue;
-    const body = await response.json().catch(() => ({}));
-    const items = body?.response?.body?.items?.item;
-    if (Array.isArray(items)) {
-      results.push(...items);
-    } else if (items) {
-      results.push(items);
+    const plan = await getTripPlanById(supabaseAdmin, planId);
+    if (!plan) {
+      return response.status(404).json({
+        success: false,
+        message: "일정을 찾을 수 없습니다.",
+      });
     }
   }
 
@@ -454,10 +442,11 @@ async function getGeneratedItinerary({
     return cached.value;
   }
 
-  try {
-    const result = await callGemini({ apiKey: geminiApiKey, prompt });
-    itineraryCache.set(cacheKey, { createdAt: now, value: result });
-    return result;
+    return response.json({
+      success: true,
+      data: { plan },
+      message: "일정 상세 조회 성공",
+    });
   } catch (error) {
     console.warn("Gemini fallback used:", error.message);
     itineraryCache.set(cacheKey, { createdAt: now, value: fallbackPayload });
@@ -520,7 +509,9 @@ router.post("/plan", async (request, response) => {
       .status(500)
       .json({ success: false, message: "서버 환경설정이 올바르지 않습니다." });
   }
+});
 
+router.patch("/:planId/status", async (request, response) => {
   try {
     const userId = currentUserFromAccessToken(accessToken);
     if (!userId) {
@@ -839,10 +830,13 @@ ${rankedDestinations
       message: "여행 일정이 생성되었습니다.",
     });
   } catch (error) {
-    console.error("travel plan error:", error);
-    return response.status(error.status || 500).json({
+    console.error("Trip plan status update error:", error);
+    return response.status(500).json({
       success: false,
-      message: error.message || "일정 생성에 실패했습니다.",
+      message:
+        error.code === "42501"
+          ? "임시 일정 테이블 수정 권한이 없습니다."
+          : "일정 상태를 변경하지 못했습니다.",
     });
   }
 });

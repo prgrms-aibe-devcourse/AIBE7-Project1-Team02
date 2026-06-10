@@ -187,6 +187,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return "";
   }
 
+  function hasDestinationImage(destination) {
+    return Boolean(getSafeImageUrl(destination?.imageUrl));
+  }
+
   function createNoImagePlaceholder(className) {
     const placeholder = document.createElement("div");
     placeholder.className = `${className} no-image-placeholder`;
@@ -338,10 +342,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const keywordText = destination.keywords.slice(0, 3).join(", ");
 
     if (keywordText) {
-      return `${keywordText} 여행 취향과 회원님의 MBTI 성향 점수가 잘 맞는 여행지입니다.`;
+      return `${keywordText} 여행 취향과 회원님의 여행 성향이 잘 맞는 여행지입니다.`;
     }
 
-    return "회원님의 여행 MBTI 적합도 점수를 바탕으로 추천한 여행지입니다.";
+    return "회원님의 여행 성향을 바탕으로 추천한 여행지입니다.";
+  }
+
+  function getTravelerTitle(mbtiType) {
+    return window.TravelerProfile?.getTitle(mbtiType) || "취향 맞춤 여행가";
+  }
+
+  function createTravelerBadge(title, options = {}) {
+    return window.TravelerProfile?.createBadge
+      ? window.TravelerProfile.createBadge(title, options)
+      : document.createTextNode(title);
   }
 
   function closeDestinationDetail() {
@@ -360,7 +374,7 @@ document.addEventListener("DOMContentLoaded", () => {
     destinationDetailRegion.textContent = getRegionText(destination);
     let descText =
       destination.description ||
-      "여행 MBTI 성향과 높은 적합도를 보인 국내 여행지입니다.";
+      "회원님의 여행 성향과 잘 맞는 국내 여행지입니다.";
     descText = descText.replace(/(contentType|textRule)[\s:,\d]+/g, "").trim();
     destinationDetailDescription.textContent = descText;
     destinationDetailReason.textContent = getRecommendationReason(destination);
@@ -462,7 +476,7 @@ document.addEventListener("DOMContentLoaded", () => {
     description.className = "featured-recommendation-copy";
     description.textContent =
       destination.description ||
-      "여행 MBTI 성향과 높은 적합도를 보인 국내 여행지입니다.";
+      "회원님의 여행 성향과 잘 맞는 국내 여행지입니다.";
 
     const detailGuide = document.createElement("span");
     detailGuide.className = "recommendation-detail-guide";
@@ -560,7 +574,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!authToken) {
       recommendationTitle.textContent = "국내 여행지를 먼저 둘러보세요";
       recommendationSubtitle.textContent =
-        "로그인하면 여행 MBTI 기반 TOP 10 추천을 볼 수 있습니다.";
+        "로그인하면 여행 성향 기반 TOP 10 추천을 볼 수 있습니다.";
       recommendationLink.href = "./pages/login.html?redirect=/pages/survey.html";
       recommendationLink.textContent = "로그인하고 추천 받기";
       recommendationPosition.textContent = "게스트";
@@ -586,12 +600,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (response.status === 404 && result.data?.needsSurvey) {
-        recommendationTitle.textContent = "여행 MBTI 분석이 필요합니다";
+        recommendationTitle.textContent = "여행 성향 분석이 필요합니다";
         recommendationSubtitle.textContent =
           "12개 질문에 답하고 나만의 국내 여행지를 추천받아 보세요.";
         recommendationLink.textContent = "성향 분석 시작";
         renderRecommendationState(
-          "아직 저장된 여행 MBTI 결과가 없습니다.",
+          "아직 저장된 여행 성향 결과가 없습니다.",
           "여행 성향 분석하기",
         );
         return;
@@ -608,19 +622,29 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const { mbtiType, recommendations } = result.data;
-      recommendationTitle.textContent = `${mbtiType} 맞춤 여행지 TOP ${recommendations.length}`;
-      recommendationSubtitle.textContent =
-        "한 장씩 넘겨보며 가장 마음에 드는 여행지를 골라보세요.";
+      const visibleRecommendations = recommendations.filter(hasDestinationImage);
+      const travelerTitle = getTravelerTitle(mbtiType);
+      recommendationTitle.textContent =
+        `맞춤 여행지 TOP ${visibleRecommendations.length}`;
+      recommendationSubtitle.replaceChildren(
+        createTravelerBadge(travelerTitle, {
+          variant: "subtle",
+          size: "compact",
+        }),
+        document.createTextNode(
+          " 한 장씩 넘겨보며 가장 마음에 드는 여행지를 골라보세요.",
+        ),
+      );
 
-      if (recommendations.length === 0) {
+      if (visibleRecommendations.length === 0) {
         renderRecommendationState(
-          "해당 MBTI 유형의 관광지 점수가 아직 없습니다.",
+          "이미지가 등록된 추천 관광지가 아직 없습니다.",
           "성향 다시 분석하기",
         );
         return;
       }
 
-      initializeFeaturedRecommendations(recommendations);
+      initializeFeaturedRecommendations(visibleRecommendations);
     } catch (error) {
       recommendationTitle.textContent = "추천 결과를 불러오지 못했습니다";
       recommendationSubtitle.textContent = error.message;
