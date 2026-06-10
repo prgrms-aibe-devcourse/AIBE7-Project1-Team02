@@ -2,77 +2,48 @@ document.addEventListener("DOMContentLoaded", () => {
   const authToken = sessionStorage.getItem("sb_access_token") || "";
   const list = document.getElementById("saved-trips-list");
   const searchInput = document.getElementById("trip-search");
-  const filters = document.getElementById("trip-status-filters");
   const detailModal = document.getElementById("trip-detail-modal");
   const detailClose = document.getElementById("trip-detail-close");
   const detailTitle = document.getElementById("trip-detail-title");
   const detailStatus = document.getElementById("trip-detail-status");
   const detailPeriod = document.getElementById("trip-detail-period");
   const detailBody = document.getElementById("trip-detail-body");
+  const dayDetailModal = document.getElementById("trip-day-detail-modal");
+  const dayDetailClose = document.getElementById("trip-day-detail-close");
+  const dayDetailTitle = document.getElementById("trip-day-detail-title");
+  const dayDetailStatus = document.getElementById("trip-day-detail-status");
+  const dayDetailPeriod = document.getElementById("trip-day-detail-period");
+  const dayDetailBody = document.getElementById("trip-day-detail-body");
   let trips = [];
-  let selectedStatus = "all";
+  let kakaoMapSdkPromise = null;
+  let detailRenderId = 0;
+  let dayRenderId = 0;
 
   if (!authToken) {
     window.location.replace("./login.html");
     return;
   }
 
-  const statusLabels = {
-    planning: "계획 중",
-    ongoing: "여행 중",
-    completed: "완료",
-  };
-
   function normalizeTrip(row) {
-    const destination = row.destination || row.destinations || {};
+    const items = row.items || row.trip_plan_items || [];
+    const firstDestination = items[0]?.destination || {};
 
     return {
-      tripId: row.tripId ?? row.trip_id,
+      tripId: row.planId ?? row.plan_id,
       title: row.title || "이름 없는 여행",
-      destinationName:
-        row.destinationName ||
-        row.destination_name ||
-        destination.destination_name ||
-        "국내 여행",
-      imageUrl: row.imageUrl || row.image_url || destination.image_url || "",
-      startDate: row.startDate || row.start_date || "",
-      endDate: row.endDate || row.end_date || "",
-      companionType: row.companionType || row.companion_type || "",
-      status: row.status || "planning",
+      destinationName: row.region || "국내 여행",
+      imageUrl: firstDestination.imageUrl || "",
+      mbtiType: row.mbtiType || row.mbti_type || "",
+      totalDays: row.totalDays ?? row.total_days ?? 1,
+      aiSummary: row.aiSummary || row.ai_summary || "",
       itineraryCount:
-        row.itineraryCount ??
-        row.itinerary_count ??
-        row.itineraries?.length ??
-        0,
-      itineraries: row.itineraries || [],
+        row.itemCount ?? row.item_count ?? items.length ?? 0,
+      itineraries: items,
     };
   }
 
-  function formatDate(dateText) {
-    if (!dateText) return "미정";
-    const date = new Date(`${dateText}T00:00:00`);
-    if (Number.isNaN(date.getTime())) return dateText;
-
-    return new Intl.DateTimeFormat("ko-KR", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }).format(date);
-  }
-
   function getPeriodText(trip) {
-    if (!trip.startDate && !trip.endDate) return "여행 날짜 미정";
-    return `${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}`;
-  }
-
-  function getDurationText(trip) {
-    if (!trip.startDate || !trip.endDate) return "미정";
-    const startDate = new Date(`${trip.startDate}T00:00:00`);
-    const endDate = new Date(`${trip.endDate}T00:00:00`);
-    const difference = endDate.getTime() - startDate.getTime();
-
-    if (!Number.isFinite(difference) || difference < 0) return "미정";
-    return `${Math.floor(difference / 86400000) + 1}일`;
+    return `${trip.totalDays}일 일정`;
   }
 
   function createNoImagePlaceholder(className) {
@@ -128,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const status = document.createElement("span");
     status.className = "saved-trip-status";
-    status.textContent = statusLabels[trip.status] || trip.status;
+    status.textContent = trip.mbtiType || "여행 계획";
     cover.append(media, status);
 
     const content = document.createElement("div");
@@ -145,9 +116,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const meta = document.createElement("div");
     meta.className = "saved-trip-meta";
     [
-      ["여행 기간", getDurationText(trip)],
-      ["동반자", trip.companionType || "미정"],
-      ["세부 일정", `${trip.itineraryCount}개`],
+      ["여행 기간", getPeriodText(trip)],
+      ["여행 성향", trip.mbtiType || "미정"],
+      ["방문 여행지", `${trip.itineraryCount}개`],
     ].forEach(([label, value]) => {
       const item = document.createElement("div");
       const labelElement = document.createElement("span");
@@ -173,13 +144,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderTrips() {
     const searchText = searchInput.value.trim().toLowerCase();
     const filteredTrips = trips.filter((trip) => {
-      const matchesStatus =
-        selectedStatus === "all" || trip.status === selectedStatus;
       const matchesSearch =
         !searchText ||
         trip.title.toLowerCase().includes(searchText) ||
         trip.destinationName.toLowerCase().includes(searchText);
-      return matchesStatus && matchesSearch;
+      return matchesSearch;
     });
 
     list.innerHTML = "";
@@ -188,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
         trips.length === 0 ? "저장된 여행 일정이 없습니다" : "검색 결과가 없습니다",
         trips.length === 0
           ? "새로운 여행을 만들면 이곳에서 일정을 확인할 수 있습니다."
-          : "검색어 또는 상태 필터를 변경해 보세요.",
+          : "검색어를 변경해 보세요.",
         trips.length === 0 ? "새 여행 만들기" : "",
       );
       return;
@@ -210,11 +179,356 @@ document.addEventListener("DOMContentLoaded", () => {
     }, new Map());
   }
 
+  function getDestination(item) {
+    return item.destination || item.destinations || {};
+  }
+
+  function getDestinationName(item) {
+    const destination = getDestination(item);
+    return (
+      destination.destinationName ||
+      destination.destination_name ||
+      "이름 없는 여행지"
+    );
+  }
+
+  function getItemId(item, index) {
+    return item.itemId ?? item.item_id ?? index;
+  }
+
+  function getCoordinate(item) {
+    const destination = getDestination(item);
+    if (
+      destination.latitude === null ||
+      destination.latitude === undefined ||
+      destination.longitude === null ||
+      destination.longitude === undefined
+    ) {
+      return null;
+    }
+
+    const latitude = Number(destination.latitude);
+    const longitude = Number(destination.longitude);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return null;
+    }
+
+    return { latitude, longitude };
+  }
+
+  function escapeHtml(text) {
+    return String(text || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function createMarkerInfoContent(item) {
+    const destination = getDestination(item);
+    const imageUrl = destination.imageUrl || destination.image_url || "";
+    const safeName = escapeHtml(getDestinationName(item));
+    const media = imageUrl
+      ? `<img src="${escapeHtml(imageUrl)}" alt="${safeName}" />`
+      : '<div class="trip-marker-info-empty">이미지 없음</div>';
+
+    return [
+      '<div class="trip-marker-info">',
+      `<div class="trip-marker-info-media">${media}</div>`,
+      `<strong>${safeName}</strong>`,
+      "</div>",
+    ].join("");
+  }
+
+  async function loadKakaoMapSdk() {
+    if (window.kakao?.maps) {
+      return window.kakao.maps;
+    }
+    if (kakaoMapSdkPromise) {
+      return kakaoMapSdkPromise;
+    }
+
+    kakaoMapSdkPromise = fetch("/api/config")
+      .then((response) => response.json())
+      .then(
+        (result) =>
+          new Promise((resolve, reject) => {
+            const appKey = result.data?.kakaoJavascriptKey;
+            if (!appKey) {
+              reject(new Error("카카오맵 JavaScript 키가 설정되지 않았습니다."));
+              return;
+            }
+
+            const script = document.createElement("script");
+            script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false`;
+            script.onload = () => {
+              if (!window.kakao?.maps) {
+                reject(new Error("카카오맵을 초기화하지 못했습니다."));
+                return;
+              }
+              window.kakao.maps.load(() => resolve(window.kakao.maps));
+            };
+            script.onerror = () => {
+              reject(new Error("카카오맵을 불러오지 못했습니다."));
+            };
+            document.head.appendChild(script);
+          }),
+      )
+      .catch((error) => {
+        kakaoMapSdkPromise = null;
+        throw error;
+      });
+
+    return kakaoMapSdkPromise;
+  }
+
+  function createDestinationDetail(item) {
+    const destination = getDestination(item);
+    const detail = document.createElement("div");
+    detail.className = "trip-place-detail";
+
+    const address = document.createElement("p");
+    address.className = "trip-place-address";
+    address.innerHTML = '<i data-lucide="map-pin"></i>';
+    const addressText = document.createElement("span");
+    addressText.textContent =
+      destination.address ||
+      [destination.province, destination.city].filter(Boolean).join(" ") ||
+      "주소 정보 없음";
+    address.appendChild(addressText);
+
+    const description = document.createElement("p");
+    description.textContent =
+      destination.description || "등록된 여행지 설명이 없습니다.";
+    detail.append(address, description);
+
+    if (item.memo) {
+      const memo = document.createElement("p");
+      memo.className = "trip-place-memo";
+      memo.textContent = `일정 메모: ${item.memo}`;
+      detail.appendChild(memo);
+    }
+
+    return detail;
+  }
+
+  function createDestinationCard(item, itemIndex, selectedItemId, onSelect) {
+    const destination = getDestination(item);
+    const itemId = item.itemId ?? item.item_id ?? itemIndex;
+    const card = document.createElement("article");
+    card.className = "trip-place-card";
+    card.classList.toggle("active", itemId === selectedItemId);
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-expanded", itemId === selectedItemId ? "true" : "false");
+
+    const media = document.createElement("div");
+    media.className = "trip-place-media";
+    if (destination.imageUrl || destination.image_url) {
+      const image = document.createElement("img");
+      image.src = destination.imageUrl || destination.image_url;
+      image.alt = getDestinationName(item);
+      image.addEventListener("error", () => {
+        image.replaceWith(createNoImagePlaceholder("trip-place-no-image"));
+        window.lucide?.createIcons();
+      });
+      media.appendChild(image);
+    } else {
+      media.appendChild(createNoImagePlaceholder("trip-place-no-image"));
+    }
+
+    const content = document.createElement("div");
+    content.className = "trip-place-card-content";
+    const order = document.createElement("span");
+    order.className = "trip-place-order";
+    order.textContent = `${itemIndex + 1}번째 여행지`;
+    const name = document.createElement("strong");
+    name.textContent = getDestinationName(item);
+    content.append(order, name);
+
+    if (itemId === selectedItemId) {
+      content.appendChild(createDestinationDetail(item));
+    }
+
+    card.append(media, content);
+    card.addEventListener("click", () => onSelect(itemId));
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        onSelect(itemId);
+      }
+    });
+    return card;
+  }
+
+  async function createDayMap(container, items, onSelect) {
+    const mapItems = items
+      .map((item, index) => ({
+        item,
+        index,
+        itemId: getItemId(item, index),
+        coordinate: getCoordinate(item),
+      }))
+      .filter(({ coordinate }) => coordinate);
+
+    if (mapItems.length === 0) {
+      container.classList.add("trip-map-empty");
+      container.textContent = "이 DAY에는 지도에 표시할 좌표가 없습니다.";
+      return;
+    }
+
+    try {
+      const maps = await loadKakaoMapSdk();
+      container.classList.remove("trip-map-empty");
+      container.textContent = "";
+      const selectedMapItem = mapItems[0];
+      const center = new maps.LatLng(
+        selectedMapItem.coordinate.latitude,
+        selectedMapItem.coordinate.longitude,
+      );
+      const map = new maps.Map(container, {
+        center,
+        level: mapItems.length === 1 ? 4 : 8,
+      });
+      const bounds = new maps.LatLngBounds();
+      let openedInfoWindow = null;
+      const markers = new Map();
+
+      function openInfoWindow(markerData) {
+        if (!markerData) return;
+        if (openedInfoWindow) {
+          openedInfoWindow.close();
+        }
+        markerData.infoWindow.open(map, markerData.marker);
+        openedInfoWindow = markerData.infoWindow;
+      }
+
+      mapItems.forEach(({ item, itemId, coordinate }) => {
+        const position = new maps.LatLng(
+          coordinate.latitude,
+          coordinate.longitude,
+        );
+        const marker = new maps.Marker({ map, position });
+        const infoWindow = new maps.InfoWindow({
+          content: createMarkerInfoContent(item),
+          removable: true,
+        });
+        bounds.extend(position);
+        markers.set(itemId, { infoWindow, marker, position });
+        maps.event.addListener(marker, "click", () => {
+          openInfoWindow(markers.get(itemId));
+          onSelect(itemId, { fromMap: true });
+        });
+      });
+
+      if (mapItems.length > 1) {
+        map.setBounds(bounds);
+      }
+
+      return {
+        focusItem(itemId) {
+          const markerData = markers.get(itemId);
+          if (!markerData) return;
+          map.panTo(markerData.position);
+          openInfoWindow(markerData);
+        },
+      };
+    } catch (error) {
+      container.classList.add("trip-map-empty");
+      container.textContent = error.message;
+      return null;
+    }
+  }
+
+  function renderDayDetail(trip, dayNumber, dayItems) {
+    dayRenderId += 1;
+    const currentDayRenderId = dayRenderId;
+    let selectedItemId = null;
+    let dayMapController = null;
+
+    dayDetailStatus.textContent = trip.mbtiType || "DAY ROUTE";
+    dayDetailTitle.textContent = `DAY ${dayNumber} 일정과 루트`;
+    dayDetailPeriod.textContent =
+      `${trip.destinationName} · ${dayItems.length}곳`;
+    dayDetailBody.innerHTML = "";
+
+    const dayContent = document.createElement("section");
+    dayContent.className = "trip-day-content";
+    const places = document.createElement("div");
+    places.className = "trip-day-places";
+    const placesHeader = document.createElement("div");
+    placesHeader.className = "trip-day-section-header";
+    placesHeader.innerHTML = `<span>DAY ${dayNumber}</span><strong>여행지 일정</strong>`;
+    const placeList = document.createElement("div");
+    placeList.className = "trip-place-list";
+    places.append(placesHeader, placeList);
+
+    const mapSection = document.createElement("div");
+    mapSection.className = "trip-day-map-section";
+    const mapHeader = document.createElement("div");
+    mapHeader.className = "trip-day-section-header";
+    mapHeader.innerHTML = "<span>ROUTE</span><strong>여행지 위치</strong>";
+    const mapContainer = document.createElement("div");
+    mapContainer.className = "trip-day-map";
+    mapContainer.textContent = "지도를 불러오는 중입니다.";
+    mapSection.append(mapHeader, mapContainer);
+    dayContent.append(places, mapSection);
+    dayDetailBody.appendChild(dayContent);
+
+    const renderPlaceList = () => {
+      placeList.innerHTML = "";
+      dayItems.forEach((item, itemIndex) => {
+        placeList.appendChild(
+          createDestinationCard(item, itemIndex, selectedItemId, selectItem),
+        );
+      });
+      window.lucide?.createIcons();
+    };
+
+    const selectItem = (itemId, options = {}) => {
+      selectedItemId = itemId;
+      renderPlaceList();
+      if (!options.fromMap) {
+        dayMapController?.focusItem(itemId);
+      }
+    };
+
+    renderPlaceList();
+    requestAnimationFrame(async () => {
+      if (currentDayRenderId !== dayRenderId) return;
+      dayMapController = await createDayMap(mapContainer, dayItems, selectItem);
+    });
+  }
+
+  function showDayDetailModal(trip, dayNumber, dayItems) {
+    renderDayDetail(trip, dayNumber, dayItems);
+    dayDetailModal.classList.add("active");
+    dayDetailModal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    dayDetailClose.focus();
+  }
+
+  function closeDayDetailModal() {
+    dayRenderId += 1;
+    dayDetailModal.classList.remove("active");
+    dayDetailModal.setAttribute("aria-hidden", "true");
+  }
+
   function renderTripDetail(trip, itineraries) {
-    detailStatus.textContent = statusLabels[trip.status] || trip.status;
+    detailRenderId += 1;
+    detailStatus.textContent = trip.mbtiType || "여행 일정";
     detailTitle.textContent = trip.title;
     detailPeriod.textContent = `${trip.destinationName} · ${getPeriodText(trip)}`;
     detailBody.innerHTML = "";
+
+    if (trip.aiSummary) {
+      const summary = document.createElement("p");
+      summary.className = "trip-detail-summary";
+      summary.textContent = trip.aiSummary;
+      detailBody.appendChild(summary);
+    }
 
     if (itineraries.length === 0) {
       const state = document.createElement("div");
@@ -229,41 +543,39 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const groupedItineraries = groupItineraries(itineraries);
-    [...groupedItineraries.entries()]
+    const days = [...groupedItineraries.entries()]
       .sort(([firstDay], [secondDay]) => firstDay - secondDay)
-      .forEach(([dayNumber, dayItems]) => {
-        const daySection = document.createElement("section");
-        daySection.className = "trip-day";
-        const dayTitle = document.createElement("h3");
-        dayTitle.textContent = `DAY ${dayNumber}`;
-        daySection.appendChild(dayTitle);
+      .map(([dayNumber, dayItems]) => [
+        dayNumber,
+        dayItems.sort(
+          (firstItem, secondItem) =>
+            (firstItem.orderIndex ?? firstItem.order_index ?? 0) -
+            (secondItem.orderIndex ?? secondItem.order_index ?? 0),
+        ),
+      ]);
+    const dayGrid = document.createElement("nav");
+    dayGrid.className = "trip-day-grid";
+    dayGrid.setAttribute("aria-label", "여행 일차 선택");
+    detailBody.appendChild(dayGrid);
 
-        dayItems
-          .sort(
-            (firstItem, secondItem) =>
-              (firstItem.sortOrder ?? firstItem.sort_order ?? 0) -
-              (secondItem.sortOrder ?? secondItem.sort_order ?? 0),
-          )
-          .forEach((item) => {
-            const schedule = document.createElement("div");
-            schedule.className = "trip-schedule-item";
-            const time = document.createElement("span");
-            time.className = "trip-schedule-time";
-            time.textContent = item.startTime || item.start_time || "--:--";
-            const content = document.createElement("div");
-            content.className = "trip-schedule-content";
-            const location = document.createElement("strong");
-            location.textContent =
-              item.locationName || item.location_name || "방문 장소";
-            const description = document.createElement("p");
-            description.textContent = item.description || "등록된 설명이 없습니다.";
-            content.append(location, description);
-            schedule.append(time, content);
-            daySection.appendChild(schedule);
-          });
-
-        detailBody.appendChild(daySection);
+    days.forEach(([dayNumber, dayItems]) => {
+      const dayButton = document.createElement("button");
+      dayButton.className = "trip-day-card trip-day-card-large";
+      dayButton.type = "button";
+      const previewNames = dayItems
+        .slice(0, 3)
+        .map(getDestinationName)
+        .join(" · ");
+      dayButton.innerHTML = [
+        `<span>DAY ${dayNumber}</span>`,
+        `<strong>${dayItems.length}곳의 일정</strong>`,
+        `<small>${previewNames || "저장된 여행지를 확인하세요"}</small>`,
+      ].join("");
+      dayButton.addEventListener("click", () => {
+        showDayDetailModal(trip, dayNumber, dayItems);
       });
+      dayGrid.appendChild(dayButton);
+    });
   }
 
   function showDetailModal() {
@@ -274,6 +586,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function closeDetailModal() {
+    detailRenderId += 1;
+    closeDayDetailModal();
     detailModal.classList.remove("active");
     detailModal.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
@@ -294,10 +608,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json().catch(() => ({}));
 
       if (response.ok && result.success) {
-        const detail = result.data?.trip || result.data || {};
+        const detail = result.data?.plan || result.data || {};
         renderTripDetail(
           { ...trip, ...normalizeTrip(detail) },
-          detail.itineraries || result.data?.itineraries || [],
+          detail.items || result.data?.items || [],
         );
       }
     } catch {
@@ -331,7 +645,7 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(result.message || "저장된 일정을 불러오지 못했습니다.");
       }
 
-      const rows = result.data?.trips || result.data || [];
+      const rows = result.data?.plans || result.data || [];
       trips = Array.isArray(rows) ? rows.map(normalizeTrip) : [];
       renderTrips();
     } catch (error) {
@@ -353,7 +667,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.querySelectorAll(".nav-item").forEach((item) => {
       item.classList.remove("active");
-      if (item.getAttribute("data-path") === "/pages/trip-create.html") {
+      if (item.getAttribute("data-path") === "/pages/saved-trips.html") {
         item.classList.add("active");
       }
     });
@@ -361,21 +675,21 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   searchInput.addEventListener("input", renderTrips);
-  filters.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-status]");
-    if (!button) return;
-    selectedStatus = button.dataset.status;
-    filters.querySelectorAll("button").forEach((filterButton) => {
-      filterButton.classList.toggle("active", filterButton === button);
-    });
-    renderTrips();
-  });
   detailClose.addEventListener("click", closeDetailModal);
+  dayDetailClose.addEventListener("click", closeDayDetailModal);
   detailModal.addEventListener("click", (event) => {
     if (event.target === detailModal) closeDetailModal();
   });
+  dayDetailModal.addEventListener("click", (event) => {
+    if (event.target === dayDetailModal) closeDayDetailModal();
+  });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && detailModal.classList.contains("active")) {
+    if (event.key === "Escape" && dayDetailModal.classList.contains("active")) {
+      closeDayDetailModal();
+    } else if (
+      event.key === "Escape" &&
+      detailModal.classList.contains("active")
+    ) {
       closeDetailModal();
     }
   });
