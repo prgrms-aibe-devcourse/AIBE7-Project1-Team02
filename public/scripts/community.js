@@ -19,7 +19,15 @@ document.addEventListener("DOMContentLoaded", () => {
     currentUser?.user_metadata?.name ||
     currentUser?.email?.split("@")?.[0] ||
     "사용자";
-  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=random&color=fff&size=160`;
+  const userProfileImage = currentUser?.user_metadata?.profile_image || "";
+
+  function getAvatarUrl(profileImage, nickname) {
+    if (profileImage) return profileImage;
+    const name = nickname || "사용자";
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name.charAt(0))}&background=random&color=fff`;
+  }
+
+  const defaultAvatar = getAvatarUrl(userProfileImage, userNickname);
 
   const state = {
     supabaseUrl: "",
@@ -357,6 +365,27 @@ document.addEventListener("DOMContentLoaded", () => {
         state.hasMoreFeed = false;
       }
 
+      if (newPosts.length > 0) {
+        const userIds = [...new Set(newPosts.map((p) => p.user_id))].filter(Boolean);
+        if (userIds.length > 0) {
+          try {
+            const usersRes = await request(`${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`, { method: "GET" });
+            if (Array.isArray(usersRes)) {
+              const userMap = {};
+              usersRes.forEach((u) => (userMap[u.user_id] = u));
+              newPosts.forEach((p) => {
+                if (userMap[p.user_id]) {
+                  p.profile_image = userMap[p.user_id].profile_image;
+                  p.nickname = userMap[p.user_id].nickname || p.nickname;
+                }
+              });
+            }
+          } catch (e) {
+            console.error("작성자 프로필 조회 실패:", e);
+          }
+        }
+      }
+
       if (newPosts.length === 0 && state.feedPage === 0) {
         els.feed.innerHTML =
           '<div class="empty-feed">아직 게시글이 없습니다. 첫 게시글을 작성해보세요.</div>';
@@ -394,7 +423,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="travel-card-info">
                 <div class="travel-card-title">${escapeHtml(post.title || "무제")}</div>
                 <div class="travel-card-meta">
-                  <img src="https://ui-avatars.com/api/?name=${escapeAttr((post.nickname || userNickname).charAt(0))}&background=random&color=fff" alt="프로필" loading="lazy">
+                  <img src="${escapeAttr(getAvatarUrl(post.profile_image, post.nickname || userNickname))}" alt="프로필" loading="lazy">
                   <span>${escapeHtml(post.nickname || userNickname)}</span>
                 </div>
               </div>
@@ -555,7 +584,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const detailAuthorAvatar = document.getElementById("detail-author-avatar");
     if (detailAuthorAvatar) {
-      detailAuthorAvatar.src = `https://ui-avatars.com/api/?name=${escapeAttr(authorName.charAt(0))}&background=random&color=fff`;
+      detailAuthorAvatar.src = getAvatarUrl(post.profile_image, authorName);
       detailAuthorAvatar.hidden = false;
     }
 
@@ -700,7 +729,19 @@ document.addEventListener("DOMContentLoaded", () => {
       `${state.api.feed}?post_id=eq.${encodeURIComponent(postId)}&select=*`,
       { method: "GET" },
     );
-    return Array.isArray(rows) ? rows[0] : null;
+    const post = Array.isArray(rows) ? rows[0] : null;
+    if (post && post.user_id) {
+      try {
+        const usersRes = await request(`${state.api.users}?user_id=eq.${encodeURIComponent(post.user_id)}&select=profile_image,nickname`, { method: "GET" });
+        if (Array.isArray(usersRes) && usersRes[0]) {
+          post.profile_image = usersRes[0].profile_image;
+          post.nickname = usersRes[0].nickname || post.nickname;
+        }
+      } catch (e) {
+        console.error("작성자 프로필 조회 실패:", e);
+      }
+    }
+    return post;
   }
 
   async function toggleLike(post) {
@@ -1077,7 +1118,7 @@ document.addEventListener("DOMContentLoaded", () => {
     els.commentTextarea.value = "";
     const userAvatar = document.getElementById("comment-user-avatar");
     if (userAvatar)
-      userAvatar.src = `https://ui-avatars.com/api/?name=${escapeAttr((userNickname || "사용자").charAt(0))}&background=random&color=fff`;
+      userAvatar.src = getAvatarUrl(userProfileImage, userNickname);
     bringModalToFront(els.commentModal, 210);
     els.commentModal?.classList.add("active");
     updateBodyScroll();
@@ -1110,6 +1151,27 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     );
     state.comments = Array.isArray(rows) ? rows : [];
+    
+    if (state.comments.length > 0) {
+      const userIds = [...new Set(state.comments.map((c) => c.user_id))].filter(Boolean);
+      if (userIds.length > 0) {
+        try {
+          const usersRes = await request(`${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`, { method: "GET" });
+          if (Array.isArray(usersRes)) {
+            const userMap = {};
+            usersRes.forEach((u) => (userMap[u.user_id] = u));
+            state.comments.forEach((c) => {
+              if (userMap[c.user_id]) {
+                c.profile_image = userMap[c.user_id].profile_image;
+                c.nickname = userMap[c.user_id].nickname || c.nickname;
+              }
+            });
+          }
+        } catch (e) {
+          console.error("댓글 작성자 프로필 조회 실패:", e);
+        }
+      }
+    }
     
     if (userId) {
       try {
@@ -1181,7 +1243,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const isEditing =
         String(state.editingCommentId) === String(comment.comment_id);
       const authorName = comment.nickname || "사용자";
-      const avatarUrl = `https://ui-avatars.com/api/?name=${escapeAttr(authorName.charAt(0))}&background=random&color=fff`;
+      const avatarUrl = getAvatarUrl(comment.profile_image, authorName);
       const isLiked = state.likedCommentIds.includes(String(comment.comment_id));
       const likeCount = comment.likes && comment.likes.length > 0 ? comment.likes[0].count : 0;
 
