@@ -366,8 +366,20 @@ async function updateTripPlanStatus(supabaseClient, planId, status, userId) {
   return data ? mapTripPlan(data) : null;
 }
 
+async function deleteTripPlan(supabaseClient, planId, userId) {
+  const { error } = await supabaseClient
+    .from("trip_plans")
+    .delete()
+    .eq("plan_id", planId)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+  return true;
+}
+
 module.exports = {
   createTripPlan,
+  deleteTripPlan,
   getTripPlanById,
   getTripPlans,
   mapTripPlan,

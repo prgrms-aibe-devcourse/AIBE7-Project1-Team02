@@ -125,7 +125,11 @@
 
             <!-- Stats (Small) -->
             <div class="bento-item bento-small widget-stats mypage-stats-bento">
-              <div class="stat-number" style="color: var(--color-primary)">
+              <div
+                class="stat-number"
+                id="completed-trip-count"
+                style="color: var(--color-primary)"
+              >
                 0
               </div>
               <div class="stat-label" style="color: var(--color-primary-hover)">
@@ -134,10 +138,14 @@
               <div class="stat-bar" style="background: rgba(59, 130, 246, 0.2)">
                 <div
                   class="stat-bar-fill"
+                  id="completed-trip-stat-fill"
                   style="width: 0%; background: var(--color-primary)"
                 ></div>
               </div>
-              <span class="stat-sub" style="color: var(--color-text-muted)"
+              <span
+                class="stat-sub"
+                id="completed-trip-stat-sub"
+                style="color: var(--color-text-muted)"
                 >첫 여행을 기록해 보세요!</span
               >
             </div>
@@ -158,6 +166,7 @@
               </div>
               <div
                 class="trip-list-wrapper"
+                id="completed-trip-list"
                 style="
                   justify-content: center;
                   align-items: center;

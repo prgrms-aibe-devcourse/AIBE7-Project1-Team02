@@ -37,6 +37,13 @@ document.addEventListener("DOMContentLoaded", () => {
     currentUser = JSON.parse(sessionStorage.getItem(AUTH_KEYS.user) || "{}");
   } catch (e) {}
 
+  if (!authToken || !currentUser.id) {
+    const loginUrl = new URL("/pages/login.html", window.location.origin);
+    loginUrl.searchParams.set("redirect", "/pages/survey.html");
+    window.location.replace(loginUrl.href);
+    return;
+  }
+
   const headerUserName = document.getElementById("header-user-name");
   const headerUserAvatar = document.getElementById("header-user-avatar");
   const logoutBtn = document.getElementById("logout-btn");
@@ -57,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
       sessionStorage.removeItem(AUTH_KEYS.access);
       sessionStorage.removeItem(AUTH_KEYS.refresh);
       sessionStorage.removeItem(AUTH_KEYS.user);
-      window.location.replace("/public/pages/login.html");
+      window.location.replace("/pages/login.html");
     });
   }
 
