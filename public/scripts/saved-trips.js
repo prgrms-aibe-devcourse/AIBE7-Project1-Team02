@@ -1,7 +1,14 @@
 document.addEventListener("DOMContentLoaded", () => {
   const authToken = sessionStorage.getItem("sb_access_token") || "";
   const list = document.getElementById("saved-trips-list");
-  const searchInput = document.getElementById("trip-search");
+  const statusTabs = document.getElementById("trip-status-tabs");
+  const paginationNav = document.getElementById("trip-pagination");
+  const pagePrevBtn = document.getElementById("trip-page-prev");
+  const pageNextBtn = document.getElementById("trip-page-next");
+  const pageInfo = document.getElementById("trip-page-info");
+  let currentStatusFilter = "in_progress";
+  let currentPage = 1;
+  const itemsPerPage = 2;
   const detailModal = document.getElementById("trip-detail-modal");
   const detailClose = document.getElementById("trip-detail-close");
   const detailTitle = document.getElementById("trip-detail-title");
@@ -331,30 +338,51 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderTrips() {
-    const searchText = searchInput.value.trim().toLowerCase();
     const filteredTrips = trips.filter((trip) => {
-      const matchesSearch =
-        !searchText ||
-        trip.title.toLowerCase().includes(searchText) ||
-        trip.destinationName.toLowerCase().includes(searchText);
-      return matchesSearch;
+      const statusText = getTripStatusText(trip);
+      if (currentStatusFilter === "planning") return statusText === "시작 전";
+      if (currentStatusFilter === "in_progress") return statusText === "여행 진행중";
+      if (currentStatusFilter === "completed") return statusText === "완료한 여행";
+      return true;
     });
+
+    const totalPages = Math.max(1, Math.ceil(filteredTrips.length / itemsPerPage));
+    if (currentPage > totalPages) {
+      currentPage = totalPages;
+    }
 
     list.innerHTML = "";
     if (filteredTrips.length === 0) {
+      if (paginationNav) paginationNav.hidden = true;
       createState(
-        trips.length === 0 ? "저장된 여행 일정이 없습니다" : "검색 결과가 없습니다",
+        trips.length === 0 ? "저장된 여행 일정이 없습니다" : "조건에 맞는 일정이 없습니다",
         trips.length === 0
           ? "새로운 여행을 만들면 이곳에서 일정을 확인할 수 있습니다."
-          : "검색어를 변경해 보세요.",
+          : "다른 상태의 탭을 확인해 보세요.",
         trips.length === 0 ? "새 여행 만들기" : "",
       );
       return;
     }
 
-    filteredTrips.forEach((trip) => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedTrips = filteredTrips.slice(startIndex, endIndex);
+
+    paginatedTrips.forEach((trip) => {
       list.appendChild(createTripCard(trip));
     });
+
+    if (paginationNav) {
+      if (totalPages > 1) {
+        paginationNav.hidden = false;
+        pageInfo.textContent = `${currentPage} / ${totalPages}`;
+        pagePrevBtn.disabled = currentPage === 1;
+        pageNextBtn.disabled = currentPage === totalPages;
+      } else {
+        paginationNav.hidden = true;
+      }
+    }
+
     lucide.createIcons();
   }
 
@@ -975,7 +1003,40 @@ document.addEventListener("DOMContentLoaded", () => {
     lucide.createIcons();
   }
 
-  searchInput.addEventListener("input", renderTrips);
+  if (statusTabs) {
+    statusTabs.addEventListener("click", (event) => {
+      const button = event.target.closest("button[role='tab']");
+      if (!button) return;
+      
+      const filter = button.getAttribute("data-filter");
+      if (filter && filter !== currentStatusFilter) {
+        currentStatusFilter = filter;
+        currentPage = 1;
+        
+        statusTabs.querySelectorAll("button[role='tab']").forEach(btn => {
+          btn.setAttribute("aria-selected", btn === button ? "true" : "false");
+        });
+        
+        renderTrips();
+      }
+    });
+  }
+
+  if (pagePrevBtn) {
+    pagePrevBtn.addEventListener("click", () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTrips();
+      }
+    });
+  }
+
+  if (pageNextBtn) {
+    pageNextBtn.addEventListener("click", () => {
+      currentPage++;
+      renderTrips();
+    });
+  }
   detailClose.addEventListener("click", closeDetailModal);
   dayDetailClose.addEventListener("click", closeDayDetailModal);
   tripStartButton?.addEventListener("click", startActiveTrip);
