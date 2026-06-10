@@ -231,11 +231,14 @@ body,
   inset: 0;
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(8px);
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
   z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 #comment-modal {
@@ -251,7 +254,8 @@ body,
 }
 
 .modal-overlay.active {
-  display: flex;
+  opacity: 1;
+  visibility: visible;
 }
 
 .modal-content {
@@ -262,6 +266,14 @@ body,
   border-radius: 24px;
   box-shadow: 0 30px 60px rgba(15, 23, 42, 0.2);
   position: relative;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+}
+
+.modal-overlay.active .modal-content {
+  transform: translateY(0);
+  opacity: 1;
 }
 
 .community-modal {
@@ -1445,6 +1457,7 @@ body,
   gap: 0.35rem;
   padding: 0.5rem 0.85rem;
   border-radius: 99px;
+  font-family: inherit;
   font-size: 0.85rem;
   font-weight: 600;
   border: 1px solid var(--color-border);

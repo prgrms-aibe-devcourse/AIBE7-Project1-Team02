@@ -55,6 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentGalleryIndex: 0,
     likedCommentIds: [],
     currentWizardStep: 1,
+    currentTagFilter: null,
   };
 
   const els = {
@@ -223,14 +224,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const btnBold = document.querySelector('.toolbar-btn[data-cmd="bold"]');
       if (btnBold) {
-        btnBold.classList.toggle('active', isBold);
+        btnBold.classList.toggle("active", isBold);
         btnBold.disabled = isHeading;
         btnBold.style.opacity = isHeading ? "0.4" : "1";
         btnBold.style.cursor = isHeading ? "not-allowed" : "pointer";
       }
-      
-      document.querySelector('.toolbar-btn[data-cmd="italic"]')?.classList.toggle('active', isItalic);
-      document.querySelector('.toolbar-btn[data-cmd="heading"]')?.classList.toggle('active', isHeading);
+
+      document
+        .querySelector('.toolbar-btn[data-cmd="italic"]')
+        ?.classList.toggle("active", isItalic);
+      document
+        .querySelector('.toolbar-btn[data-cmd="heading"]')
+        ?.classList.toggle("active", isHeading);
     }
 
     els.postSummary?.addEventListener("keyup", updateToolbarState);
@@ -242,7 +247,7 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         const cmd = btn.dataset.cmd;
         if (!cmd) return;
-        
+
         if (document.activeElement !== els.postSummary) {
           els.postSummary?.focus();
         }
@@ -436,10 +441,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const from = state.feedPage * state.feedLimit;
-      const feedPromise = request(
-        `${state.api.feed}?select=*&order=created_at.desc&limit=${state.feedLimit}&offset=${from}`,
-        { method: "GET" },
-      );
+      let url = `${state.api.feed}?select=*&order=created_at.desc&limit=${state.feedLimit}&offset=${from}`;
+      if (state.currentTagFilter) {
+        url += `&tags=ilike.*${encodeURIComponent(state.currentTagFilter)}*`;
+      }
+      const feedPromise = request(url, { method: "GET" });
 
       const [rows] = await Promise.all([feedPromise, likesPromise]);
 
@@ -566,7 +572,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function getTagEmoji(tagName) {
+  function getTagIcon(tagName) {
     const text = String(tagName).toLowerCase();
     if (
       text.includes("부산") ||
@@ -574,23 +580,27 @@ document.addEventListener("DOMContentLoaded", () => {
       text.includes("해운대") ||
       text.includes("광안리")
     )
-      return "🌊";
+      return '<i data-lucide="palmtree"></i>';
     if (
       text.includes("일본") ||
       text.includes("도쿄") ||
       text.includes("교토") ||
       text.includes("오사카")
     )
-      return "🗾";
-    if (text.includes("제주")) return "🍊";
-    if (text.includes("산") || text.includes("등산")) return "⛰️";
-    if (text.includes("카페") || text.includes("커피")) return "☕";
-    if (text.includes("맛집") || text.includes("식당")) return "🍴";
-    if (text.includes("호텔") || text.includes("숙소")) return "🏨";
-    if (text.includes("가족")) return "👨‍👩‍👧‍👦";
-    if (text.includes("친구")) return "👯";
-    if (text.includes("혼자")) return "🎒";
-    return "✨";
+      return '<i data-lucide="ticket"></i>';
+    if (text.includes("제주")) return '<i data-lucide="sun"></i>';
+    if (text.includes("산") || text.includes("등산"))
+      return '<i data-lucide="mountain"></i>';
+    if (text.includes("카페") || text.includes("커피"))
+      return '<i data-lucide="coffee"></i>';
+    if (text.includes("맛집") || text.includes("식당"))
+      return '<i data-lucide="utensils"></i>';
+    if (text.includes("호텔") || text.includes("숙소"))
+      return '<i data-lucide="bed"></i>';
+    if (text.includes("가족")) return '<i data-lucide="heart"></i>';
+    if (text.includes("친구")) return '<i data-lucide="smile"></i>';
+    if (text.includes("혼자")) return '<i data-lucide="backpack"></i>';
+    return '<i data-lucide="hash"></i>';
   }
 
   async function renderTags() {
@@ -599,14 +609,41 @@ document.addEventListener("DOMContentLoaded", () => {
       { method: "GET" },
     );
     const tags = Array.isArray(rows) ? rows : [];
-    els.popularTags.innerHTML = tags.length
-      ? tags
-          .map(
-            (tag) =>
-              `<span class="keyword-chip">${getTagEmoji(tag.tag_name)} #${escapeHtml(tag.tag_name)}</span>`,
-          )
-          .join("")
-      : '<span class="keyword-chip">✨ #여행</span>';
+
+    let html = "";
+    const isAllActive = state.currentTagFilter === null ? " active" : "";
+    html += `<button class="keyword-chip${isAllActive}" data-tag="all"><i data-lucide="globe"></i> 전체</button>`;
+
+    if (tags.length > 0) {
+      html += tags
+        .map((tag) => {
+          const isActive =
+            state.currentTagFilter === tag.tag_name ? " active" : "";
+          return `<button class="keyword-chip${isActive}" data-tag="${escapeAttr(tag.tag_name)}">${getTagIcon(tag.tag_name)} ${escapeHtml(tag.tag_name)}</button>`;
+        })
+        .join("");
+    }
+
+    els.popularTags.innerHTML = html;
+
+    if (window.lucide) {
+      window.lucide.createIcons({ root: els.popularTags });
+    }
+
+    els.popularTags.querySelectorAll(".keyword-chip").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tag = btn.dataset.tag;
+        if (!tag) return;
+
+        if (tag === "all") {
+          state.currentTagFilter = null;
+        } else {
+          state.currentTagFilter = state.currentTagFilter === tag ? null : tag;
+        }
+
+        refreshCommunity();
+      });
+    });
   }
 
   async function fetchUserLikes() {
@@ -967,6 +1004,7 @@ document.addEventListener("DOMContentLoaded", () => {
     state.postSummarySelectionEnd = 0;
     state.draftTags = [];
     els.postForm?.reset();
+    if (els.postSummary) els.postSummary.innerHTML = "";
 
     renderDraftTags();
     renderPostImageGallery();
@@ -984,7 +1022,7 @@ document.addEventListener("DOMContentLoaded", () => {
     state.postImages = [...state.existingPostImages];
 
     els.postTitle.value = post.title || "";
-    els.postSummary.value = post.summary || "";
+    if (els.postSummary) els.postSummary.innerHTML = post.summary || "";
 
     state.draftTags = splitTags(post.tags);
     renderDraftTags();
@@ -1047,9 +1085,25 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.key === "Enter" || e.code === "Space" || e.key === ",") {
         e.preventDefault();
         const tags = splitTags(els.postTags.value);
+        let countExceeded = false;
+
         tags.forEach((t) => {
+          if (t.length > 10) {
+            alert(
+              `태그는 최대 10자까지만 입력 가능합니다: '${t.slice(0, 10)}...'`,
+            );
+            return;
+          }
+          if (state.draftTags.length >= 5) {
+            if (!countExceeded) {
+              alert("태그는 최대 5개까지만 등록할 수 있습니다.");
+              countExceeded = true;
+            }
+            return;
+          }
           if (!state.draftTags.includes(t)) state.draftTags.push(t);
         });
+
         renderDraftTags();
         els.postTags.value = "";
       } else if (e.key === "Backspace" && els.postTags.value === "") {
@@ -1241,7 +1295,10 @@ document.addEventListener("DOMContentLoaded", () => {
       els.postTitleCount.textContent = `${titleLength}/${titleMax}`;
     }
     if (els.postSummaryCount) {
-      const summaryLength = (els.postSummary?.innerText || "").replace(/\n/g, "").length;
+      const summaryLength = (els.postSummary?.innerText || "").replace(
+        /\n/g,
+        "",
+      ).length;
       els.postSummaryCount.textContent = `${summaryLength.toLocaleString()}/2000자`;
     }
     if (els.postImageCount) {
