@@ -6,11 +6,15 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 
 ## 구현 상태
 
-2026년 6월 9일 기준 Express 서버에 구현된 API는 아래 세 개다.
+2026년 6월 9일 기준 Express 서버에 구현된 API는 아래 네 개다.
 
 - `GET /api/health`
 - `GET /api/config`
 - `GET /api/destinations/recommended`
+- `GET /api/destinations/recommended/filters`
+- `GET /api/user/bookmarks`
+- `POST /api/user/bookmarks`
+- `DELETE /api/user/bookmarks/:destinationId`
 
 인증은 현재 프런트엔드에서 Supabase Auth를 직접 사용한다. 아래 표에서
 `PLANNED`로 표시한 API는 명세만 정의된 상태다.
@@ -42,7 +46,11 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | --- | --- | --- | --- | --- | --- | --- |
 | DONE | GET | `/api/health` | 없음 | 서버 상태, 확인 시각 | 서버 미실행 | 백엔드 |
 | DONE | GET | `/api/config` | 없음 | 브라우저용 Supabase URL, Anon Key | 없음, 환경 변수 검증 미구현 | 백엔드 |
-| DONE | GET | `/api/destinations/recommended` | Authorization Bearer Token, 선택 Query `limit` | 사용자 MBTI와 점수 상위 관광지 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
+| DONE | GET | `/api/destinations/recommended` | Authorization Bearer Token, 선택 Query `limit`, `page`, `pageSize`, `province`(복수), `keyword`(복수) | 사용자 MBTI와 점수순 관광지, 페이지 정보 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
+| DONE | GET | `/api/destinations/recommended/filters` | Authorization Bearer Token | 추천 데이터의 지역, 키워드 옵션 | 로그인 만료, MBTI 미검사, Supabase 조회 실패 | 백엔드 |
+| DONE | GET | `/api/user/bookmarks` | Authorization Bearer Token | 저장한 여행지 ID 목록 | 로그인 만료, Supabase 조회 실패 | 백엔드 |
+| DONE | POST | `/api/user/bookmarks` | Authorization Bearer Token, `destinationId` | 북마크 저장 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 저장 실패 | 백엔드 |
+| DONE | DELETE | `/api/user/bookmarks/:destinationId` | Authorization Bearer Token | 북마크 해제 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 삭제 실패 | 백엔드 |
 | PLANNED | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
 | PLANNED | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | PLANNED | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
@@ -89,7 +97,8 @@ Response:
 
 ### GET /api/destinations/recommended
 
-로그인 사용자의 `travel_mbti_results.mbti_type`을 조회한 뒤,
+로그인 사용자의 `travel_mbti_results.mbti_type`을 조회하거나 공개 조회용
+`mbtiType` 쿼리를 받은 뒤,
 `destination_mbti_scores`에 저장된 해당 유형의 점수를 내림차순으로
 정렬한다. 관광지 기본 정보는 `destinations`, 키워드는
 `destination_keywords`에서 함께 조회한다.
@@ -100,10 +109,24 @@ Request Header:
 Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
 ```
 
+공개 조회에서는 Authorization Header 없이 `mbtiType` 쿼리를 전달한다.
+
 Query:
 
 ```text
-limit: 선택, 기본 6, 최대 10
+mbtiType: 선택, 공개 조회용 MBTI 유형, 16개 유형만 허용
+limit: 선택, 상위 추천용 기본 6, 최대 10
+page: 선택, 전체 탐색용 페이지 번호, 기본 1
+pageSize: 선택, 전체 탐색용 페이지 크기, 기본 12, 최대 24
+province: 선택/반복 가능, 광역시/도 일치 필터
+keyword: 선택/반복 가능, 여행지 키워드 일치 필터
+```
+
+복수 `province`는 지역 간 OR, 복수 `keyword`는 키워드 간 OR로 처리한다.
+지역 필터와 키워드 필터를 함께 전달하면 두 분류 사이는 AND로 처리한다.
+
+```http
+GET /api/destinations/recommended?page=1&pageSize=12&province=서울특별시&province=부산광역시&keyword=힐링&keyword=자연
 ```
 
 Response:
@@ -126,13 +149,20 @@ Response:
         "reason": "contentType:12, textRule:1, textRule:2",
         "keywords": ["자연", "명소", "오션뷰"]
       }
-    ]
+    ],
+    "pagination": {
+      "page": 1,
+      "pageSize": 12,
+      "totalCount": 600,
+      "totalPages": 50
+    }
   },
   "message": "MBTI 맞춤 여행지 추천 조회 성공"
 }
 ```
 
 동점인 경우 `destination_id` 오름차순으로 정렬한다.
+`limit`만 전달한 상위 추천 조회에서는 `pagination`을 생략한다.
 
 Error Case:
 
@@ -143,6 +173,120 @@ Error Case:
     "needsSurvey": true
   },
   "message": "저장된 여행 MBTI 결과가 없습니다."
+}
+```
+
+### GET /api/destinations/recommended/filters
+
+로그인 사용자의 여행 MBTI 추천 데이터 또는 공개 조회용 `mbtiType`에
+존재하는 광역시/도와 키워드 목록을 반환한다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+공개 조회에서는 Authorization Header 없이 `mbtiType` 쿼리를 전달한다.
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "mbtiType": "INFP",
+    "provinces": ["강원특별자치도", "제주특별자치도"],
+    "keywords": ["자연", "힐링"]
+  },
+  "message": "추천 여행지 필터 조회 성공"
+}
+```
+
+### GET /api/user/bookmarks
+
+로그인 사용자가 북마크한 여행지 ID 목록을 조회한다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "destinationIds": [93, 14],
+    "bookmarks": [
+      {
+        "destinationId": 93,
+        "createdAt": "2026-06-09T12:00:00Z",
+        "destination": {
+          "destinationId": 93,
+          "destinationName": "가파도 소망전망대",
+          "description": "제주 본 섬과 한라산, 바다를 조망할 수 있는 장소입니다.",
+          "address": "제주특별자치도 서귀포시 대정읍 가파리 513",
+          "province": "제주특별자치도",
+          "city": "서귀포시",
+          "imageUrl": "https://example.com/destination.jpg"
+        }
+      }
+    ]
+  },
+  "message": "북마크 목록 조회 성공"
+}
+```
+
+### POST /api/user/bookmarks
+
+로그인 사용자의 여행지 북마크를 저장한다. 동일 여행지는 중복 저장하지
+않는다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+Request:
+
+```json
+{
+  "destinationId": 93
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "bookmark_id": 1,
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "destination_id": 93,
+    "created_at": "2026-06-09T12:00:00Z"
+  },
+  "message": "북마크 저장 성공"
+}
+```
+
+### DELETE /api/user/bookmarks/:destinationId
+
+로그인 사용자의 여행지 북마크를 해제한다.
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "destinationId": 93
+  },
+  "message": "북마크 해제 성공"
 }
 ```
 

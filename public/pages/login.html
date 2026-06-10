@@ -3,136 +3,119 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trip AI | 로그인 / 회원가입</title>
-    <style>
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background: linear-gradient(135deg, #f4f7f5, #e8f5ee);
-        color: #1a2b1f;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-      }
-      .wrap { width: min(100%, 480px); padding: 24px; }
-      .card {
-        background: #fff;
-        border: 1px solid #dfe7e1;
-        border-radius: 18px;
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
-        padding: 28px;
-      }
-      h1 { margin: 0 0 8px; font-size: 28px; }
-      p { margin: 0 0 20px; color: #4a6155; line-height: 1.5; }
-      .form-group { margin-bottom: 14px; }
-      label {
-        display: block;
-        margin-bottom: 6px;
-        font-size: 13px;
-        color: #4a6155;
-      }
-      input {
-        width: 100%;
-        padding: 12px 14px;
-        border: 1px solid #c9d6cf;
-        border-radius: 12px;
-        font-size: 14px;
-        outline: none;
-      }
-      input:focus {
-        border-color: #1a5c3a;
-        box-shadow: 0 0 0 3px rgba(26, 92, 58, 0.08);
-      }
-      .btn-row {
-        display: flex;
-        gap: 10px;
-        margin-top: 18px;
-      }
-      button {
-        border: 0;
-        border-radius: 12px;
-        padding: 12px 16px;
-        cursor: pointer;
-        font-weight: 700;
-      }
-      .primary {
-        background: #1a5c3a;
-        color: #fff;
-        flex: 1;
-      }
-      .secondary {
-        background: #e8f5ee;
-        color: #1a5c3a;
-      }
-      .alert,
-      .success {
-        display: none;
-        margin-top: 14px;
-        padding: 12px 14px;
-        border-radius: 12px;
-        white-space: pre-line;
-      }
-      .alert {
-        background: #fef7e0;
-        border: 1px solid #f7d56b;
-        color: #8a6500;
-      }
-      .success {
-        background: #e8f5ee;
-        border: 1px solid #b8ddc7;
-        color: #1a5c3a;
-      }
-      .sub {
-        margin-top: 18px;
-        font-size: 12px;
-        color: #6b7f73;
-        line-height: 1.5;
-      }
-    </style>
+    <title>로그인 | ExploraJourneys</title>
+    <meta
+      name="description"
+      content="ExploraJourneys에 로그인하고 여행 MBTI 추천과 일정 생성 기능을 사용해보세요."
+    />
+    <link rel="stylesheet" href="../styles/main.css" />
+    <link rel="stylesheet" href="../styles/auth.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
-    <div id="authWrap" class="wrap">
-      <div class="card">
-        <h1 id="title">로그인</h1>
-        <p id="subtitle">Supabase 계정으로 로그인하세요.</p>
+    <div class="app-container">
+      <div id="sidebar-container"></div>
 
-        <div id="alert" class="alert"></div>
+      <div class="main-wrapper">
+        <div id="header-container"></div>
 
-        <div id="nicknameWrap" class="form-group" style="display:none;">
-          <label for="nickname">닉네임</label>
-          <input id="nickname" type="text" placeholder="닉네임 입력" autocomplete="nickname" />
-        </div>
+        <main class="dashboard-content auth-page">
+          <section class="auth-layout" aria-labelledby="title">
+            <div class="auth-hero">
+              <span class="recommendation-eyebrow">WELCOME BACK</span>
+              <h1>여행 취향에 맞는 다음 목적지를 찾아볼까요?</h1>
+              <p>
+                로그인하면 저장된 여행 MBTI를 바탕으로 추천 여행지와 일정 생성
+                기능을 이어서 사용할 수 있습니다.
+              </p>
+              <div class="auth-benefits" aria-label="로그인 후 사용 가능한 기능">
+                <span><i data-lucide="sparkles"></i> MBTI 맞춤 추천</span>
+                <span><i data-lucide="map"></i> 여행 일정 생성</span>
+                <span><i data-lucide="bookmark"></i> 저장한 일정 확인</span>
+              </div>
+            </div>
 
-        <div class="form-group">
-          <label for="email">이메일</label>
-          <input id="email" type="email" placeholder="example@email.com" autocomplete="email" />
-        </div>
+            <div id="authWrap" class="auth-panel">
+              <div class="auth-card">
+                <div class="auth-card-header">
+                  <span class="auth-card-icon">
+                    <i data-lucide="user-round"></i>
+                  </span>
+                  <div>
+                    <h2 id="title">로그인</h2>
+                    <p id="subtitle" hidden></p>
+                  </div>
+                </div>
 
-        <div class="form-group">
-          <label for="password">비밀번호</label>
-          <input id="password" type="password" placeholder="비밀번호 입력" autocomplete="current-password" />
-        </div>
+                <div id="alert" class="auth-alert"></div>
 
-        <div class="btn-row">
-          <button id="submitBtn" class="primary" type="button">로그인</button>
-          <button id="clearBtn" class="secondary" type="button">초기화</button>
-        </div>
+                <div id="nicknameWrap" class="auth-form-group" hidden>
+                  <label for="nickname">닉네임</label>
+                  <input
+                    id="nickname"
+                    type="text"
+                    placeholder="닉네임 입력"
+                    autocomplete="nickname"
+                  />
+                </div>
 
-        <div style="margin-top: 12px; display:flex; gap: 8px; flex-wrap: wrap;">
-          <button id="switchToSignup" class="secondary" type="button">회원가입으로 이동</button>
-          <button id="switchToLogin" class="secondary" type="button" style="display:none;">로그인으로 이동</button>
-        </div>
+                <div class="auth-form-group">
+                  <label for="email">이메일</label>
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="example@email.com"
+                    autocomplete="email"
+                  />
+                </div>
 
-        <div id="success" class="success"></div>
+                <div class="auth-form-group">
+                  <label for="password">비밀번호</label>
+                  <input
+                    id="password"
+                    type="password"
+                    placeholder="비밀번호 입력"
+                    autocomplete="current-password"
+                  />
+                </div>
 
-        <div class="sub">
-          로그인 성공 시 세션 정보가 저장되고 메인 페이지로 이동합니다.
-        </div>
+                <div class="auth-button-row">
+                  <button id="submitBtn" class="btn-primary auth-submit" type="button">
+                    로그인
+                  </button>
+                  <button id="clearBtn" class="auth-secondary" type="button">
+                    초기화
+                  </button>
+                </div>
+
+                <div class="auth-switch-row">
+                  <button id="switchToSignup" class="auth-link-button" type="button">
+                    회원가입으로 이동
+                  </button>
+                  <button
+                    id="switchToLogin"
+                    class="auth-link-button"
+                    type="button"
+                    hidden
+                  >
+                    로그인으로 이동
+                  </button>
+                </div>
+
+                <div id="success" class="auth-success"></div>
+
+                <p class="auth-note">
+                  로그인이 필요한 메뉴로 이동했다면 로그인 후 해당 페이지로 다시
+                  돌아갑니다.
+                </p>
+              </div>
+            </div>
+          </section>
+        </main>
       </div>
     </div>
 
-    <script src="../scripts/login.js"></script>
     <script src="/scripts/layout.js"></script>
+    <script src="../scripts/login.js"></script>
   </body>
 </html>

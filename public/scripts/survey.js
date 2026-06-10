@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const nextBtn = document.getElementById("nextBtn");
   const submitBtn = document.getElementById("submitBtn");
   const stepCount = document.getElementById("stepCount");
-  const axisLabel = document.getElementById("axisLabel");
   const progressFill = document.getElementById("progressFill");
   const validationMsg = document.getElementById("validationMsg");
   const surveyForm = document.getElementById("surveyForm");
@@ -49,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
       "사용자";
     if (headerUserName) headerUserName.textContent = `${userNickname}님`;
     if (headerUserAvatar) {
-      headerUserAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=1a5c3a&color=fff&size=160`;
+      headerUserAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=random&color=fff&size=160`;
     }
   }
 
@@ -71,14 +70,6 @@ document.addEventListener("DOMContentLoaded", () => {
       SUPABASE_ANON_KEY = result.data.supabaseAnonKey;
     }
   }
-
-  // ── 축 라벨 맵 ──────────────────────────────────────────────
-  const axisLabels = {
-    ei: "E/I 활동 vs 휴식",
-    sn: "S/N 전통 vs 탐험",
-    tf: "T/F 효율 vs 감성",
-    jp: "J/P 계획 vs 즉흥",
-  };
 
   // 문항별 소속 축 매핑 (q1~q12)
   const questionAxisMap = {
@@ -177,10 +168,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Progress
     stepCount.textContent = `${currentSlide + 1} / ${totalSlides}`;
     progressFill.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
-
-    // Axis label
-    const axis = slides[currentSlide].dataset.axis;
-    axisLabel.textContent = axisLabels[axis] || "";
 
     // Buttons
     prevBtn.disabled = currentSlide === 0;

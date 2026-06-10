@@ -16,44 +16,222 @@ if (supabaseUrl && supabaseServiceRoleKey) {
   });
 }
 
+function getBearerToken(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  return authHeader.split(" ")[1];
+}
+
+async function getAuthenticatedUser(req, res) {
+  const token = getBearerToken(req);
+
+  if (!token) {
+    res.status(401).json({
+      success: false,
+      message: "인증 토큰이 없습니다.",
+    });
+    return null;
+  }
+
+  if (!supabaseAdmin) {
+    res.status(500).json({
+      success: false,
+      message: "서버 관리자 키가 설정되지 않았습니다.",
+    });
+    return null;
+  }
+
+  const { data: userData, error: userError } =
+    await supabaseAdmin.auth.getUser(token);
+
+  if (userError || !userData?.user) {
+    res.status(401).json({
+      success: false,
+      message: "유효하지 않은 토큰입니다.",
+    });
+    return null;
+  }
+
+  return userData.user;
+}
+
+// GET /api/user/bookmarks - Get bookmarked destination IDs
+router.get("/bookmarks", async (req, res) => {
+  try {
+    const user = await getAuthenticatedUser(req, res);
+    if (!user) return;
+
+    const { data, error } = await supabaseAdmin
+      .from("user_bookmarks")
+      .select(
+        [
+          "destination_id",
+          "created_at",
+          [
+            "destinations(",
+            [
+              "destination_id",
+              "destination_name",
+              "description",
+              "address",
+              "province",
+              "city",
+              "image_url",
+            ].join(","),
+            ")",
+          ].join(""),
+        ].join(","),
+      )
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Bookmark list error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "북마크 목록을 불러오지 못했습니다.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        destinationIds: data.map((row) => row.destination_id),
+        bookmarks: data.map((row) => ({
+          destinationId: row.destination_id,
+          createdAt: row.created_at,
+          destination: row.destinations
+            ? {
+                destinationId: row.destinations.destination_id,
+                destinationName: row.destinations.destination_name,
+                description: row.destinations.description || "",
+                address: row.destinations.address || "",
+                province: row.destinations.province || "",
+                city: row.destinations.city || "",
+                imageUrl: row.destinations.image_url || "",
+              }
+            : null,
+        })),
+      },
+      message: "북마크 목록 조회 성공",
+    });
+  } catch (error) {
+    console.error("Bookmark list failed:", error);
+    return res.status(500).json({
+      success: false,
+      message: "서버 오류로 북마크 목록을 불러오지 못했습니다.",
+    });
+  }
+});
+
+// POST /api/user/bookmarks - Add a destination bookmark
+router.post("/bookmarks", async (req, res) => {
+  try {
+    const user = await getAuthenticatedUser(req, res);
+    if (!user) return;
+
+    const destinationId = Number.parseInt(req.body.destinationId, 10);
+    if (!Number.isFinite(destinationId) || destinationId < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "유효한 여행지 ID가 필요합니다.",
+      });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("user_bookmarks")
+      .upsert(
+        {
+          user_id: user.id,
+          destination_id: destinationId,
+        },
+        {
+          onConflict: "user_id,destination_id",
+        },
+      )
+      .select("bookmark_id,user_id,destination_id,created_at")
+      .single();
+
+    if (error) {
+      console.error("Bookmark add error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "북마크를 저장하지 못했습니다.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data,
+      message: "북마크 저장 성공",
+    });
+  } catch (error) {
+    console.error("Bookmark add failed:", error);
+    return res.status(500).json({
+      success: false,
+      message: "서버 오류로 북마크를 저장하지 못했습니다.",
+    });
+  }
+});
+
+// DELETE /api/user/bookmarks/:destinationId - Remove a destination bookmark
+router.delete("/bookmarks/:destinationId", async (req, res) => {
+  try {
+    const user = await getAuthenticatedUser(req, res);
+    if (!user) return;
+
+    const destinationId = Number.parseInt(req.params.destinationId, 10);
+    if (!Number.isFinite(destinationId) || destinationId < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "유효한 여행지 ID가 필요합니다.",
+      });
+    }
+
+    const { error } = await supabaseAdmin
+      .from("user_bookmarks")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("destination_id", destinationId);
+
+    if (error) {
+      console.error("Bookmark delete error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "북마크를 해제하지 못했습니다.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        destinationId,
+      },
+      message: "북마크 해제 성공",
+    });
+  } catch (error) {
+    console.error("Bookmark delete failed:", error);
+    return res.status(500).json({
+      success: false,
+      message: "서버 오류로 북마크를 해제하지 못했습니다.",
+    });
+  }
+});
+
 // POST /api/user/account - Delete user account
 router.delete("/account", async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "인증 토큰이 없습니다.",
-      });
-    }
-    const token = authHeader.split(" ")[1];
-
-    if (!supabaseAdmin) {
-      return res.status(500).json({
-        success: false,
-        message:
-          "서버의 관리자 키가 설정되지 않아 계정을 완전히 삭제할 수 없습니다. 관리자에게 문의하세요.",
-      });
-    }
-
-    // Verify token to get the user ID
-    const { data: userData, error: userError } =
-      await supabaseAdmin.auth.getUser(token);
-    if (userError || !userData?.user) {
-      return res.status(401).json({
-        success: false,
-        message: "유효하지 않은 토큰입니다.",
-      });
-    }
-
-    const userId = userData.user.id;
+    const user = await getAuthenticatedUser(req, res);
+    if (!user) return;
 
     // Optional: We can delete user preferences, trips, etc. here or let Supabase triggers handle it.
     // Given the MVP constraints, we will just delete the auth user, and if cascading isn't set up, we should manually clean up public.users.
     // Assuming public.users is set to ON DELETE CASCADE with auth.users, deleting auth.users will clean up public.users and everything related.
 
     const { error: deleteError } =
-      await supabaseAdmin.auth.admin.deleteUser(userId);
+      await supabaseAdmin.auth.admin.deleteUser(user.id);
 
     if (deleteError) {
       console.error("Auth user delete error:", deleteError);
@@ -79,45 +257,23 @@ router.delete("/account", async (req, res) => {
 // DELETE /api/user/data - Reset all user data
 router.delete("/data", async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "인증 토큰이 없습니다.",
-      });
-    }
-    const token = authHeader.split(" ")[1];
-
-    if (!supabaseAdmin) {
-      return res.status(500).json({
-        success: false,
-        message: "서버 관리자 키가 설정되지 않았습니다.",
-      });
-    }
-
-    const { data: userData, error: userError } =
-      await supabaseAdmin.auth.getUser(token);
-    if (userError || !userData?.user) {
-      return res.status(401).json({
-        success: false,
-        message: "유효하지 않은 토큰입니다.",
-      });
-    }
-
-    const userId = userData.user.id;
+    const user = await getAuthenticatedUser(req, res);
+    if (!user) return;
 
     // RLS 무시하고 관리자 권한으로 삭제
-    const [prefRes, mbtiRes, tripsRes] = await Promise.all([
-      supabaseAdmin.from("user_preferences").delete().eq("user_id", userId),
-      supabaseAdmin.from("travel_mbti_results").delete().eq("user_id", userId),
-      supabaseAdmin.from("trips").delete().eq("user_id", userId),
+    const [prefRes, mbtiRes, tripsRes, bookmarkRes] = await Promise.all([
+      supabaseAdmin.from("user_preferences").delete().eq("user_id", user.id),
+      supabaseAdmin.from("travel_mbti_results").delete().eq("user_id", user.id),
+      supabaseAdmin.from("trips").delete().eq("user_id", user.id),
+      supabaseAdmin.from("user_bookmarks").delete().eq("user_id", user.id),
     ]);
 
     if (prefRes.error) console.error("pref delete error:", prefRes.error);
     if (mbtiRes.error) console.error("mbti delete error:", mbtiRes.error);
     if (tripsRes.error) console.error("trips delete error:", tripsRes.error);
+    if (bookmarkRes.error) console.error("bookmark delete error:", bookmarkRes.error);
 
-    if (prefRes.error || mbtiRes.error || tripsRes.error) {
+    if (prefRes.error || mbtiRes.error || tripsRes.error || bookmarkRes.error) {
       return res.status(500).json({
         success: false,
         message: "일부 데이터를 초기화하는 데 실패했습니다.",

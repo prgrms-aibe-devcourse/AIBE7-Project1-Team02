@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const detailStatus = document.getElementById("trip-detail-status");
   const detailPeriod = document.getElementById("trip-detail-period");
   const detailBody = document.getElementById("trip-detail-body");
-  const fallbackImageUrl = "../images/summer_banner.png";
   let trips = [];
   let selectedStatus = "all";
 
@@ -35,8 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
         row.destination_name ||
         destination.destination_name ||
         "국내 여행",
-      imageUrl:
-        row.imageUrl || row.image_url || destination.image_url || fallbackImageUrl,
+      imageUrl: row.imageUrl || row.image_url || destination.image_url || "",
       startDate: row.startDate || row.start_date || "",
       endDate: row.endDate || row.end_date || "",
       companionType: row.companionType || row.companion_type || "",
@@ -77,6 +75,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${Math.floor(difference / 86400000) + 1}일`;
   }
 
+  function createNoImagePlaceholder(className) {
+    const placeholder = document.createElement("div");
+    placeholder.className = `${className} no-image-placeholder`;
+    placeholder.innerHTML = '<i data-lucide="image-off"></i><span>이미지 없음</span>';
+    return placeholder;
+  }
+
   function createState(title, message, actionText) {
     list.innerHTML = "";
     const state = document.createElement("div");
@@ -109,16 +114,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const cover = document.createElement("div");
     cover.className = "saved-trip-cover";
     const image = document.createElement("img");
-    image.src = trip.imageUrl || fallbackImageUrl;
-    image.alt = trip.destinationName;
-    image.loading = "lazy";
-    image.addEventListener("error", () => {
-      image.src = fallbackImageUrl;
-    });
+    let media = image;
+    if (trip.imageUrl) {
+      image.src = trip.imageUrl;
+      image.alt = trip.destinationName;
+      image.loading = "lazy";
+      image.addEventListener("error", () => {
+        image.replaceWith(createNoImagePlaceholder("saved-trip-no-image"));
+        window.lucide?.createIcons();
+      });
+    } else {
+      media = createNoImagePlaceholder("saved-trip-no-image");
+    }
     const status = document.createElement("span");
     status.className = "saved-trip-status";
     status.textContent = statusLabels[trip.status] || trip.status;
-    cover.append(image, status);
+    cover.append(media, status);
 
     const content = document.createElement("div");
     content.className = "saved-trip-content";
@@ -307,6 +318,12 @@ document.addEventListener("DOMContentLoaded", () => {
         sessionStorage.removeItem("sb_access_token");
         sessionStorage.removeItem("sb_refresh_token");
         window.location.replace("./login.html");
+        return;
+      }
+
+      if (response.status === 404) {
+        trips = [];
+        renderTrips();
         return;
       }
 

@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const selectedDestination = document.getElementById("selected-destination");
   const emptyState = document.getElementById("trip-create-empty");
   const image = document.getElementById("selected-destination-image");
+  const noImage = document.getElementById("selected-destination-no-image");
   const name = document.getElementById("selected-destination-name");
   const address = document.getElementById("selected-destination-address");
   const keywordList = document.getElementById(
@@ -30,11 +31,22 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  image.src = destination.imageUrl || "../images/summer_banner.png";
-  image.alt = destination.destinationName;
-  image.addEventListener("error", () => {
-    image.src = "../images/summer_banner.png";
-  });
+  if (destination.imageUrl) {
+    image.src = destination.imageUrl;
+    image.alt = destination.destinationName;
+    image.hidden = false;
+    noImage.hidden = true;
+    image.addEventListener("error", () => {
+      image.hidden = true;
+      image.removeAttribute("src");
+      noImage.hidden = false;
+      window.lucide?.createIcons();
+    });
+  } else {
+    image.hidden = true;
+    image.removeAttribute("src");
+    noImage.hidden = false;
+  }
   name.textContent = destination.destinationName;
   address.textContent = destination.address || "대한민국";
 
@@ -45,4 +57,5 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   selectedDestination.hidden = false;
+  window.lucide?.createIcons();
 });
