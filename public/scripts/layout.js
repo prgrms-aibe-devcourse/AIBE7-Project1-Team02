@@ -22,63 +22,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 3. Set Active Menu Item based on current path
     const currentPath = window.location.pathname;
-    const authToken = sessionStorage.getItem('sb_access_token');
-    const protectedPaths = [
-      '/pages/community.html',
-      '/pages/trip-create.html',
-      '/pages/survey.html',
-      '/pages/mypage.html',
-      '/pages/saved-trips.html'
-    ];
-    const isProtectedPath = (path) => protectedPaths.some((protectedPath) => path.includes(protectedPath));
-    const getLoginUrl = (redirectPath) => {
-      const loginUrl = new URL('/pages/login.html', window.location.origin);
-      loginUrl.searchParams.set('redirect', redirectPath || '/');
-      return loginUrl.href;
-    };
-    const exploreNavItem = document.querySelector('.nav-item[data-path="/"]');
-
-    if (exploreNavItem && !authToken) {
-      exploreNavItem.href = '/pages/destinations.html';
-    }
-
-    const isHomePath = currentPath === '/' || currentPath === '/index.html';
-    if (!authToken && isHomePath) {
-      window.location.replace('/pages/destinations.html');
-      return;
-    }
-
-    if (!authToken && isProtectedPath(currentPath)) {
-      window.location.replace(getLoginUrl(`${currentPath}${window.location.search}`));
-      return;
-    }
-
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
-      const itemPath = item.getAttribute('data-path');
+      let itemPath = item.getAttribute('data-path');
       item.classList.remove('active');
-      const isGuestExplorePath =
-        !authToken && currentPath.includes('/pages/destinations.html');
-      const isTripPath = currentPath.includes('/pages/trip-create.html') || currentPath.includes('/pages/saved-trips.html');
-
-      if ((isHomePath || isGuestExplorePath) && itemPath === '/') {
+      if ((currentPath === '/' || currentPath === '/index.html') && itemPath === '/') {
         item.classList.add('active');
-      } else if (isTripPath && itemPath === '/pages/saved-trips.html') {
+      } else if (currentPath !== '/' && currentPath !== '/index.html' && itemPath !== '/' && currentPath.includes(itemPath)) {
         item.classList.add('active');
-      } else if (!isHomePath && itemPath !== '/' && currentPath.includes(itemPath)) {
-        item.classList.add('active');
-      }
-    });
-
-    document.querySelectorAll('a[href], button[onclick]').forEach((element) => {
-      const targetPath = element.getAttribute('href') || '/pages/trip-create.html';
-
-      if (!authToken && isProtectedPath(targetPath)) {
-        element.addEventListener('click', (event) => {
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          window.location.href = getLoginUrl(targetPath);
-        }, true);
       }
     });
 
@@ -87,16 +38,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const breadcrumbText = document.getElementById('breadcrumb-text-container');
     
     if (breadcrumbIcon && breadcrumbText) {
-      if (currentPath.includes('login')) {
-        breadcrumbIcon.innerHTML = '<i data-lucide="log-in"></i>';
-        breadcrumbText.textContent = '로그인';
-      } else if (currentPath.includes('community')) {
+      if (currentPath.includes('community')) {
         breadcrumbIcon.innerHTML = '<i data-lucide="users"></i>';
-        breadcrumbText.textContent = '커뮤니티';
-      } else if (currentPath.includes('destinations')) {
-        breadcrumbIcon.innerHTML = '<i data-lucide="compass"></i>';
-        breadcrumbText.textContent = '탐색하기';
-      } else if (currentPath.includes('trip-create') || currentPath.includes('saved-trips')) {
+        breadcrumbText.textContent = 'Local Stories';
+      } else if (currentPath.includes('trip-create') || currentPath.includes('destinations')) {
         breadcrumbIcon.innerHTML = '<i data-lucide="map"></i>';
         breadcrumbText.textContent = '여행 일정';
       } else if (currentPath.includes('survey')) {
@@ -184,14 +129,14 @@ async function updateHeaderProfile() {
       sessionStorage.removeItem("sb_access_token");
       sessionStorage.removeItem("sb_refresh_token");
       sessionStorage.removeItem("sb_user");
-      window.location.replace('/pages/destinations.html');
+      window.location.replace('/pages/login.html');
     });
   }
 
   const userName = currentUser?.user_metadata?.nickname || currentUser?.user_metadata?.name || currentUser?.email?.split("@")?.[0] || "사용자";
   if (headerUserName) headerUserName.textContent = `${userName}님`;
 
-  const cachedImg = currentUser?.user_metadata?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random&color=fff&size=160`;
+  const cachedImg = currentUser?.user_metadata?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=1a5c3a&color=fff&size=160`;
   if (headerUserAvatar) {
     headerUserAvatar.src = cachedImg;
   }
@@ -210,7 +155,7 @@ async function updateHeaderProfile() {
         const dbNick = data?.[0]?.nickname;
         
         const finalName = dbNick || userName;
-        const finalImg = dbImg || `https://ui-avatars.com/api/?name=${encodeURIComponent(finalName)}&background=random&color=fff&size=160`;
+        const finalImg = dbImg || `https://ui-avatars.com/api/?name=${encodeURIComponent(finalName)}&background=1a5c3a&color=fff&size=160`;
 
         if (headerUserAvatar) {
           headerUserAvatar.src = finalImg;
@@ -229,3 +174,4 @@ async function updateHeaderProfile() {
     }
   }
 }
+
