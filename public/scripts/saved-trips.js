@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const detailStatus = document.getElementById("trip-detail-status");
   const detailPeriod = document.getElementById("trip-detail-period");
   const detailBody = document.getElementById("trip-detail-body");
+  const tripStartButton = document.getElementById("trip-start-button");
   const dayDetailModal = document.getElementById("trip-day-detail-modal");
   const dayDetailClose = document.getElementById("trip-day-detail-close");
   const dayDetailTitle = document.getElementById("trip-day-detail-title");
@@ -25,6 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let kakaoMapSdkPromise = null;
   let detailRenderId = 0;
   let dayRenderId = 0;
+  let activeDetailTrip = null;
+  let activeDetailItineraries = [];
   const syncingCompletedTripIds = new Set();
 
   if (!authToken) {
@@ -79,6 +82,10 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  function clearTripCompletion(trip) {
+    localStorage.removeItem(getTripCompletionKey(trip));
+  }
+
   function getItemKey(item, index = 0) {
     const destination = getDestination(item);
     return String(
@@ -104,6 +111,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function getCompletionStats(trip, items = trip.itineraries) {
+    if (trip.status === "planning") {
+      return {
+        completedCount: 0,
+        totalCount: items.length,
+        isCompleted: false,
+      };
+    }
+
     if (trip.status === "completed") {
       const totalCount = items.length;
       return {
@@ -127,9 +142,46 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function getTripStatusText(trip) {
-    return trip.status === "completed" || getCompletionStats(trip).isCompleted
-      ? "완료한 여행"
-      : trip.travelerTitle || "여행 일정";
+    if (
+      trip.status === "completed" ||
+      (trip.status === "in_progress" && getCompletionStats(trip).isCompleted)
+    ) {
+      return "완료한 여행";
+    }
+    if (trip.status === "in_progress") {
+      return "여행 진행중";
+    }
+    return "시작 전";
+  }
+
+  async function updateTripStatusInDatabase(trip, status) {
+    if (!trip.tripId || trip.status === status) {
+      return false;
+    }
+
+    const response = await fetch(`/api/travel/${trip.tripId}/status`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "일정 상태 저장 실패");
+    }
+
+    const updatedPlan = result.data?.plan || {};
+    trip.status = updatedPlan.status || status;
+    trip.completedAt =
+      updatedPlan.completedAt ||
+      (status === "completed" ? new Date().toISOString() : null);
+    trips = trips.map((savedTrip) =>
+      savedTrip.tripId === trip.tripId ? { ...savedTrip, ...trip } : savedTrip,
+    );
+    return true;
   }
 
   async function markTripCompletedInDatabase(trip) {
@@ -143,27 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       syncingCompletedTripIds.add(String(trip.tripId));
-      const response = await fetch(`/api/travel/${trip.tripId}/status`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: "completed" }),
-      });
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "일정 완료 저장 실패");
-      }
-
-      trip.status = "completed";
-      trip.completedAt =
-        result.data?.plan?.completedAt || new Date().toISOString();
-      trips = trips.map((savedTrip) =>
-        savedTrip.tripId === trip.tripId ? { ...savedTrip, ...trip } : savedTrip,
-      );
-      return true;
+      return await updateTripStatusInDatabase(trip, "completed");
     } catch (error) {
       console.error("일정 완료 상태 저장 실패:", error);
       return false;
@@ -176,6 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const localCompletedTrips = trips.filter(
       (trip) =>
         trip.status !== "completed" &&
+        trip.status === "in_progress" &&
         trip.tripId &&
         getCompletionStats(trip).isCompleted,
     );
@@ -440,7 +473,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return kakaoMapSdkPromise;
   }
 
-  function createDestinationDetail(item, isCompleted, onComplete) {
+  function createDestinationDetail(item, isCompleted, canComplete, onComplete) {
     const destination = getDestination(item);
     const detail = document.createElement("div");
     detail.className = "trip-place-detail";
@@ -467,18 +500,20 @@ document.addEventListener("DOMContentLoaded", () => {
       detail.appendChild(memo);
     }
 
-    const completeAction = document.createElement("button");
-    completeAction.className = "trip-place-complete-button";
-    completeAction.type = "button";
-    completeAction.disabled = isCompleted;
-    completeAction.innerHTML = isCompleted
-      ? '<i data-lucide="check-circle-2"></i><span>여행 완료됨</span>'
-      : '<i data-lucide="check"></i><span>여행 완료</span>';
-    completeAction.addEventListener("click", (event) => {
-      event.stopPropagation();
-      onComplete();
-    });
-    detail.appendChild(completeAction);
+    if (canComplete) {
+      const completeAction = document.createElement("button");
+      completeAction.className = "trip-place-complete-button";
+      completeAction.type = "button";
+      completeAction.disabled = isCompleted;
+      completeAction.innerHTML = isCompleted
+        ? '<i data-lucide="check-circle-2"></i><span>여행 완료됨</span>'
+        : '<i data-lucide="check"></i><span>여행 완료</span>';
+      completeAction.addEventListener("click", (event) => {
+        event.stopPropagation();
+        onComplete();
+      });
+      detail.appendChild(completeAction);
+    }
 
     return detail;
   }
@@ -537,13 +572,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (itemId === selectedItemId) {
       content.appendChild(
-        createDestinationDetail(item, completed, async () => {
-          markItemCompleted(trip, item, itemIndex);
-          if (getCompletionStats(trip).isCompleted) {
-            await markTripCompletedInDatabase(trip);
-          }
-          onComplete();
-        }),
+        createDestinationDetail(
+          item,
+          completed,
+          trip.status === "in_progress" || trip.status === "completed",
+          async () => {
+            markItemCompleted(trip, item, itemIndex);
+            if (getCompletionStats(trip).isCompleted) {
+              await markTripCompletedInDatabase(trip);
+            }
+            onComplete();
+          },
+        ),
       );
     }
 
@@ -648,7 +688,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const dayStats = getCompletionStats(trip, dayItems);
       dayDetailStatus.textContent = tripStats.isCompleted
         ? "완료한 여행"
-        : trip.travelerTitle || "DAY ROUTE";
+        : getTripStatusText(trip);
       dayDetailPeriod.textContent =
         `${trip.destinationName} · ${dayItems.length}곳 중 ${dayStats.completedCount}곳 완료`;
     };
@@ -731,16 +771,49 @@ document.addEventListener("DOMContentLoaded", () => {
     dayDetailModal.setAttribute("aria-hidden", "true");
   }
 
+  function updateTripStartButton(trip) {
+    if (!tripStartButton) return;
+
+    const canStart = trip?.status === "planning";
+    tripStartButton.hidden = !canStart;
+  }
+
+  async function startActiveTrip() {
+    if (!activeDetailTrip || activeDetailTrip.status !== "planning") return;
+
+    try {
+      tripStartButton.disabled = true;
+      tripStartButton.innerHTML =
+        '<i data-lucide="loader-2"></i> 여행 시작 중...';
+      await updateTripStatusInDatabase(activeDetailTrip, "in_progress");
+      clearTripCompletion(activeDetailTrip);
+      renderTripDetail(activeDetailTrip, activeDetailItineraries);
+      renderTrips();
+      window.lucide?.createIcons();
+    } catch (error) {
+      console.error("여행 시작 상태 저장 실패:", error);
+      alert(error.message || "여행 시작 상태로 변경하지 못했습니다.");
+    } finally {
+      tripStartButton.disabled = false;
+      tripStartButton.innerHTML = '<i data-lucide="play"></i> 여행 시작하기';
+      updateTripStartButton(activeDetailTrip);
+      window.lucide?.createIcons();
+    }
+  }
+
   function renderTripDetail(trip, itineraries) {
     detailRenderId += 1;
+    activeDetailTrip = trip;
+    activeDetailItineraries = itineraries;
     const completionStats = getCompletionStats(trip, itineraries);
     detailStatus.textContent = completionStats.isCompleted
       ? "완료한 여행"
-      : trip.travelerTitle || "여행 일정";
+      : getTripStatusText(trip);
     detailTitle.textContent = trip.title;
     detailPeriod.textContent =
       `${trip.destinationName} · ${getPeriodText(trip)} · ${completionStats.completedCount}/${completionStats.totalCount}곳 완료`;
     detailBody.innerHTML = "";
+    updateTripStartButton(trip);
 
     if (trip.aiSummary) {
       const summary = document.createElement("p");
@@ -905,6 +978,7 @@ document.addEventListener("DOMContentLoaded", () => {
   searchInput.addEventListener("input", renderTrips);
   detailClose.addEventListener("click", closeDetailModal);
   dayDetailClose.addEventListener("click", closeDayDetailModal);
+  tripStartButton?.addEventListener("click", startActiveTrip);
   detailModal.addEventListener("click", (event) => {
     if (event.target === detailModal) closeDetailModal();
   });
