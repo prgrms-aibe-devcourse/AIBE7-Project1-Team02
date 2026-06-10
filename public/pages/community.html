@@ -25,7 +25,7 @@
           <div class="travel-community-wrapper">
             <header class="community-header-minimal">
               <div class="header-minimal-top">
-                <h1>어디로 떠나시나요?</h1>
+                <h1>당신의 이야기를 들려주세요</h1>
               </div>
               <div class="category-pills-scroll">
                 <div class="tag-list-horizontal" id="popular-tags"></div>
@@ -75,7 +75,6 @@
       <div class="fs-editor-content">
         <form id="post-form" class="fs-form">
           <div class="fs-paper">
-            
             <!-- 1. Title -->
             <div class="fs-title-block">
               <input
@@ -92,14 +91,25 @@
             <div class="fs-meta-block">
               <label class="fs-meta-item" for="post-location">
                 <i data-lucide="map-pin"></i>
-                <input id="post-location" type="text" placeholder="위치 추가 (예: 제주 서귀포시)" />
+                <input
+                  id="post-location"
+                  type="text"
+                  placeholder="위치 추가 (예: 제주 서귀포시)"
+                />
               </label>
 
               <label class="fs-meta-item" for="post-tags">
                 <i data-lucide="hash"></i>
-                <div class="tag-input-container fs-tag-input" id="tag-input-container">
+                <div
+                  class="tag-input-container fs-tag-input"
+                  id="tag-input-container"
+                >
                   <div class="tag-chip-list" id="tag-chip-list"></div>
-                  <input id="post-tags" type="text" placeholder="태그 추가 (쉼표 또는 Enter)" />
+                  <input
+                    id="post-tags"
+                    type="text"
+                    placeholder="태그 추가 (쉼표 또는 Enter)"
+                  />
                 </div>
               </label>
             </div>
@@ -110,15 +120,31 @@
                 <strong>사진 첨부</strong>
                 <span id="post-image-count">0/10장</span>
               </div>
-              <div class="fs-inline-media" id="post-image-dropzone" role="button" tabindex="0">
-                <button type="button" class="btn-fs-inline-photo" id="btn-add-photo" aria-label="사진 추가하기">
+              <div
+                class="fs-inline-media"
+                id="post-image-dropzone"
+                role="button"
+                tabindex="0"
+              >
+                <button
+                  type="button"
+                  class="btn-fs-inline-photo"
+                  id="btn-add-photo"
+                  aria-label="사진 추가하기"
+                >
                   <i data-lucide="image-plus"></i>
                 </button>
                 <div class="fs-inline-hint">
                   <strong>사진 추가</strong>
                   <span>클릭하거나 이미지를 끌어다 놓으세요.</span>
                 </div>
-                <input id="post-image-file" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple hidden />
+                <input
+                  id="post-image-file"
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  multiple
+                  hidden
+                />
               </div>
               <div class="image-preview-wrap fs-image-preview">
                 <div class="image-order-list" id="post-image-order-list"></div>
@@ -129,9 +155,33 @@
             <!-- 4. Body & Toolbar -->
             <div class="fs-body-block">
               <div class="editor-toolbar">
-                <button type="button" class="toolbar-btn" data-cmd="heading" aria-label="제목" title="제목"><i data-lucide="heading"></i></button>
-                <button type="button" class="toolbar-btn" data-cmd="bold" aria-label="굵게" title="굵게"><i data-lucide="bold"></i></button>
-                <button type="button" class="toolbar-btn" data-cmd="italic" aria-label="기울임" title="기울임"><i data-lucide="italic"></i></button>
+                <button
+                  type="button"
+                  class="toolbar-btn"
+                  data-cmd="heading"
+                  aria-label="제목"
+                  title="제목"
+                >
+                  <i data-lucide="heading"></i>
+                </button>
+                <button
+                  type="button"
+                  class="toolbar-btn"
+                  data-cmd="bold"
+                  aria-label="굵게"
+                  title="굵게"
+                >
+                  <i data-lucide="bold"></i>
+                </button>
+                <button
+                  type="button"
+                  class="toolbar-btn"
+                  data-cmd="italic"
+                  aria-label="기울임"
+                  title="기울임"
+                >
+                  <i data-lucide="italic"></i>
+                </button>
                 <div class="toolbar-spacer"></div>
                 <span class="body-count" id="post-summary-count">0/2000자</span>
               </div>
@@ -142,7 +192,6 @@
                 data-placeholder="여러분의 소중한 여행 이야기를 들려주세요..."
               ></div>
             </div>
-
           </div>
 
           <!-- This hidden submit button helps keep the standard form submit working -->

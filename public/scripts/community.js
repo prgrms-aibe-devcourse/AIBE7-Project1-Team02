@@ -772,7 +772,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (els.detailTime)
       els.detailTime.textContent = formatRelative(
-        post.updated_at || post.created_at,
+        post.created_at || post.updated_at,
       );
     if (els.detailSummary)
       els.detailSummary.innerHTML = renderBody(post.summary || "", []);
