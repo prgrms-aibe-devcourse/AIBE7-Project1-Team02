@@ -465,9 +465,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     let totalItemCount = 0;
     const days = Array.isArray(savePayload.itinerary);
 
-    for (const idx = 0; idx < days.length(); idx++) {
+    for (const idx = 0; idx < days.length; idx++) {
       const day = days[i];
-      for (const _idx = 0; _idx < day.items.length(); _idx++) {
+      for (const _idx = 0; _idx < day.items.length; _idx++) {
         const item = day.items[_idx];
 
         const planInsertPayload = {
