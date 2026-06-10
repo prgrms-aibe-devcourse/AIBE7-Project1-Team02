@@ -15,9 +15,12 @@ const submitBtn = $('submitBtn');
 const clearBtn = $('clearBtn');
 const switchToSignupBtn = $('switchToSignup');
 const switchToLoginBtn = $('switchToLogin');
+const googleLoginBtn = $('googleLoginBtn');
+const kakaoLoginBtn = $('kakaoLoginBtn');
 
 let mode = 'login';
 let redirectTimer = null;
+const OAUTH_STATE_KEY = 'sb_oauth_redirect';
 
 async function loadConfig() {
   if (SUPABASE_URL && SUPABASE_ANON_KEY) return;
@@ -50,6 +53,14 @@ function clearMessages() {
   successEl.style.display = 'none';
   alertEl.textContent = '';
   successEl.textContent = '';
+}
+
+function safeJson(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return {};
+  }
 }
 
 function resetFields() {
@@ -92,6 +103,41 @@ function redirectToMainPage() {
     const redirectPath = new URLSearchParams(window.location.search).get('redirect');
     window.location.replace(redirectPath || '../index.html');
   }, 700);
+}
+
+function getOAuthRedirectUrl() {
+  return `${window.location.origin}/pages/login.html`;
+}
+
+async function startOAuthLogin(provider) {
+  await loadConfig();
+
+  const redirectUrl = getOAuthRedirectUrl();
+  sessionStorage.setItem(
+    OAUTH_STATE_KEY,
+    JSON.stringify({
+      provider,
+      redirect: new URLSearchParams(window.location.search).get('redirect') || '../index.html',
+    })
+  );
+
+  const authorizeUrl = new URL(`${SUPABASE_URL}/auth/v1/authorize`);
+  authorizeUrl.searchParams.set('provider', provider);
+  authorizeUrl.searchParams.set('redirect_to', redirectUrl);
+  window.location.href = authorizeUrl.toString();
+}
+
+function parseOAuthCallback() {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const accessToken = hash.get('access_token');
+  const refreshToken = hash.get('refresh_token');
+  if (!accessToken) return null;
+  return {
+    access_token: accessToken,
+    refresh_token: refreshToken || '',
+    expires_in: hash.get('expires_in') || '',
+    token_type: hash.get('token_type') || 'bearer',
+  };
 }
 
 function redirectToSurveyPage() {
@@ -183,6 +229,42 @@ async function handleSubmit() {
   }
 }
 
+async function handleOAuthReturn() {
+  const callback = parseOAuthCallback();
+  if (!callback) return;
+
+  try {
+    await loadConfig();
+    const state = safeJson(sessionStorage.getItem(OAUTH_STATE_KEY) || '{}');
+    sessionStorage.removeItem(OAUTH_STATE_KEY);
+
+    const accessToken = callback.access_token;
+    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const userData = await userRes.json().catch(() => ({}));
+    if (!userRes.ok) {
+      throw new Error(userData?.message || '소셜 로그인 정보를 불러오지 못했습니다.');
+    }
+
+    sessionStorage.setItem('sb_access_token', accessToken);
+    sessionStorage.setItem('sb_refresh_token', callback.refresh_token || '');
+    sessionStorage.setItem('sb_user', JSON.stringify(userData || {}));
+
+    const redirectPath = state.redirect || '../index.html';
+    window.location.replace(redirectPath);
+  } catch (error) {
+    showAlert(error?.message || '소셜 로그인 처리에 실패했습니다.');
+  } finally {
+    if (window.location.hash) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }
+}
+
 submitBtn.addEventListener('click', handleSubmit);
 clearBtn.addEventListener('click', () => {
   clearMessages();
@@ -190,6 +272,8 @@ clearBtn.addEventListener('click', () => {
 });
 switchToSignupBtn.addEventListener('click', () => setMode('signup'));
 switchToLoginBtn.addEventListener('click', () => setMode('login'));
+googleLoginBtn?.addEventListener('click', () => startOAuthLogin('google'));
+kakaoLoginBtn?.addEventListener('click', () => startOAuthLogin('custom:kakao'));
 
 [emailEl, passwordEl, nicknameEl].forEach((el) => {
   el.addEventListener('keydown', (e) => {
@@ -198,3 +282,4 @@ switchToLoginBtn.addEventListener('click', () => setMode('login'));
 });
 
 setMode('login');
+handleOAuthReturn();
