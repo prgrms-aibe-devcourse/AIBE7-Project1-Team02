@@ -95,7 +95,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         const aiBannerBg = document.getElementById("mypage-ai-bg");
 
         if (aiBannerTitle) {
-          aiBannerTitle.textContent = `${recData.data.mbtiType} 여행자님을 위한 추천!`;
+          const travelerTitle =
+            window.TravelerProfile?.getTitle(recData.data.mbtiType) ||
+            "취향 맞춤 여행가";
+          aiBannerTitle.textContent = `${travelerTitle}님을 위한 추천!`;
         }
         if (aiBannerDesc) {
           let descText = rec.reason || rec.description || "";
@@ -228,7 +231,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 데이터 초기화
   if (btnResetData) {
     btnResetData.addEventListener("click", async () => {
-      if (!confirm("모든 활동 데이터(MBTI 결과, 여행지 저장, 일정 등)를 삭제합니다.\n이 작업은 복구할 수 없습니다. 계속하시겠습니까?")) return;
+      if (!confirm("모든 활동 데이터(성향 분석 결과, 여행지 저장, 일정 등)를 삭제합니다.\n이 작업은 복구할 수 없습니다. 계속하시겠습니까?")) return;
 
       try {
         btnResetData.disabled = true;

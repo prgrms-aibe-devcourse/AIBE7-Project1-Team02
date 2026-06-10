@@ -1,5 +1,5 @@
 /**
- * 여행 MBTI 설문 — 점수 계산 & Supabase 저장
+ * 여행 성향 설문 — 점수 계산 & Supabase 저장
  * ─────────────────────────────────────────────
  * 12문항 (축당 3문항) × 5점 리커트 척도
  * 축별 0~100 스코어 계산 후 Supabase travel_mbti_results 테이블에 UPSERT
@@ -87,73 +87,16 @@ document.addEventListener("DOMContentLoaded", () => {
     q12: "jp",
   };
 
-  // ── 16유형 데이터 ───────────────────────────────────────────
-  const mbtiProfiles = {
-    ESTJ: {
-      alias: "완벽한 여행 총괄",
-      desc: "효율적 동선과 체계적 계획으로 알찬 여행을 만드는 리더",
-    },
-    ESTP: {
-      alias: "현장 모험가",
-      desc: "스릴 넘치는 액티비티와 현지 문화를 직접 체험하는 탐험가",
-    },
-    ESFJ: {
-      alias: "함께하는 여행 호스트",
-      desc: "모두가 행복한 여행을 만드는 따뜻한 여행 매니저",
-    },
-    ESFP: {
-      alias: "축제의 주인공",
-      desc: "어디서든 파티! 현지 축제와 맛집을 섭렵하는 에너자이저",
-    },
-    ENTJ: {
-      alias: "전략적 세계 정복자",
-      desc: "버킷리스트를 체계적으로 정복해나가는 야심찬 여행자",
-    },
-    ENTP: {
-      alias: "이색 루트 개척자",
-      desc: "남들이 안 가는 곳을 발굴하는 창의적 여행 크리에이터",
-    },
-    ENFJ: {
-      alias: "의미있는 여행 큐레이터",
-      desc: "문화 교류와 감동적 경험을 추구하는 감성 여행가",
-    },
-    ENFP: {
-      alias: "자유로운 영혼의 탐험가",
-      desc: "즉흥과 감성으로 세상을 누비는 낭만 여행자",
-    },
-    ISTJ: {
-      alias: "꼼꼼한 여행 설계사",
-      desc: "철저한 리서치와 계획으로 실속 있는 여행을 완성",
-    },
-    ISTP: {
-      alias: "조용한 어드벤처러",
-      desc: "혼자만의 속도로 스릴과 자연을 즐기는 독립 탐험가",
-    },
-    ISFJ: {
-      alias: "소중한 추억 수집가",
-      desc: "의미 있는 장소에서 조용히 추억을 쌓는 힐링 여행자",
-    },
-    ISFP: {
-      alias: "감성 풍경 사냥꾼",
-      desc: "아름다운 풍경과 예술에 빠져드는 감성 방랑자",
-    },
-    INTJ: {
-      alias: "지적 여행 전략가",
-      desc: "역사·건축·문화를 깊이 파고드는 지적 호기심의 여행자",
-    },
-    INTP: {
-      alias: "호기심 가득 세계 관찰자",
-      desc: "독특한 박물관과 숨겨진 명소를 찾아다니는 지적 탐험가",
-    },
-    INFJ: {
-      alias: "영감을 찾는 순례자",
-      desc: "깊은 의미와 영감을 주는 장소를 찾아 떠나는 명상 여행자",
-    },
-    INFP: {
-      alias: "꿈꾸는 낭만 여행자",
-      desc: "동화 같은 풍경과 감동적 이야기가 있는 곳을 찾는 몽상가",
-    },
-  };
+  function getTravelerTitle(mbtiType) {
+    return window.TravelerProfile?.getTitle(mbtiType) || "나만의 취향 여행가";
+  }
+
+  function getTravelerDescription(mbtiType) {
+    return (
+      window.TravelerProfile?.getDescription(mbtiType) ||
+      "여행 성향에 맞춰 국내 여행지를 추천받는 타입입니다."
+    );
+  }
 
   // ── Slide Navigation ───────────────────────────────────────
   let currentSlide = 0;
@@ -238,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
       scores[axis] = Math.round(((avg - 1) / 4) * 100);
     }
 
-    // MBTI 유형 결정
+    // 내부 추천 기준 유형 결정
     const mbtiType =
       (scores.ei >= 50 ? "E" : "I") +
       (scores.sn >= 50 ? "S" : "N") +
@@ -256,11 +199,12 @@ document.addEventListener("DOMContentLoaded", () => {
     surveyForm.style.display = "none";
 
     // Populate result
-    document.getElementById("resultMbtiType").textContent = mbtiType;
-
-    const profile = mbtiProfiles[mbtiType] || { alias: "", desc: "" };
-    document.getElementById("resultAlias").textContent = `"${profile.alias}"`;
-    document.getElementById("resultDesc").textContent = profile.desc;
+    const travelerTitle = getTravelerTitle(mbtiType);
+    document.getElementById("resultMbtiType").textContent = travelerTitle;
+    document.getElementById("resultAlias").textContent =
+      "당신에게 어울리는 여행가 칭호";
+    document.getElementById("resultDesc").textContent =
+      getTravelerDescription(mbtiType);
 
     // Score bars (animated)
     resultContainer.classList.add("visible");
@@ -299,6 +243,11 @@ document.addEventListener("DOMContentLoaded", () => {
         jp_score: scores.jp,
         raw_answers: rawAnswers,
       };
+      const preferencePayload = {
+        user_id: currentUser.id,
+        mbti_type: mbtiType,
+        badge: getTravelerTitle(mbtiType),
+      };
 
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/travel_mbti_results?on_conflict=user_id`,
@@ -319,7 +268,29 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("MBTI 저장 실패:", JSON.stringify(errorData, null, 2));
         alert("저장 실패: " + (errorData.message || JSON.stringify(errorData)));
       } else {
-        console.log("MBTI 결과 저장 완료:", mbtiType);
+        console.log("여행 성향 결과 저장 완료:", mbtiType);
+      }
+
+      const preferenceRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/user_preferences?on_conflict=user_id`,
+        {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+            Prefer: "resolution=merge-duplicates",
+          },
+          body: JSON.stringify(preferencePayload),
+        },
+      );
+
+      if (!preferenceRes.ok) {
+        const errorData = await preferenceRes.json().catch(() => ({}));
+        console.warn(
+          "여행가 칭호 저장 실패:",
+          errorData.message || JSON.stringify(errorData),
+        );
       }
     } catch (err) {
       console.error("Supabase 연결 오류:", err);
