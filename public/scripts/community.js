@@ -1071,14 +1071,25 @@ document.addEventListener("DOMContentLoaded", () => {
                   <img src="${avatarUrl}" alt="프로필" loading="lazy">
                 </div>
                 <div class="comment-content-col">
-                  <div class="comment-content-header">
-                    <div>
-                      <span class="comment-author-name">${escapeHtml(authorName)}</span>
-                      <span class="comment-time">${formatRelative(comment.updated_at || comment.created_at)}${isEdited ? ' (수정됨)' : ''}</span>
-                    </div>
-                    <div class="comment-right-actions">
-                      <button type="button" class="comment-heart-btn" aria-label="좋아요"><i data-lucide="heart"></i></button>
-                      ${isMine && !isEditing ? `
+                  ${isEditing 
+                    ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3" style="width:100%; resize:none; padding:0.5rem; border:1px solid #ddd; border-radius:4px; font-family:inherit; margin-bottom:0.5rem;">${escapeHtml(comment.content || "")}</textarea>`
+                    : `
+                      <div class="comment-text-block">
+                        <span class="comment-author-name">${escapeHtml(authorName)}</span>
+                        <span class="comment-text-body">${escapeHtml(comment.content || "").replace(/\n/g, "<br>")}</span>
+                      </div>
+                    `
+                  }
+                  <div class="comment-actions-row">
+                    ${isEditing 
+                      ? `
+                      <button type="button" class="comment-opt-btn" data-comment-action="save" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px; margin-right: 0.5rem;"><i data-lucide="check"></i> 저장</button>
+                      <button type="button" class="comment-opt-btn" data-comment-action="cancel" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px;"><i data-lucide="x"></i> 취소</button>
+                      `
+                      : `
+                      <span class="comment-time">${formatRelative(comment.updated_at || comment.created_at)}</span>
+                      <span class="comment-reply-text" data-comment-action="reply" data-comment-id="${comment.comment_id}">답글 달기</span>
+                      ${isMine ? `
                       <div class="comment-more-wrapper">
                         <button type="button" class="comment-more-opts-btn" data-comment-action="toggle-opts" data-comment-id="${comment.comment_id}"><i data-lucide="more-horizontal"></i></button>
                         <div class="comment-opts-dropdown" id="comment-opts-${comment.comment_id}">
@@ -1087,24 +1098,15 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                       </div>
                       ` : ""}
-                    </div>
-                  </div>
-                  <div class="comment-text-body">
-                    ${isEditing 
-                      ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3" style="width:100%; resize:none; padding:0.5rem; border:1px solid #ddd; border-radius:4px; font-family:inherit;">${escapeHtml(comment.content || "")}</textarea>`
-                      : escapeHtml(comment.content || "").replace(/\n/g, "<br>")
-                    }
-                  </div>
-                  <div class="comment-actions-row">
-                    ${isEditing 
-                      ? `
-                      <button type="button" class="comment-opt-btn" data-comment-action="save" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px;"><i data-lucide="check"></i> 저장</button>
-                      <button type="button" class="comment-opt-btn" data-comment-action="cancel" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px;"><i data-lucide="x"></i> 취소</button>
                       `
-                      : `<span class="comment-reply-text">Reply</span>`
                     }
                   </div>
                 </div>
+                ${!isEditing ? `
+                <div class="comment-right-col">
+                  <button type="button" class="comment-heart-btn" aria-label="좋아요" data-comment-action="like" data-comment-id="${comment.comment_id}"><i data-lucide="heart"></i></button>
+                </div>
+                ` : ''}
               </article>
               `;
             })
@@ -1122,7 +1124,23 @@ document.addEventListener("DOMContentLoaded", () => {
         const comment = state.comments.find(
           (row) => String(row.comment_id) === String(commentId),
         );
-        if (!comment || String(comment.user_id) !== String(userId)) return;
+        if (!comment) return;
+
+        if (action === "reply") {
+          const input = document.getElementById("comment-text");
+          if (input) {
+            input.value = `@${comment.nickname || "사용자"} ` + input.value;
+            input.focus();
+          }
+          return;
+        }
+
+        if (action === "like") {
+          button.classList.toggle("liked");
+          return;
+        }
+
+        if (String(comment.user_id) !== String(userId)) return;
 
         if (action === "toggle-opts") {
           const dropdown = targetList.querySelector(`#comment-opts-${commentId}`);
