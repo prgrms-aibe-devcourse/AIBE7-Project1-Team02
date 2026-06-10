@@ -230,6 +230,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderPlan(data.data);
       _data = data.data;
       sessionStorage.removeItem("selected_trip_destination");
+      if (els.saveBtn && data.data?.trip?.planId) {
+        els.saveBtn.textContent = "저장 완료";
+      }
       alert("여행 일정이 생성되었습니다.");
     } catch (error) {
       console.error(error);
@@ -364,7 +367,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       return;
     }
-    savePayload.itinerary = _data.plan.days;
     try {
       const saveResult = await saveTripToSupabase(savePayload);
       console.log("여행 일정 저장 완료:", saveResult);
@@ -386,6 +388,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function saveTripToSupabase(savePayload) {
     await loadConfig();
+
+    const existingPlanId =
+      savePayload?.itinerary?.trip?.planId ||
+      savePayload?.itinerary?.trip?.plan_id;
+    if (existingPlanId) {
+      const days = Array.isArray(savePayload?.itinerary?.plan?.days)
+        ? savePayload.itinerary.plan.days
+        : [];
+      return {
+        tripPlan: savePayload.itinerary.trip,
+        planCount: days.length,
+        itemCount: days.reduce(
+          (count, day) =>
+            count + (Array.isArray(day?.items) ? day.items.length : 0),
+          0,
+        ),
+      };
+    }
 
     const authToken = sessionStorage.getItem("sb_access_token") || "";
     const supabaseHeaders = {
@@ -463,14 +483,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ── 3단계: trip_plan_items(항목별) INSERT ──────
 
     let totalItemCount = 0;
-    const days = Array.isArray(savePayload.itinerary);
+    const days = Array.isArray(savePayload.itinerary?.plan?.days)
+      ? savePayload.itinerary.plan.days
+      : Array.isArray(savePayload.itinerary)
+        ? savePayload.itinerary
+        : [];
 
     for (const idx = 0; idx < days.length; idx++) {
-      const day = days[i];
-      for (const _idx = 0; _idx < day.items.length; _idx++) {
-        const item = day.items[_idx];
+      const day = days[idx] || {};
+      const items = Array.isArray(day.items) ? day.items : [];
+      for (const _idx = 0; _idx < items.length; _idx++) {
+        const item = items[_idx];
 
         const planInsertPayload = {
+          plan_id: savedTripPlan.plan_id,
           user_id: savePayload.userId,
           day_number: idx + 1,
           order_index: _idx + 1,
@@ -491,7 +517,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!planResponse.ok) {
           throw new Error(
             planResponseData?.message ||
-              `DAY ${dayIndex + 1} 일정 저장에 실패했습니다.`,
+              `DAY ${idx + 1} 일정 저장에 실패했습니다.`,
           );
         }
 
@@ -499,9 +525,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           ? planResponseData[0] || null
           : planResponseData;
 
-        if (!savedPlan?.plan_id) {
-          throw new Error(`DAY ${dayIndex + 1} 일정 ID를 확인할 수 없습니다.`);
+        if (!savedPlan?.item_id) {
+          throw new Error(`DAY ${idx + 1} 일정 항목 ID를 확인할 수 없습니다.`);
         }
+        totalItemCount += 1;
       }
     }
     /*

@@ -65,8 +65,9 @@ test("사용자 MBTI의 저장 점수 내림차순 결과를 추천 형식으로
   assert.equal(result.recommendations[0].score, 86.25);
   assert.match(
     requestedUrls[1],
-    /select=destination_id%2Cscore%2Creason%2Cdestinations%28destination_id%2Cdestination_name/,
+    /select=destination_id%2Cscore%2Creason%2Cdestinations%21inner%28destination_id%2Cdestination_name/,
   );
+  assert.match(requestedUrls[1], /destinations\.image_url=not\.is\.null/);
   assert.match(requestedUrls[1], /mbti_type=eq\.INFP/);
   assert.match(requestedUrls[1], /order=score\.desc%2Cdestination_id\.asc/);
 });
