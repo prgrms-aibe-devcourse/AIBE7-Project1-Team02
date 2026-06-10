@@ -2,6 +2,7 @@ const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
 const {
   createTripPlan,
+  deleteTripPlan,
   getTripPlanById,
   getTripPlans,
   updateTripPlanStatus,
@@ -212,6 +213,43 @@ router.patch("/:planId/status", async (request, response) => {
     return response.status(500).json({
       success: false,
       message: getSupabasePermissionMessage("수정", error),
+    });
+  }
+});
+
+router.delete("/:planId", async (request, response) => {
+  try {
+    const context = await requireAuthenticatedContext(request, response);
+    if (!context) return;
+
+    const planId = Number.parseInt(request.params.planId, 10);
+    if (!Number.isFinite(planId) || planId < 1) {
+      return response.status(400).json({
+        success: false,
+        message: "유효한 일정 ID가 필요합니다.",
+      });
+    }
+
+    const plan = await getTripPlanById(context.supabase, planId, context.user.id);
+    if (!plan) {
+      return response.status(404).json({
+        success: false,
+        message: "일정을 찾을 수 없습니다.",
+      });
+    }
+
+    await deleteTripPlan(context.supabase, planId, context.user.id);
+
+    return response.json({
+      success: true,
+      data: { planId },
+      message: "일정 삭제 성공",
+    });
+  } catch (error) {
+    console.error("Trip plan delete error:", error);
+    return response.status(500).json({
+      success: false,
+      message: getSupabasePermissionMessage("삭제", error),
     });
   }
 });

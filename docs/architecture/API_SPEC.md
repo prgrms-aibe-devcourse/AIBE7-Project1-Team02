@@ -54,6 +54,7 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | DONE | POST | `/api/user/bookmarks` | Authorization Bearer Token, `destinationId` | 북마크 저장 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 저장 실패 | 백엔드 |
 | DONE | DELETE | `/api/user/bookmarks/:destinationId` | Authorization Bearer Token | 북마크 해제 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 삭제 실패 | 백엔드 |
 | DONE | PATCH | `/api/travel/:id/status` | Authorization Bearer Token, `status` | 변경된 일정 상태 | 로그인 만료, 유효하지 않은 상태, 일정 없음 | 백엔드 |
+| DONE | DELETE | `/api/travel/:id` | Authorization Bearer Token | 삭제된 일정 ID | 로그인 만료, 일정 없음, Supabase 삭제 실패 | 백엔드 |
 | PLANNED | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
 | PLANNED | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | PLANNED | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
@@ -638,6 +639,38 @@ Response:
     }
   },
   "message": "일정 상태 변경 성공"
+}
+```
+
+Error Case:
+
+```json
+{
+  "success": false,
+  "message": "일정을 찾을 수 없습니다."
+}
+```
+
+### DELETE /api/travel/:id
+
+로그인 사용자가 저장한 임시 여행 일정을 삭제한다. `trip_plan_items`는
+`trip_plans` 외래 키의 `ON DELETE CASCADE` 정책에 따라 함께 삭제된다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "planId": 1
+  },
+  "message": "일정 삭제 성공"
 }
 ```
 

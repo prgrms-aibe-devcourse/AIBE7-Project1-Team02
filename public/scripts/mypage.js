@@ -33,20 +33,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   let savedDestinationsDetailReturnMode = "list";
 
   const userRaw = sessionStorage.getItem("sb_user");
-  if (!userRaw) return;
+  const storedAccessToken = sessionStorage.getItem("sb_access_token");
+  if (!userRaw || !storedAccessToken) {
+    const loginUrl = new URL("./login.html", window.location.href);
+    loginUrl.searchParams.set("redirect", "/pages/mypage.html");
+    window.location.replace(loginUrl.href);
+    return;
+  }
 
   let user = {};
   let userId = null;
-  let accessToken = null;
+  let accessToken = storedAccessToken;
 
   try {
     user = JSON.parse(userRaw);
     userId = user.id;
 
-    if (!userId) return;
+    if (!userId) {
+      const loginUrl = new URL("./login.html", window.location.href);
+      loginUrl.searchParams.set("redirect", "/pages/mypage.html");
+      window.location.replace(loginUrl.href);
+      return;
+    }
 
     await loadConfig();
-    accessToken = sessionStorage.getItem("sb_access_token");
 
     const headers = {
       "apikey": SUPABASE_ANON_KEY,
@@ -126,31 +136,31 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error("추천 데이터 로드 실패:", err);
     }
 
-    await loadSavedDestinations(accessToken, savedDestinationsList, (bookmark) => {
-      savedDestinationsModalMode = "detail";
-      savedDestinationsDetailReturnMode = "page";
-      renderSavedDestinationDetail(
-        savedDestinationsModalHeader,
-        savedDestinationsModalList,
-        bookmark,
-        () => {
-          savedDestinationsModal?.classList.remove("active");
-          savedDestinationsModalMode = "list";
-        },
-      );
-      savedDestinationsModal?.classList.add("active");
-    });
-    await loadCompletedTrips(
-      accessToken,
-      completedTripList,
-      completedTripCount,
-      completedTripStatFill,
-      completedTripStatSub,
-    );
-
   } catch (error) {
     console.error("사용자 정보 로드 중 오류 발생:", error);
   }
+
+  await loadSavedDestinations(accessToken, savedDestinationsList, (bookmark) => {
+    savedDestinationsModalMode = "detail";
+    savedDestinationsDetailReturnMode = "page";
+    renderSavedDestinationDetail(
+      savedDestinationsModalHeader,
+      savedDestinationsModalList,
+      bookmark,
+      () => {
+        savedDestinationsModal?.classList.remove("active");
+        savedDestinationsModalMode = "list";
+      },
+    );
+    savedDestinationsModal?.classList.add("active");
+  });
+  await loadCompletedTrips(
+    accessToken,
+    completedTripList,
+    completedTripCount,
+    completedTripStatFill,
+    completedTripStatSub,
+  );
 
   // 마이페이지 버튼 이벤트 핸들러 연동
   const btnSettings = document.getElementById("btn-settings");
@@ -790,8 +800,9 @@ function createCompletedTripCard(trip) {
   card.tabIndex = 0;
   card.setAttribute("role", "button");
 
-  const firstDestination = trip.items?.[0]?.destination || {};
-  const imageUrl = firstDestination.imageUrl || "";
+  const items = trip.items || trip.trip_plan_items || [];
+  const firstDestination = items[0]?.destination || items[0]?.destinations || {};
+  const imageUrl = firstDestination.imageUrl || firstDestination.image_url || "";
   let media;
   if (imageUrl) {
     const image = document.createElement("img");
@@ -815,7 +826,9 @@ function createCompletedTripCard(trip) {
   date.className = "trip-list-date";
   date.innerHTML = '<i data-lucide="calendar-check"></i>';
   const dateText = document.createElement("span");
-  dateText.textContent = formatCompletedDate(trip.completedAt);
+  dateText.textContent = formatCompletedDate(
+    trip.completedAt || trip.completed_at,
+  );
   date.appendChild(dateText);
 
   const title = document.createElement("h4");
@@ -825,8 +838,8 @@ function createCompletedTripCard(trip) {
   const description = document.createElement("p");
   description.className = "trip-list-desc";
   const region = trip.region || "국내 여행";
-  const totalDays = trip.totalDays || 1;
-  const itemCount = trip.itemCount ?? trip.items?.length ?? 0;
+  const totalDays = trip.totalDays || trip.total_days || 1;
+  const itemCount = trip.itemCount ?? trip.item_count ?? items.length ?? 0;
   description.textContent = `${region} · ${totalDays}일 · ${itemCount}곳 방문`;
 
   content.append(date, title, description);
@@ -884,11 +897,11 @@ async function loadCompletedTrips(
     }
 
     const completedTrips = (result.data.plans || [])
-      .filter((trip) => trip.status === "completed")
+      .filter((trip) => String(trip.status || "").trim() === "completed")
       .sort(
         (firstTrip, secondTrip) =>
-          new Date(secondTrip.completedAt || 0) -
-          new Date(firstTrip.completedAt || 0),
+          new Date(secondTrip.completedAt || secondTrip.completed_at || 0) -
+          new Date(firstTrip.completedAt || firstTrip.completed_at || 0),
       );
 
     if (countElement) {

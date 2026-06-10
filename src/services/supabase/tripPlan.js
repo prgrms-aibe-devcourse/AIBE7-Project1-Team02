@@ -539,17 +539,24 @@ async function updateTripPlanStatus(supabaseClient, planId, status, userId) {
   return data ? mapTripPlan(data) : null;
 }
 
+async function deleteTripPlan(supabaseClient, planId, userId) {
+  const { error } = await supabaseClient
+    .from("trip_plans")
+    .delete()
+    .eq("plan_id", planId)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+  return true;
+}
+
 module.exports = {
   MAX_TRIP_DAYS,
   MAX_FALLBACK_ITEMS_PER_DAY,
   calculateDistanceKm,
   calculateTripDays,
   createTripPlan,
-  createFallbackPlanDays,
-  getCandidateDestinationLimit,
-  getCandidateDestinations,
-  groupDestinationsByDay,
-  hasDestinationImage,
+  deleteTripPlan,
   getTripPlanById,
   getTripPlans,
   mapTripPlan,
