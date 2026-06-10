@@ -576,9 +576,11 @@ Response:
 
 ### PATCH /api/travel/:id/status
 
-임시 일정의 상태를 변경한다. 일정 확인 페이지에서 모든 여행지를 완료하면
-`status`를 `completed`로 저장하고 `completedAt`을 기록한다. `planning`으로
-되돌리면 `completedAt`은 `null`로 초기화한다.
+임시 일정의 상태를 변경한다. 일정은 `planning`, `in_progress`,
+`completed` 세 상태를 가진다. 일정 확인 페이지에서 여행 시작 버튼을
+누르면 `in_progress`로 변경하고, 모든 여행지를 완료하면 `completed`로
+저장하며 `completedAt`을 기록한다. `planning` 또는 `in_progress`로
+변경하면 `completedAt`은 `null`로 초기화한다.
 
 Request Header:
 
@@ -590,7 +592,7 @@ Request:
 
 ```json
 {
-  "status": "completed"
+  "status": "in_progress"
 }
 ```
 

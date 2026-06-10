@@ -132,7 +132,7 @@ router.patch("/:planId/status", async (request, response) => {
     }
 
     const status = String(request.body?.status || "").trim();
-    if (!["planning", "completed"].includes(status)) {
+    if (!["planning", "in_progress", "completed"].includes(status)) {
       return response.status(400).json({
         success: false,
         message: "지원하지 않는 일정 상태입니다.",

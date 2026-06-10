@@ -214,7 +214,7 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 | `region` | `varchar(50)` | NULL | 대표 지역 |
 | `total_days` | `integer` | DEFAULT 1 | 총 여행 일수 |
 | `ai_summary` | `text` | NULL | 일정 요약 |
-| `status` | `varchar(30)` | DEFAULT `planning` | 일정 상태 (`planning`, `completed`) |
+| `status` | `varchar(30)` | DEFAULT `planning` | 일정 상태 (`planning`, `in_progress`, `completed`) |
 | `completed_at` | `timestamptz` | NULL | 모든 여행지 완료 시각 |
 | `created_at` | `timestamptz` | DEFAULT NOW | 생성 일시 |
 | `updated_at` | `timestamptz` | DEFAULT NOW | 수정 일시 |
