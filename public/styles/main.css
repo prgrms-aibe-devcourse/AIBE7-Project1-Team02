@@ -1184,8 +1184,11 @@ a {
 }
 
 .featured-recommendation {
+  position: relative;
   min-width: 0;
   height: 480px;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
 }
 
 .featured-recommendation .recommendation-state {
@@ -1220,13 +1223,14 @@ a {
 }
 
 .featured-recommendation-control:disabled {
-  cursor: not-allowed;
+  cursor: default;
   opacity: 0.35;
 }
 
 .featured-recommendation-card {
   position: relative;
   display: grid;
+  width: 100%;
   height: 480px;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   overflow: hidden;
@@ -1282,6 +1286,79 @@ a {
 .featured-recommendation-card:focus-visible {
   transform: translateY(-3px);
   border-color: rgba(59, 130, 246, 0.5);
+}
+
+.featured-recommendation.is-sliding .featured-recommendation-card {
+  pointer-events: none;
+}
+
+.featured-recommendation-card-animated {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.slide-card-next-in {
+  animation: featured-card-next-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.slide-card-next-out {
+  animation: featured-card-next-out 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.slide-card-prev-in {
+  animation: featured-card-prev-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.slide-card-prev-out {
+  animation: featured-card-prev-out 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes featured-card-next-in {
+  from {
+    transform: translateX(104%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes featured-card-next-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-104%);
+  }
+}
+
+@keyframes featured-card-prev-in {
+  from {
+    transform: translateX(-104%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes featured-card-prev-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(104%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-card-next-in,
+  .slide-card-next-out,
+  .slide-card-prev-in,
+  .slide-card-prev-out {
+    animation: none;
+  }
 }
 
 .featured-recommendation-image {
@@ -1412,7 +1489,9 @@ a {
 .featured-recommendation-dots {
   display: flex;
   flex-wrap: wrap;
+  grid-column: 2;
   gap: 0.45rem;
+  justify-content: center;
 }
 
 .featured-recommendation-dots button {
@@ -1431,6 +1510,11 @@ a {
 .featured-recommendation-dots button.active {
   width: 26px;
   background: var(--color-primary);
+}
+
+.featured-recommendation-dots button:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 #recommendation-position {
@@ -2198,10 +2282,11 @@ a {
     -webkit-line-clamp: 3;
   }
   .featured-recommendation-footer {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
   }
   .featured-recommendation-dots {
     grid-column: 1;
+    justify-self: center;
   }
   .recommendation-explore-button {
     grid-column: 1 / -1;

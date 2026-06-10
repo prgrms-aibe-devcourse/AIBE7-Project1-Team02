@@ -67,7 +67,10 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   let featuredRecommendations = [];
   let currentRecommendationIndex = 0;
+  let isRecommendationSliding = false;
+  let recommendationSlideUnlockTimer = null;
   let bookmarkedDestinationIds = new Set();
+  const RECOMMENDATION_SLIDE_LOCK_MS = 430;
 
   const ensureAuthBadge = () => {
     if (!authToken) return;
@@ -496,19 +499,63 @@ document.addEventListener("DOMContentLoaded", () => {
     return card;
   }
 
-  function renderFeaturedRecommendation() {
+  function renderFeaturedRecommendation(direction = 0) {
     const destination = featuredRecommendations[currentRecommendationIndex];
-    recommendationList.innerHTML = "";
 
     if (!destination) {
+      recommendationList.innerHTML = "";
+      unlockRecommendationControls();
       return;
     }
 
-    recommendationList.appendChild(
-      createFeaturedRecommendation(destination, currentRecommendationIndex + 1),
+    const previousCard = recommendationList.querySelector(
+      ".featured-recommendation-card",
     );
-    recommendationPosition.textContent =
-      `${currentRecommendationIndex + 1} / ${featuredRecommendations.length}`;
+    const card = createFeaturedRecommendation(
+      destination,
+      currentRecommendationIndex + 1,
+    );
+
+    if (direction === 0 || !previousCard) {
+      recommendationList.innerHTML = "";
+      recommendationList.appendChild(card);
+      unlockRecommendationControls();
+    } else {
+      lockRecommendationControls();
+      recommendationList.classList.add("is-sliding");
+      card.classList.add(
+        "featured-recommendation-card-animated",
+        direction > 0 ? "slide-card-next-in" : "slide-card-prev-in",
+      );
+      previousCard.classList.add(
+        "featured-recommendation-card-animated",
+        direction > 0 ? "slide-card-next-out" : "slide-card-prev-out",
+      );
+      recommendationList.appendChild(card);
+      let didFinishSlide = false;
+      const finishSlide = () => {
+        if (didFinishSlide) return;
+        didFinishSlide = true;
+        previousCard.remove();
+        card.classList.remove(
+          "featured-recommendation-card-animated",
+          "slide-card-next-in",
+          "slide-card-prev-in",
+        );
+        recommendationList.classList.remove("is-sliding");
+        unlockRecommendationControls();
+      };
+      previousCard.addEventListener("animationend", finishSlide, { once: true });
+      recommendationSlideUnlockTimer = window.setTimeout(
+        finishSlide,
+        RECOMMENDATION_SLIDE_LOCK_MS,
+      );
+    }
+
+    if (recommendationPosition) {
+      recommendationPosition.textContent =
+        `${currentRecommendationIndex + 1} / ${featuredRecommendations.length}`;
+    }
     recommendationDots
       .querySelectorAll("button")
       .forEach((dot, dotIndex) => {
@@ -518,10 +565,36 @@ document.addEventListener("DOMContentLoaded", () => {
           dotIndex === currentRecommendationIndex ? "true" : "false",
         );
       });
-    recommendationPrev.disabled = currentRecommendationIndex === 0;
-    recommendationNext.disabled =
-      currentRecommendationIndex === featuredRecommendations.length - 1;
+    setRecommendationControlsLocked(isRecommendationSliding);
     lucide.createIcons();
+  }
+
+  function setRecommendationControlsLocked(isLocked) {
+    const isFirstRecommendation = currentRecommendationIndex === 0;
+    const isLastRecommendation =
+      currentRecommendationIndex === featuredRecommendations.length - 1;
+
+    recommendationPrev.disabled = isLocked || isFirstRecommendation;
+    recommendationNext.disabled = isLocked || isLastRecommendation;
+    recommendationDots
+      .querySelectorAll("button")
+      .forEach((dot) => {
+        dot.disabled = isLocked;
+      });
+  }
+
+  function lockRecommendationControls() {
+    isRecommendationSliding = true;
+    setRecommendationControlsLocked(true);
+    window.clearTimeout(recommendationSlideUnlockTimer);
+    recommendationSlideUnlockTimer = null;
+  }
+
+  function unlockRecommendationControls() {
+    isRecommendationSliding = false;
+    window.clearTimeout(recommendationSlideUnlockTimer);
+    recommendationSlideUnlockTimer = null;
+    setRecommendationControlsLocked(false);
   }
 
   function initializeFeaturedRecommendations(recommendations) {
@@ -537,8 +610,12 @@ document.addEventListener("DOMContentLoaded", () => {
         `${index + 1}번째 추천 ${destination.destinationName} 보기`,
       );
       dot.addEventListener("click", () => {
+        if (isRecommendationSliding || index === currentRecommendationIndex) {
+          return;
+        }
+        const direction = index > currentRecommendationIndex ? 1 : -1;
         currentRecommendationIndex = index;
-        renderFeaturedRecommendation();
+        renderFeaturedRecommendation(direction);
       });
       recommendationDots.appendChild(dot);
     });
@@ -577,7 +654,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "로그인하면 여행 성향 기반 TOP 10 추천을 볼 수 있습니다.";
       recommendationLink.href = "./pages/login.html?redirect=/pages/survey.html";
       recommendationLink.textContent = "로그인하고 추천 받기";
-      recommendationPosition.textContent = "게스트";
+      if (recommendationPosition) recommendationPosition.textContent = "게스트";
       recommendationPrev.disabled = true;
       recommendationNext.disabled = true;
       renderRecommendationState("추천 여행지 전체 목록은 로그인 없이도 둘러볼 수 있습니다.");
@@ -653,15 +730,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   recommendationPrev.addEventListener("click", () => {
-    if (currentRecommendationIndex > 0) {
+    if (!isRecommendationSliding && currentRecommendationIndex > 0) {
       currentRecommendationIndex -= 1;
-      renderFeaturedRecommendation();
+      renderFeaturedRecommendation(-1);
     }
   });
   recommendationNext.addEventListener("click", () => {
-    if (currentRecommendationIndex < featuredRecommendations.length - 1) {
+    if (
+      !isRecommendationSliding &&
+      currentRecommendationIndex < featuredRecommendations.length - 1
+    ) {
       currentRecommendationIndex += 1;
-      renderFeaturedRecommendation();
+      renderFeaturedRecommendation(1);
     }
   });
 
