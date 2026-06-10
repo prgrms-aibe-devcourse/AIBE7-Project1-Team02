@@ -1333,6 +1333,46 @@ body,
   border: 1px solid var(--color-border);
 }
 
+.comment-author-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+}
+
+.comment-item.is-reply {
+  padding-left: 2.5rem;
+  margin-top: -0.25rem;
+  border-bottom: none;
+}
+.comment-item.is-reply .comment-avatar-col img {
+  width: 28px;
+  height: 28px;
+}
+.comment-replies-wrapper {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.comment-replies-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+}
+.comment-replies-toggle .line {
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  background-color: #999;
+}
+
 .detail-meta-text {
   display: flex;
   flex-direction: column;

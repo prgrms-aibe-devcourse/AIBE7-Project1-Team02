@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
     detailPost: null,
     editingPostId: null,
     editingCommentId: null,
+    replyingToCommentId: null,
     activeCommentPostId: null,
     postImages: [],
     existingPostImages: [],
@@ -1033,6 +1034,7 @@ document.addEventListener("DOMContentLoaded", () => {
     els.commentModal?.classList.remove("active");
     state.activeCommentPostId = null;
     state.editingCommentId = null;
+    state.replyingToCommentId = null;
   }
 
   function bringModalToFront(modal, zIndex) {
@@ -1052,66 +1054,115 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderComments(rows, targetList = els.commentList) {
-    targetList.innerHTML =
-      Array.isArray(rows) && rows.length
-        ? rows
-            .map((comment) => {
-              const isMine = String(comment.user_id) === String(userId);
-              const isEditing =
-                String(state.editingCommentId) === String(comment.comment_id);
-              const isEdited =
-                comment.updated_at &&
-                comment.created_at &&
-                comment.updated_at !== comment.created_at;
-              const authorName = comment.nickname || "사용자";
-              const avatarUrl = `https://ui-avatars.com/api/?name=${escapeAttr(authorName.charAt(0))}&background=random&color=fff`;
-              return `
-              <article class="comment-item${isEditing ? " is-editing" : ""}" data-comment-id="${comment.comment_id}">
-                <div class="comment-avatar-col">
-                  <img src="${avatarUrl}" alt="프로필" loading="lazy">
+    if (!Array.isArray(rows) || !rows.length) {
+      targetList.innerHTML = '<div class="empty-feed">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</div>';
+      return;
+    }
+
+    const threads = [];
+    rows.forEach(c => {
+      let displayContent = c.content || "";
+      let targetParentId = null;
+      let isReply = false;
+
+      // Extract hidden reply metadata if exists
+      const replyMatch = displayContent.match(/<!--reply:([^>]+)-->$/);
+      if (replyMatch) {
+        targetParentId = replyMatch[1];
+        displayContent = displayContent.replace(replyMatch[0], "").trim();
+      } else if (displayContent.startsWith('@')) {
+        isReply = true;
+      }
+
+      // Try explicit target parent first
+      if (targetParentId) {
+        const parent = threads.find(t => String(t.comment_id) === String(targetParentId));
+        if (parent) {
+          parent.replies.push({ ...c, content: displayContent });
+          return;
+        }
+      } 
+      
+      // Fallback for legacy comments or missing parent
+      if (isReply && threads.length > 0) {
+        threads[threads.length - 1].replies.push({ ...c, content: displayContent });
+        return;
+      }
+
+      // Otherwise it's a main thread
+      threads.push({ ...c, content: displayContent, replies: [] });
+    });
+
+    const generateCommentHtml = (comment, isReply = false, repliesHtml = "") => {
+      const isMine = String(comment.user_id) === String(userId);
+      const isEditing = String(state.editingCommentId) === String(comment.comment_id);
+      const authorName = comment.nickname || "사용자";
+      const avatarUrl = `https://ui-avatars.com/api/?name=${escapeAttr(authorName.charAt(0))}&background=random&color=fff`;
+      
+      return `
+        <article class="comment-item${isEditing ? " is-editing" : ""}${isReply ? " is-reply" : ""}" data-comment-id="${comment.comment_id}">
+          <div class="comment-avatar-col">
+            <img src="${avatarUrl}" alt="프로필" loading="lazy">
+          </div>
+          <div class="comment-content-col">
+            ${isEditing 
+              ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3" style="width:100%; resize:none; padding:0.5rem; border:1px solid #ddd; border-radius:4px; font-family:inherit; margin-bottom:0.5rem;">${escapeHtml(comment.content || "")}</textarea>`
+              : `
+                <div class="comment-text-block">
+                  <span class="comment-author-name">${escapeHtml(authorName)}</span>
+                  <span class="comment-text-body">${escapeHtml(comment.content || "").replace(/\n/g, "<br>")}</span>
                 </div>
-                <div class="comment-content-col">
-                  ${isEditing 
-                    ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3" style="width:100%; resize:none; padding:0.5rem; border:1px solid #ddd; border-radius:4px; font-family:inherit; margin-bottom:0.5rem;">${escapeHtml(comment.content || "")}</textarea>`
-                    : `
-                      <div class="comment-text-block">
-                        <span class="comment-author-name">${escapeHtml(authorName)}</span>
-                        <span class="comment-text-body">${escapeHtml(comment.content || "").replace(/\n/g, "<br>")}</span>
-                      </div>
-                    `
-                  }
-                  <div class="comment-actions-row">
-                    ${isEditing 
-                      ? `
-                      <button type="button" class="comment-opt-btn" data-comment-action="save" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px; margin-right: 0.5rem;"><i data-lucide="check"></i> 저장</button>
-                      <button type="button" class="comment-opt-btn" data-comment-action="cancel" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px;"><i data-lucide="x"></i> 취소</button>
-                      `
-                      : `
-                      <span class="comment-time">${formatRelative(comment.updated_at || comment.created_at)}</span>
-                      <span class="comment-reply-text" data-comment-action="reply" data-comment-id="${comment.comment_id}">답글 달기</span>
-                      ${isMine ? `
-                      <div class="comment-more-wrapper">
-                        <button type="button" class="comment-more-opts-btn" data-comment-action="toggle-opts" data-comment-id="${comment.comment_id}"><i data-lucide="more-horizontal"></i></button>
-                        <div class="comment-opts-dropdown" id="comment-opts-${comment.comment_id}">
-                          <button type="button" class="comment-opt-btn" data-comment-action="edit" data-comment-id="${comment.comment_id}"><i data-lucide="edit-2"></i> 수정</button>
-                          <button type="button" class="comment-opt-btn danger" data-comment-action="delete" data-comment-id="${comment.comment_id}"><i data-lucide="trash-2"></i> 삭제</button>
-                        </div>
-                      </div>
-                      ` : ""}
-                      `
-                    }
+              `
+            }
+            <div class="comment-actions-row">
+              ${isEditing 
+                ? `
+                <button type="button" class="comment-opt-btn" data-comment-action="save" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px; margin-right: 0.5rem;"><i data-lucide="check"></i> 저장</button>
+                <button type="button" class="comment-opt-btn" data-comment-action="cancel" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px;"><i data-lucide="x"></i> 취소</button>
+                `
+                : `
+                <span class="comment-time">${formatRelative(comment.updated_at || comment.created_at)}</span>
+                <span class="comment-reply-text" data-comment-action="reply" data-comment-id="${comment.comment_id}">답글 달기</span>
+                ${isMine ? `
+                <div class="comment-more-wrapper">
+                  <button type="button" class="comment-more-opts-btn" data-comment-action="toggle-opts" data-comment-id="${comment.comment_id}"><i data-lucide="more-horizontal"></i></button>
+                  <div class="comment-opts-dropdown" id="comment-opts-${comment.comment_id}">
+                    <button type="button" class="comment-opt-btn" data-comment-action="edit" data-comment-id="${comment.comment_id}"><i data-lucide="edit-2"></i> 수정</button>
+                    <button type="button" class="comment-opt-btn danger" data-comment-action="delete" data-comment-id="${comment.comment_id}"><i data-lucide="trash-2"></i> 삭제</button>
                   </div>
                 </div>
-                ${!isEditing ? `
-                <div class="comment-right-col">
-                  <button type="button" class="comment-heart-btn" aria-label="좋아요" data-comment-action="like" data-comment-id="${comment.comment_id}"><i data-lucide="heart"></i></button>
-                </div>
-                ` : ''}
-              </article>
-              `;
-            })
-            .join("")
-        : '<div class="empty-feed">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</div>';
+                ` : ""}
+                `
+              }
+            </div>
+            ${repliesHtml}
+          </div>
+          ${!isEditing ? `
+          <div class="comment-right-col">
+            <button type="button" class="comment-heart-btn" aria-label="좋아요" data-comment-action="like" data-comment-id="${comment.comment_id}"><i data-lucide="heart"></i></button>
+          </div>
+          ` : ''}
+        </article>
+      `;
+    };
+
+    targetList.innerHTML = threads.map(thread => {
+      let repliesWrapperHtml = "";
+      if (thread.replies.length > 0) {
+        const repliesHtmlInner = thread.replies.map(r => generateCommentHtml(r, true)).join("");
+        repliesWrapperHtml = `
+          <div class="comment-replies-wrapper">
+            <button type="button" class="comment-replies-toggle" data-comment-action="toggle-replies" data-comment-id="${thread.comment_id}">
+              <span class="line"></span> 답글 보기(${thread.replies.length}개)
+            </button>
+            <div class="comment-replies-list" style="display: none;">
+              ${repliesHtmlInner}
+            </div>
+          </div>
+        `;
+      }
+      return generateCommentHtml(thread, false, repliesWrapperHtml);
+    }).join("");
 
     if (window.lucide) {
       window.lucide.createIcons({ root: targetList });
@@ -1127,11 +1178,24 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!comment) return;
 
         if (action === "reply") {
+          state.replyingToCommentId = comment.comment_id;
           const input = document.getElementById("comment-text");
           if (input) {
-            input.value = `@${comment.nickname || "사용자"} ` + input.value;
+            input.value = `@${comment.nickname || "사용자"} `;
             input.focus();
           }
+          return;
+        }
+
+        if (action === "toggle-replies") {
+          const wrapper = button.closest(".comment-replies-wrapper");
+          const list = wrapper.querySelector(".comment-replies-list");
+          const isHidden = list.style.display === "none";
+          list.style.display = isHidden ? "block" : "none";
+          const count = list.children.length;
+          button.innerHTML = isHidden 
+            ? `<span class="line"></span> 답글 숨기기`
+            : `<span class="line"></span> 답글 보기(${count}개)`;
           return;
         }
 
@@ -1264,10 +1328,20 @@ document.addEventListener("DOMContentLoaded", () => {
   async function handleCommentSubmit(e) {
     e.preventDefault();
     const postId = state.activeCommentPostId || els.commentPostId.value;
-    const content = els.commentTextarea.value.trim();
+    let content = els.commentTextarea.value.trim();
     if (!postId || !content) {
       alert("댓글 내용을 입력해주세요.");
       return;
+    }
+
+    if (state.replyingToCommentId) {
+      const parent = state.comments.find(c => String(c.comment_id) === String(state.replyingToCommentId));
+      const expectedPrefix = parent ? `@${parent.nickname || "사용자"}` : "";
+      if (content.startsWith(expectedPrefix) || content.startsWith("@")) {
+        content += `\n<!--reply:${state.replyingToCommentId}-->`;
+      } else {
+        state.replyingToCommentId = null;
+      }
     }
 
     if (state.editingCommentId) {
@@ -1305,6 +1379,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }),
     });
     els.commentTextarea.value = "";
+    state.replyingToCommentId = null;
     await loadComments(postId);
     await refreshCommunity();
   }
