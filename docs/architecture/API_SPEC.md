@@ -53,6 +53,7 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | DONE | GET | `/api/user/bookmarks` | Authorization Bearer Token | 저장한 여행지 ID 목록 | 로그인 만료, Supabase 조회 실패 | 백엔드 |
 | DONE | POST | `/api/user/bookmarks` | Authorization Bearer Token, `destinationId` | 북마크 저장 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 저장 실패 | 백엔드 |
 | DONE | DELETE | `/api/user/bookmarks/:destinationId` | Authorization Bearer Token | 북마크 해제 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 삭제 실패 | 백엔드 |
+| DONE | PATCH | `/api/travel/:id/status` | Authorization Bearer Token, `status` | 변경된 일정 상태 | 로그인 만료, 유효하지 않은 상태, 일정 없음 | 백엔드 |
 | PLANNED | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
 | PLANNED | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | PLANNED | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
@@ -508,6 +509,8 @@ Response:
         "region": "제주특별자치도",
         "totalDays": 2,
         "aiSummary": "자연 속에서 여유롭게 쉬는 일정입니다.",
+        "status": "completed",
+        "completedAt": "2026-06-10T10:00:00Z",
         "itemCount": 2,
         "items": []
       }
@@ -548,6 +551,8 @@ Response:
       "mbtiType": "INFP",
       "region": "제주특별자치도",
       "totalDays": 2,
+      "status": "completed",
+      "completedAt": "2026-06-10T10:00:00Z",
       "items": [
         {
           "itemId": 1,
@@ -566,6 +571,43 @@ Response:
     }
   },
   "message": "일정 상세 조회 성공"
+}
+```
+
+### PATCH /api/travel/:id/status
+
+임시 일정의 상태를 변경한다. 일정 확인 페이지에서 모든 여행지를 완료하면
+`status`를 `completed`로 저장하고 `completedAt`을 기록한다. `planning`으로
+되돌리면 `completedAt`은 `null`로 초기화한다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+Request:
+
+```json
+{
+  "status": "completed"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "plan": {
+      "planId": 1,
+      "title": "제주 힐링 여행",
+      "status": "completed",
+      "completedAt": "2026-06-10T10:00:00Z"
+    }
+  },
+  "message": "일정 상태 변경 성공"
 }
 ```
 

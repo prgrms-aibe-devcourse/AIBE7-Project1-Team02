@@ -35,6 +35,7 @@ MBTI 16유형 적합도 점수를 Supabase에 적재했다.
 | `destinations` | 추천과 일정 생성에 사용하는 도시 및 여행지 기본 정보를 관리한다. |
 | `trips` | 사용자가 생성한 여행의 기간, 동반자 유형, 상태를 관리한다. |
 | `itineraries` | 여행별 일차 및 시간대에 따른 세부 방문 일정을 관리한다. |
+| `trip_plans` | 일정 확인 페이지 개발 중 사용하는 임시 일정과 완료 상태를 관리한다. |
 | `destination_keywords` | TourAPI 원본을 규칙으로 가공한 여행지 키워드를 관리한다. |
 | `destination_mbti_scores` | 여행지별 MBTI 16유형 적합도 점수를 관리한다. |
 | `user_bookmarks` | 사용자가 저장한 여행지를 관리한다. |
@@ -199,6 +200,24 @@ Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로�
 | `latitude` | `decimal(10,7)` | NULL | 장소 위도 |
 | `longitude` | `decimal(10,7)` | NULL | 장소 경도 |
 | `sort_order` | `int` | NOT NULL, DEFAULT 0 | 같은 날짜 안에서의 노출 및 방문 순서 |
+
+## trip_plans
+
+일정 확인 페이지 개발 중 사용하는 임시 일정 단위 테이블이다. 정식 일정
+테이블 병합 전까지 완료한 여행 상태를 마이페이지와 공유하는 용도로 사용한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `plan_id` | `bigint` | PK, Identity | 임시 일정 식별자 |
+| `title` | `varchar(100)` | NOT NULL | 일정 제목 |
+| `mbti_type` | `varchar(4)` | NULL | 일정 생성 당시 여행 성향 코드 |
+| `region` | `varchar(50)` | NULL | 대표 지역 |
+| `total_days` | `integer` | DEFAULT 1 | 총 여행 일수 |
+| `ai_summary` | `text` | NULL | 일정 요약 |
+| `status` | `varchar(30)` | DEFAULT `planning` | 일정 상태 (`planning`, `completed`) |
+| `completed_at` | `timestamptz` | NULL | 모든 여행지 완료 시각 |
+| `created_at` | `timestamptz` | DEFAULT NOW | 생성 일시 |
+| `updated_at` | `timestamptz` | DEFAULT NOW | 수정 일시 |
 
 ## 테이블 관계
 
