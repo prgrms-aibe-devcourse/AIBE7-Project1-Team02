@@ -54,6 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
     draftTags: [],
     currentGalleryIndex: 0,
     likedCommentIds: [],
+    currentWizardStep: 1,
   };
 
   const els = {
@@ -67,21 +68,24 @@ document.addEventListener("DOMContentLoaded", () => {
     widgetUserName: document.getElementById("widget-user-name"),
     btnSidebarCreate: document.getElementById("btn-sidebar-create"),
     btnWritePost: document.getElementById("btn-write-post"),
-    postModal: document.getElementById("post-modal"),
+    postFullscreenEditor: document.getElementById("post-fullscreen-editor"),
     postModalClose: document.getElementById("post-modal-close"),
     postForm: document.getElementById("post-form"),
-    postType: document.getElementById("post-type"),
     postTitle: document.getElementById("post-title"),
+    postTitleCount: document.getElementById("post-title-count"),
     postSummary: document.getElementById("post-summary"),
+    postSummaryCount: document.getElementById("post-summary-count"),
     postImageFile: document.getElementById("post-image-file"),
+    postImageCount: document.getElementById("post-image-count"),
     postImageOrderList: document.getElementById("post-image-order-list"),
     postImageGallery: document.getElementById("post-image-gallery"),
     postImageDropzone: document.getElementById("post-image-dropzone"),
+    btnAddPhoto: document.getElementById("btn-add-photo"),
     tagInputContainer: document.getElementById("tag-input-container"),
     tagChipList: document.getElementById("tag-chip-list"),
     postTags: document.getElementById("post-tags"),
     postLocation: document.getElementById("post-location"),
-    postCategory: document.getElementById("post-category"),
+    btnFsPublish: document.getElementById("btn-fs-publish"),
     btnViewGrid: document.getElementById("btn-view-grid"),
     btnViewList: document.getElementById("btn-view-list"),
     commentModal: document.getElementById("comment-modal"),
@@ -195,8 +199,8 @@ document.addEventListener("DOMContentLoaded", () => {
     els.postModalClose?.addEventListener("click", closePostModal);
     els.commentModalClose?.addEventListener("click", closeCommentModal);
     els.detailModalClose?.addEventListener("click", closeDetailModal);
-    els.postModal?.addEventListener("click", (e) => {
-      if (e.target === els.postModal) closePostModal();
+    els.postFullscreenEditor?.addEventListener("click", (e) => {
+      if (e.target === els.postFullscreenEditor) closePostModal();
     });
     els.commentModal?.addEventListener("click", (e) => {
       if (e.target === els.commentModal) closeCommentModal();
@@ -208,6 +212,61 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.target === els.imageLightbox) closeImageLightbox();
     });
     els.postForm?.addEventListener("submit", handlePostSubmit);
+    els.postTitle?.addEventListener("input", updateEditorStats);
+    els.postSummary?.addEventListener("input", updateEditorStats);
+
+    function updateToolbarState() {
+      const blockFormat = document.queryCommandValue("formatBlock");
+      const isHeading = blockFormat === "h2" || blockFormat === "H2";
+      const isBold = document.queryCommandState("bold") && !isHeading;
+      const isItalic = document.queryCommandState("italic");
+
+      const btnBold = document.querySelector('.toolbar-btn[data-cmd="bold"]');
+      if (btnBold) {
+        btnBold.classList.toggle('active', isBold);
+        btnBold.disabled = isHeading;
+        btnBold.style.opacity = isHeading ? "0.4" : "1";
+        btnBold.style.cursor = isHeading ? "not-allowed" : "pointer";
+      }
+      
+      document.querySelector('.toolbar-btn[data-cmd="italic"]')?.classList.toggle('active', isItalic);
+      document.querySelector('.toolbar-btn[data-cmd="heading"]')?.classList.toggle('active', isHeading);
+    }
+
+    els.postSummary?.addEventListener("keyup", updateToolbarState);
+    els.postSummary?.addEventListener("mouseup", updateToolbarState);
+    els.postSummary?.addEventListener("focus", updateToolbarState);
+
+    document.querySelectorAll(".toolbar-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const cmd = btn.dataset.cmd;
+        if (!cmd) return;
+        
+        if (document.activeElement !== els.postSummary) {
+          els.postSummary?.focus();
+        }
+
+        switch (cmd) {
+          case "heading":
+            const currentBlock = document.queryCommandValue("formatBlock");
+            if (currentBlock === "h2" || currentBlock === "H2") {
+              document.execCommand("formatBlock", false, "P");
+            } else {
+              document.execCommand("formatBlock", false, "H2");
+            }
+            break;
+          case "bold":
+            document.execCommand("bold", false, null);
+            break;
+          case "italic":
+            document.execCommand("italic", false, null);
+            break;
+        }
+        updateEditorStats();
+        updateToolbarState();
+      });
+    });
     els.commentForm?.addEventListener("submit", handleCommentSubmit);
     els.commentTextarea?.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -216,9 +275,19 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
     els.postImageFile?.addEventListener("change", handlePostFilesSelected);
-    els.postImageDropzone?.addEventListener("click", () =>
-      els.postImageFile?.click(),
-    );
+    els.btnAddPhoto?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      els.postImageFile?.click();
+    });
+    els.postImageDropzone?.addEventListener("click", () => {
+      els.postImageFile?.click();
+    });
+    els.postImageDropzone?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        els.postImageFile?.click();
+      }
+    });
     els.postImageDropzone?.addEventListener("dragover", (e) => {
       e.preventDefault();
       els.postImageDropzone.classList.add("is-dragover");
@@ -240,23 +309,25 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     els.detailLikeBtn?.addEventListener("click", async () => {
       if (!state.detailPost) return;
-      
+
       // Optimistic UI update for modal button
       const isLikedBefore = isPostLiked(state.detailPost.post_id);
       const isLikedNow = !isLikedBefore;
       els.detailLikeBtn.classList.toggle("liked", isLikedNow);
-      const iconHtml = isLikedNow 
-        ? `<i data-lucide="heart" style="fill: currentColor; color: #ef4444;"></i>` 
+      const iconHtml = isLikedNow
+        ? `<i data-lucide="heart" style="fill: currentColor; color: #ef4444;"></i>`
         : `<i data-lucide="heart"></i>`;
       let count = getLikeCount(state.detailPost);
       if (isLikedNow && !isLikedBefore) count++;
       else if (!isLikedNow && isLikedBefore) count = Math.max(0, count - 1);
-      
+
       els.detailLikeBtn.innerHTML = `${iconHtml} 좋아요 ${count > 0 ? count : ""}`;
       if (window.lucide) window.lucide.createIcons({ root: els.detailLikeBtn });
 
       // Sync background feed card immediately
-      const feedBtn = document.querySelector(`[data-post-id="${CSS.escape(state.detailPost.post_id)}"][data-action="like"]`);
+      const feedBtn = document.querySelector(
+        `[data-post-id="${CSS.escape(state.detailPost.post_id)}"][data-action="like"]`,
+      );
       if (feedBtn) {
         const wrapper = feedBtn.closest(".travel-card-like") || feedBtn;
         if (isLikedNow) wrapper.classList.add("is-liked");
@@ -264,10 +335,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       await toggleLike(state.detailPost);
-      
+
       // Update local state without full refresh
       state.detailPost.like_count = count;
-      const postInFeed = state.posts.find(p => String(p.post_id) === String(state.detailPost.post_id));
+      const postInFeed = state.posts.find(
+        (p) => String(p.post_id) === String(state.detailPost.post_id),
+      );
       if (postInFeed) postInFeed.like_count = count;
     });
     els.detailCommentBtn?.addEventListener("click", () => {
@@ -294,6 +367,16 @@ document.addEventListener("DOMContentLoaded", () => {
       await refreshCommunity();
     });
     els.imageLightboxClose?.addEventListener("click", closeImageLightbox);
+
+    els.fsCategorySelect?.addEventListener("change", (e) => {
+      if (els.postType) {
+        els.postType.value = e.target.value;
+      }
+    });
+
+    els.btnFsPublish?.addEventListener("click", () => {
+      els.postForm?.requestSubmit();
+    });
   }
 
   async function refreshCommunity(likesPromise = Promise.resolve()) {
@@ -366,10 +449,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (newPosts.length > 0) {
-        const userIds = [...new Set(newPosts.map((p) => p.user_id))].filter(Boolean);
+        const userIds = [...new Set(newPosts.map((p) => p.user_id))].filter(
+          Boolean,
+        );
         if (userIds.length > 0) {
           try {
-            const usersRes = await request(`${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`, { method: "GET" });
+            const usersRes = await request(
+              `${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`,
+              { method: "GET" },
+            );
             if (Array.isArray(usersRes)) {
               const userMap = {};
               usersRes.forEach((u) => (userMap[u.user_id] = u));
@@ -463,7 +551,8 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         if (!post) return;
 
-        if (action === "detail") openPostDetail(post.post_id, { initialData: post });
+        if (action === "detail")
+          openPostDetail(post.post_id, { initialData: post });
         if (action === "like") {
           await toggleLike(post);
           const btn = el.closest(".travel-card-like") || el;
@@ -575,15 +664,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       updateBodyScroll();
 
-      fetchPostById(postId).then(updatedPost => {
-        if (updatedPost && state.detailPost && String(state.detailPost.post_id) === String(postId)) {
-          state.detailPost = updatedPost;
-          renderDetailContent(updatedPost);
-          if (window.lucide) {
-            window.lucide.createIcons({ root: els.detailModal });
+      fetchPostById(postId)
+        .then((updatedPost) => {
+          if (
+            updatedPost &&
+            state.detailPost &&
+            String(state.detailPost.post_id) === String(postId)
+          ) {
+            state.detailPost = updatedPost;
+            renderDetailContent(updatedPost);
+            if (window.lucide) {
+              window.lucide.createIcons({ root: els.detailModal });
+            }
           }
-        }
-      }).catch(console.error);
+        })
+        .catch(console.error);
       return;
     }
 
@@ -648,8 +743,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (els.detailLikeBtn) {
       const isLiked = isPostLiked(post.post_id);
       els.detailLikeBtn.classList.toggle("liked", isLiked);
-      const iconHtml = isLiked 
-        ? `<i data-lucide="heart" style="fill: currentColor; color: #ef4444;"></i>` 
+      const iconHtml = isLiked
+        ? `<i data-lucide="heart" style="fill: currentColor; color: #ef4444;"></i>`
         : `<i data-lucide="heart"></i>`;
       const count = getLikeCount(post);
       els.detailLikeBtn.innerHTML = `${iconHtml} 좋아요 ${count > 0 ? count : ""}`;
@@ -762,7 +857,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const post = Array.isArray(rows) ? rows[0] : null;
     if (post && post.user_id) {
       try {
-        const usersRes = await request(`${state.api.users}?user_id=eq.${encodeURIComponent(post.user_id)}&select=profile_image,nickname`, { method: "GET" });
+        const usersRes = await request(
+          `${state.api.users}?user_id=eq.${encodeURIComponent(post.user_id)}&select=profile_image,nickname`,
+          { method: "GET" },
+        );
         if (Array.isArray(usersRes) && usersRes[0]) {
           post.profile_image = usersRes[0].profile_image;
           post.nickname = usersRes[0].nickname || post.nickname;
@@ -869,11 +967,13 @@ document.addEventListener("DOMContentLoaded", () => {
     state.postSummarySelectionEnd = 0;
     state.draftTags = [];
     els.postForm?.reset();
+
     renderDraftTags();
     renderPostImageGallery();
-    setPostSubmitLabel("게시글 등록");
-    bringModalToFront(els.postModal, 210);
-    els.postModal?.classList.add("active");
+    setPostSubmitLabel("작성하기");
+    updateEditorStats();
+
+    els.postFullscreenEditor?.classList.add("active");
     updateBodyScroll();
   }
 
@@ -882,7 +982,7 @@ document.addEventListener("DOMContentLoaded", () => {
     state.editingPostId = post.post_id;
     state.existingPostImages = getPostImages(post);
     state.postImages = [...state.existingPostImages];
-    els.postType.value = post.type || "여행후기";
+
     els.postTitle.value = post.title || "";
     els.postSummary.value = post.summary || "";
 
@@ -891,16 +991,16 @@ document.addEventListener("DOMContentLoaded", () => {
     els.postTags.value = "";
 
     els.postLocation.value = post.location || "";
-    els.postCategory.value = post.category || "";
-    setPostSubmitLabel("게시글 수정");
+    setPostSubmitLabel("수정 완료");
     renderPostImageGallery();
-    bringModalToFront(els.postModal, 210);
-    els.postModal?.classList.add("active");
+    updateEditorStats();
+
+    els.postFullscreenEditor?.classList.add("active");
     updateBodyScroll();
   }
 
   function closePostModal() {
-    els.postModal?.classList.remove("active");
+    els.postFullscreenEditor?.classList.remove("active");
     updateBodyScroll();
   }
 
@@ -968,9 +1068,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderPostImageGallery() {
     if (!els.postImageGallery) return;
     if (!state.postImages.length) {
-      els.postImageGallery.innerHTML =
-        '<div class="image-gallery-empty">업로드한 사진이 없습니다. 드래그 앤 드랍 또는 클릭으로 추가해보세요.</div>';
+      els.postImageGallery.innerHTML = "";
       renderPostImageOrderList();
+      updateEditorStats();
       return;
     }
     els.postImageGallery.innerHTML = state.postImages
@@ -978,11 +1078,9 @@ document.addEventListener("DOMContentLoaded", () => {
         (src, index) => `
           <div class="image-gallery-item" draggable="true" data-drag-index="${index}">
             <img src="${escapeAttr(src)}" alt="업로드된 사진 ${index + 1}">
-            <div class="image-gallery-actions">
-              <button type="button" class="image-gallery-move" data-move-up="${index}">위</button>
-              <button type="button" class="image-gallery-move" data-move-down="${index}">아래</button>
-              <button type="button" class="image-gallery-remove" data-remove-index="${index}">삭제</button>
-            </div>
+            <button type="button" class="image-gallery-remove" data-remove-index="${index}" aria-label="삭제">
+              <i data-lucide="x"></i>
+            </button>
           </div>
         `,
       )
@@ -996,20 +1094,9 @@ document.addEventListener("DOMContentLoaded", () => {
           renderPostImageGallery();
         });
       });
-    els.postImageGallery
-      .querySelectorAll("[data-move-up]")
-      .forEach((button) => {
-        button.addEventListener("click", () =>
-          movePostImage(Number(button.dataset.moveUp), -1),
-        );
-      });
-    els.postImageGallery
-      .querySelectorAll("[data-move-down]")
-      .forEach((button) => {
-        button.addEventListener("click", () =>
-          movePostImage(Number(button.dataset.moveDown), 1),
-        );
-      });
+    if (window.lucide) {
+      window.lucide.createIcons({ root: els.postImageGallery });
+    }
     els.postImageGallery
       .querySelectorAll("[data-drag-index]")
       .forEach((item) => {
@@ -1039,6 +1126,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
     renderPostImageOrderList();
+    updateEditorStats();
   }
 
   async function handlePostFilesSelected() {
@@ -1057,7 +1145,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    for (const file of validFiles) {
+    const maxRemaining = 10 - state.postImages.length;
+    const filesToUpload = validFiles.slice(0, maxRemaining);
+
+    if (validFiles.length > maxRemaining) {
+      alert(`사진은 최대 10장까지만 업로드할 수 있습니다. (초과된 파일 제외)`);
+    }
+
+    for (const file of filesToUpload) {
       const uploadedUrl = await uploadPostImage(file);
       if (uploadedUrl) {
         state.postImages.push(uploadedUrl);
@@ -1136,6 +1231,22 @@ document.addEventListener("DOMContentLoaded", () => {
   function setPostSubmitLabel(text) {
     const btn = els.postForm?.querySelector('button[type="submit"]');
     if (btn) btn.textContent = text;
+    if (els.btnFsPublish) els.btnFsPublish.textContent = text;
+  }
+
+  function updateEditorStats() {
+    if (els.postTitleCount) {
+      const titleLength = (els.postTitle?.value || "").length;
+      const titleMax = els.postTitle?.maxLength || 80;
+      els.postTitleCount.textContent = `${titleLength}/${titleMax}`;
+    }
+    if (els.postSummaryCount) {
+      const summaryLength = (els.postSummary?.innerText || "").replace(/\n/g, "").length;
+      els.postSummaryCount.textContent = `${summaryLength.toLocaleString()}/2000자`;
+    }
+    if (els.postImageCount) {
+      els.postImageCount.textContent = `${state.postImages.length}/10장`;
+    }
   }
 
   function openCommentModal(post) {
@@ -1169,7 +1280,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateBodyScroll() {
-    const hasActiveModal = document.querySelectorAll(".modal-overlay.active").length > 0;
+    const hasActiveModal =
+      document.querySelectorAll(".modal-overlay.active").length > 0;
     document.body.classList.toggle("modal-open", hasActiveModal);
   }
 
@@ -1181,12 +1293,17 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     );
     state.comments = Array.isArray(rows) ? rows : [];
-    
+
     if (state.comments.length > 0) {
-      const userIds = [...new Set(state.comments.map((c) => c.user_id))].filter(Boolean);
+      const userIds = [...new Set(state.comments.map((c) => c.user_id))].filter(
+        Boolean,
+      );
       if (userIds.length > 0) {
         try {
-          const usersRes = await request(`${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`, { method: "GET" });
+          const usersRes = await request(
+            `${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`,
+            { method: "GET" },
+          );
           if (Array.isArray(usersRes)) {
             const userMap = {};
             usersRes.forEach((u) => (userMap[u.user_id] = u));
@@ -1202,19 +1319,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     }
-    
+
     if (userId) {
       try {
         const likes = await request(
           `${state.api.commentLikes}?user_id=eq.${encodeURIComponent(userId)}&select=comment_id`,
-          { method: "GET" }
+          { method: "GET" },
         );
-        state.likedCommentIds = Array.isArray(likes) ? likes.map(l => String(l.comment_id)) : [];
+        state.likedCommentIds = Array.isArray(likes)
+          ? likes.map((l) => String(l.comment_id))
+          : [];
       } catch (e) {
         console.error("댓글 좋아요 정보 불러오기 실패:", e);
       }
     }
-    
+
     renderComments(state.comments, els.commentList);
   }
 
@@ -1274,8 +1393,11 @@ document.addEventListener("DOMContentLoaded", () => {
         String(state.editingCommentId) === String(comment.comment_id);
       const authorName = comment.nickname || "사용자";
       const avatarUrl = getAvatarUrl(comment.profile_image, authorName);
-      const isLiked = state.likedCommentIds.includes(String(comment.comment_id));
-      const likeCount = comment.likes && comment.likes.length > 0 ? comment.likes[0].count : 0;
+      const isLiked = state.likedCommentIds.includes(
+        String(comment.comment_id),
+      );
+      const likeCount =
+        comment.likes && comment.likes.length > 0 ? comment.likes[0].count : 0;
 
       return `
         <article class="comment-item${isEditing ? " is-editing" : ""}${isReply ? " is-reply" : ""}" data-comment-id="${comment.comment_id}">
@@ -1302,7 +1424,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 `
                   : `
                 <span class="comment-time">${formatRelative(comment.updated_at || comment.created_at)}</span>
-                <span class="comment-like-count" style="${likeCount > 0 ? '' : 'display:none;'} font-weight: 600; font-size: 0.8rem; color: #666; cursor: pointer;">좋아요 ${likeCount}개</span>
+                <span class="comment-like-count" style="${likeCount > 0 ? "" : "display:none;"} font-weight: 600; font-size: 0.8rem; color: #666; cursor: pointer;">좋아요 ${likeCount}개</span>
                 ${!isReply ? `<span class="comment-reply-text" data-comment-action="reply" data-comment-id="${comment.comment_id}">답글 달기</span>` : ""}
                 `
               }
@@ -1409,37 +1531,44 @@ document.addEventListener("DOMContentLoaded", () => {
           button.classList.toggle("liked");
           const isLiked = button.classList.contains("liked");
           const cIdStr = String(commentId);
-          
-          const countSpan = button.closest(".comment-item").querySelector(".comment-like-count");
-          let currentCount = countSpan ? (parseInt(countSpan.textContent.replace(/[^0-9]/g, '')) || 0) : 0;
-          
+
+          const countSpan = button
+            .closest(".comment-item")
+            .querySelector(".comment-like-count");
+          let currentCount = countSpan
+            ? parseInt(countSpan.textContent.replace(/[^0-9]/g, "")) || 0
+            : 0;
+
           if (isLiked) {
             currentCount++;
-            if (!state.likedCommentIds.includes(cIdStr)) state.likedCommentIds.push(cIdStr);
+            if (!state.likedCommentIds.includes(cIdStr))
+              state.likedCommentIds.push(cIdStr);
             request(state.api.commentLikes, {
               method: "POST",
               headers: { Prefer: "return=minimal" },
               body: JSON.stringify({ comment_id: commentId, user_id: userId }),
-            }).catch(e => console.error("댓글 좋아요 실패:", e));
+            }).catch((e) => console.error("댓글 좋아요 실패:", e));
           } else {
             currentCount--;
-            state.likedCommentIds = state.likedCommentIds.filter((id) => id !== cIdStr);
+            state.likedCommentIds = state.likedCommentIds.filter(
+              (id) => id !== cIdStr,
+            );
             request(
               `${state.api.commentLikes}?comment_id=eq.${encodeURIComponent(commentId)}&user_id=eq.${encodeURIComponent(userId)}`,
               {
                 method: "DELETE",
                 headers: { Prefer: "return=minimal" },
-              }
-            ).catch(e => console.error("댓글 좋아요 취소 실패:", e));
+              },
+            ).catch((e) => console.error("댓글 좋아요 취소 실패:", e));
           }
-          
+
           if (countSpan) {
             if (currentCount > 0) {
               countSpan.textContent = `좋아요 ${currentCount}개`;
-              countSpan.style.display = 'inline-block';
+              countSpan.style.display = "inline-block";
             } else {
               countSpan.textContent = `좋아요 0개`;
-              countSpan.style.display = 'none';
+              countSpan.style.display = "none";
             }
           }
           return;
@@ -1517,9 +1646,10 @@ document.addEventListener("DOMContentLoaded", () => {
   async function handlePostSubmit(e) {
     e.preventDefault();
     const title = els.postTitle.value.trim();
-    const summary = els.postSummary.value.trim();
+    const summary = els.postSummary.innerHTML;
+    const summaryText = els.postSummary.innerText.trim();
 
-    if (!title || !summary) {
+    if (!title || !summaryText) {
       alert("제목과 후기는 필수입니다.");
       return;
     }
@@ -1529,6 +1659,11 @@ document.addEventListener("DOMContentLoaded", () => {
       : state.existingPostImages.length
         ? [...state.existingPostImages]
         : [];
+
+    if (images.length === 0) {
+      alert("최소 한 장 이상의 사진을 업로드해주세요.");
+      return;
+    }
     const payload = {
       user_id: userId,
       nickname: userNickname,
@@ -1542,9 +1677,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         return state.draftTags.join(",");
       })(),
-      location: els.postLocation.value.trim(),
-      category: els.postCategory.value.trim(),
-      type: els.postType.value || "여행후기",
+      location: els.postLocation ? els.postLocation.value.trim() : "",
+      category: "",
+      type: "여행후기",
       updated_at: new Date().toISOString(),
     };
 

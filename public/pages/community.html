@@ -45,122 +45,111 @@
       <i data-lucide="plus"></i>
     </button>
 
-    <div class="modal-overlay" id="post-modal">
-      <div class="modal-content community-modal">
+    <div class="fullscreen-editor" id="post-fullscreen-editor">
+      <div class="fs-editor-header">
         <button
-          class="modal-close-btn"
-          id="post-modal-close"
           type="button"
+          class="fs-back-btn"
+          id="post-modal-close"
           aria-label="닫기"
         >
-          <i data-lucide="x"></i>
+          <i data-lucide="arrow-left"></i>
         </button>
+        <div class="fs-header-copy">
+          <span class="fs-header-title">여행 이야기 작성</span>
+          <span class="fs-header-subtitle"
+            >국내 여행 경험을 사진과 함께 공유해보세요.</span
+          >
+        </div>
+        <button
+          type="button"
+          class="btn-primary fs-publish-btn"
+          id="btn-fs-publish"
+        >
+          작성하기
+        </button>
+      </div>
 
-        <section class="flow-b-section">
-          <div class="section-header" style="margin-bottom: 1rem">
-            <h2>여행 게시글 작성</h2>
-            <p>후기와 사진을 함께 올려 여행 이야기를 풍성하게 공유해보세요.</p>
-          </div>
-
-          <form id="post-form" class="community-form">
-            <label>
-              게시글 유형
-              <select id="post-type">
-                <option value="여행후기">여행후기</option>
-                <option value="맛집">맛집</option>
-                <option value="카페">카페</option>
-                <option value="숙소">숙소</option>
-                <option value="명소">명소</option>
-              </select>
-            </label>
-
-            <label>
-              제목
+      <div class="fs-editor-content">
+        <form id="post-form" class="fs-form">
+          <div class="fs-paper">
+            
+            <!-- 1. Title -->
+            <div class="fs-title-block">
               <input
                 id="post-title"
+                class="fs-title-input"
                 type="text"
-                placeholder="예: 제주에서 본 가장 예쁜 노을"
+                maxlength="80"
+                placeholder="제목을 입력하세요"
               />
-            </label>
+              <div class="fs-title-count" id="post-title-count">0/80</div>
+            </div>
 
-            <label>
-              후기
-              <textarea
+            <!-- 2. Meta (Location / Tags) -->
+            <div class="fs-meta-block">
+              <label class="fs-meta-item" for="post-location">
+                <i data-lucide="map-pin"></i>
+                <input id="post-location" type="text" placeholder="위치 추가 (예: 제주 서귀포시)" />
+              </label>
+
+              <label class="fs-meta-item" for="post-tags">
+                <i data-lucide="hash"></i>
+                <div class="tag-input-container fs-tag-input" id="tag-input-container">
+                  <div class="tag-chip-list" id="tag-chip-list"></div>
+                  <input id="post-tags" type="text" placeholder="태그 추가 (쉼표 또는 Enter)" />
+                </div>
+              </label>
+            </div>
+
+            <!-- 3. Photos -->
+            <div class="fs-photo-block">
+              <div class="fs-block-header">
+                <strong>사진 첨부</strong>
+                <span id="post-image-count">0/10장</span>
+              </div>
+              <div class="fs-inline-media" id="post-image-dropzone" role="button" tabindex="0">
+                <button type="button" class="btn-fs-inline-photo" id="btn-add-photo" aria-label="사진 추가하기">
+                  <i data-lucide="image-plus"></i>
+                </button>
+                <div class="fs-inline-hint">
+                  <strong>사진 추가</strong>
+                  <span>클릭하거나 이미지를 끌어다 놓으세요.</span>
+                </div>
+                <input id="post-image-file" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple hidden />
+              </div>
+              <div class="image-preview-wrap fs-image-preview">
+                <div class="image-order-list" id="post-image-order-list"></div>
+                <div id="post-image-gallery" class="image-gallery"></div>
+              </div>
+            </div>
+
+            <!-- 4. Body & Toolbar -->
+            <div class="fs-body-block">
+              <div class="editor-toolbar">
+                <button type="button" class="toolbar-btn" data-cmd="heading" aria-label="제목" title="제목"><i data-lucide="heading"></i></button>
+                <button type="button" class="toolbar-btn" data-cmd="bold" aria-label="굵게" title="굵게"><i data-lucide="bold"></i></button>
+                <button type="button" class="toolbar-btn" data-cmd="italic" aria-label="기울임" title="기울임"><i data-lucide="italic"></i></button>
+                <div class="toolbar-spacer"></div>
+                <span class="body-count" id="post-summary-count">0/2000자</span>
+              </div>
+              <div
                 id="post-summary"
-                rows="4"
-                placeholder="여행 후기를 자유롭게 적어주세요."
-              ></textarea>
-            </label>
-
-            <div class="editor-toolbar">
-              <button type="button" class="editor-btn" data-insert-image-token>
-                이미지 삽입
-              </button>
-              <span class="editor-hint"
-                >후기 안에 이미지를 넣고 싶다면 커서 위치에 이미지 토큰을
-                삽입하세요.</span
-              >
+                class="fs-body-input"
+                contenteditable="true"
+                data-placeholder="여러분의 소중한 여행 이야기를 들려주세요..."
+              ></div>
             </div>
 
-            <div
-              class="image-dropzone"
-              id="post-image-dropzone"
-              role="button"
-              tabindex="0"
-            >
-              <div class="image-dropzone-copy">
-                <strong>사진을 드래그 앤 드랍하거나 클릭해서 추가하세요</strong>
-                <p>PNG, JPG, JPEG, WEBP 파일을 여러 장 업로드할 수 있습니다.</p>
-              </div>
-              <input
-                id="post-image-file"
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/webp"
-                multiple
-                hidden
-              />
-            </div>
+          </div>
 
-            <div class="image-preview-wrap">
-              <div class="image-order-list" id="post-image-order-list"></div>
-              <div id="post-image-gallery" class="image-gallery"></div>
-            </div>
-
-            <label>
-              태그
-              <div class="tag-input-container" id="tag-input-container">
-                <div class="tag-chip-list" id="tag-chip-list"></div>
-                <input
-                  id="post-tags"
-                  type="text"
-                  placeholder="태그 입력 후 엔터 (예: 부산)"
-                />
-              </div>
-            </label>
-
-            <label>
-              지역
-              <input
-                id="post-location"
-                type="text"
-                placeholder="예: 제주특별자치도 서귀포시"
-              />
-            </label>
-
-            <label>
-              카테고리
-              <input
-                id="post-category"
-                type="text"
-                placeholder="예: 자연, 맛집, 숙소"
-              />
-            </label>
-
-            <div class="form-actions">
-              <button type="submit" class="btn-primary">게시글 등록</button>
-            </div>
-          </form>
-        </section>
+          <!-- This hidden submit button helps keep the standard form submit working -->
+          <button
+            type="submit"
+            id="hidden-form-submit"
+            style="display: none"
+          ></button>
+        </form>
       </div>
     </div>
 
