@@ -654,6 +654,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const count = getLikeCount(post);
       els.detailLikeBtn.innerHTML = `${iconHtml} 좋아요 ${count > 0 ? count : ""}`;
     }
+
+    if (els.detailCommentBtn) {
+      const count = getCommentCount(post);
+      els.detailCommentBtn.innerHTML = `<i data-lucide="message-circle"></i> 댓글 ${count > 0 ? count : ""}`;
+    }
   }
 
   function updateGallerySlide() {
