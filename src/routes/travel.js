@@ -1,10 +1,7 @@
 const express = require("express");
-const { createClient } = require("@supabase/supabase-js");
 const {
-  getTripPlanById,
-  getTripPlans,
-  updateTripPlanStatus,
-} = require("../services/supabase/tripPlan");
+  normalizeTourDestination,
+} = require("../services/destination-processing/tourDataNormalizer");
 
 const router = express.Router();
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -37,12 +34,18 @@ async function requireAuthenticatedUser(request, response) {
     return null;
   }
 
-  if (!supabaseAdmin) {
-    response.status(500).json({
-      success: false,
-      message: "Supabase 환경 변수가 설정되지 않았습니다.",
-    });
-    return null;
+function currentUserFromAccessToken(accessToken) {
+  const payload = String(accessToken || "").split(".")[1];
+  if (!payload) return "";
+  try {
+    const decoded = Buffer.from(
+      payload.replace(/-/g, "+").replace(/_/g, "/"),
+      "base64",
+    ).toString("utf8");
+    const body = JSON.parse(decoded);
+    return body?.sub || "";
+  } catch {
+    return "";
   }
 
   const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
@@ -54,43 +57,313 @@ async function requireAuthenticatedUser(request, response) {
     return null;
   }
 
-  return data.user;
+function normalizeRegion(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
 }
 
-router.get("/list", async (request, response) => {
-  try {
-    const user = await requireAuthenticatedUser(request, response);
-    if (!user) return;
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
-    const plans = await getTripPlans(supabaseAdmin);
-    response.json({
-      success: true,
-      data: { plans },
-      message: "저장 일정 조회 성공",
-    });
-  } catch (error) {
-    console.error("Trip plan list error:", error);
-    response.status(500).json({
-      success: false,
-      message:
-        error.code === "42501"
-          ? "임시 일정 테이블 조회 권한이 없습니다."
-          : "저장된 일정을 불러오지 못했습니다.",
-    });
+function buildTravelDates(startDate, daysCount) {
+  const parsedStartDate = new Date(startDate);
+  if (Number.isNaN(parsedStartDate.getTime())) {
+    return [];
   }
-});
+
+  return Array.from({ length: daysCount }, (_, index) => {
+    const currentDate = new Date(parsedStartDate);
+    currentDate.setDate(parsedStartDate.getDate() + index);
+    return formatDate(currentDate);
+  });
+}
+
+function buildCacheKey({
+  userId,
+  startDate,
+  endDate,
+  region,
+  memo,
+  peopleCount,
+  destinationId,
+}) {
+  return [
+    userId,
+    startDate,
+    endDate,
+    region,
+    memo,
+    peopleCount,
+    destinationId || "",
+  ]
+    .map((value) =>
+      String(value || "")
+        .trim()
+        .toLowerCase(),
+    )
+    .join("|");
+}
+
+function parseCoordinate(value) {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getDestinationCoordinates(destination) {
+  const latitude = parseCoordinate(destination?.latitude);
+  const longitude = parseCoordinate(destination?.longitude);
+  if (latitude === null || longitude === null) {
+    return null;
+  }
+
+  return { latitude, longitude };
+}
+
+function calculateDistanceKm(left, right) {
+  const leftCoordinates = getDestinationCoordinates(left);
+  const rightCoordinates = getDestinationCoordinates(right);
+  if (!leftCoordinates || !rightCoordinates) {
+    return null;
+  }
+
+  const toRadians = (degree) => (degree * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const deltaLatitude = toRadians(
+    rightCoordinates.latitude - leftCoordinates.latitude,
+  );
+  const deltaLongitude = toRadians(
+    rightCoordinates.longitude - leftCoordinates.longitude,
+  );
+  const leftLatitude = toRadians(leftCoordinates.latitude);
+  const rightLatitude = toRadians(rightCoordinates.latitude);
+
+  const a =
+    Math.sin(deltaLatitude / 2) ** 2 +
+    Math.cos(leftLatitude) *
+      Math.cos(rightLatitude) *
+      Math.sin(deltaLongitude / 2) ** 2;
+
+  return 2 * earthRadiusKm * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+function compareDestinationPriority(left, right) {
+  const leftScore = Number(left?.mbti_score) || 0;
+  const rightScore = Number(right?.mbti_score) || 0;
+  if (leftScore !== rightScore) {
+    return rightScore - leftScore;
+  }
+
+  return Number(left?.destination_id) - Number(right?.destination_id);
+}
+
+function buildClosestDestinationGroups(destinations, daysCount) {
+  const available = Array.isArray(destinations)
+    ? destinations.filter(Boolean).slice().sort(compareDestinationPriority)
+    : [];
+  const groups = [];
+
+  while (groups.length < daysCount) {
+    if (available.length === 0) {
+      groups.push([]);
+      continue;
+    }
+
+    if (available.length === 1) {
+      groups.push([available.shift()]);
+      continue;
+    }
+
+    let bestPair = [available[0], available[1]];
+    let bestDistance = Number.POSITIVE_INFINITY;
+    let bestScore = Number.NEGATIVE_INFINITY;
+    let foundValidDistance = false;
+
+    for (let leftIndex = 0; leftIndex < available.length - 1; leftIndex += 1) {
+      for (
+        let rightIndex = leftIndex + 1;
+        rightIndex < available.length;
+        rightIndex += 1
+      ) {
+        const left = available[leftIndex];
+        const right = available[rightIndex];
+        const distance = calculateDistanceKm(left, right);
+        if (distance === null) {
+          continue;
+        }
+
+        const score =
+          (Number(left?.mbti_score) || 0) + (Number(right?.mbti_score) || 0);
+        const isBetterPair =
+          !foundValidDistance ||
+          distance < bestDistance ||
+          (distance === bestDistance && score > bestScore) ||
+          (distance === bestDistance &&
+            score === bestScore &&
+            compareDestinationPriority(left, bestPair[0]) < 0);
+
+        if (isBetterPair) {
+          foundValidDistance = true;
+          bestDistance = distance;
+          bestScore = score;
+          bestPair = [left, right];
+        }
+      }
+    }
+
+    if (!foundValidDistance) {
+      bestPair = available.slice(0, 2);
+    }
+
+    const consumedIds = new Set(
+      bestPair.map((destination) => String(destination?.destination_id)),
+    );
+    groups.push(bestPair.filter(Boolean));
+
+    for (let index = available.length - 1; index >= 0; index -= 1) {
+      if (consumedIds.has(String(available[index]?.destination_id))) {
+        available.splice(index, 1);
+      }
+    }
+  }
+
+  return groups;
+}
+
+function formatDestinationDetails(destination, fallbackLabel) {
+  const destinationRegionText = [destination?.province, destination?.city]
+    .filter(Boolean)
+    .join(" ");
+
+  return destinationRegionText
+    ? `${destination.destination_name || fallbackLabel} (${destinationRegionText})`
+    : `${destination.destination_name || fallbackLabel}`;
+}
+
+function buildFallbackDays({
+  daysCount,
+  travelDates = [],
+  destinationName,
+  region,
+  memo,
+  destinationGroups = [],
+}) {
+  const destinationDays = Math.max(1, daysCount);
+
+  return Array.from({ length: destinationDays }, (_, index) => {
+    const dayDestinations = Array.isArray(destinationGroups[index])
+      ? destinationGroups[index].filter(Boolean).slice(0, 2)
+      : [];
+    const dayDate = travelDates[index] || "";
+
+    if (dayDestinations.length > 0) {
+      return {
+        day: index + 1,
+        dayLabel: `DAY ${index + 1}`,
+        date: dayDate,
+        items: dayDestinations.map((destination, itemIndex) => {
+          return {
+            time: "",
+            placeName:
+              destination?.destination_name || `관광지 ${itemIndex + 1}`,
+            description:
+              destination?.description ||
+              formatDestinationDetails(
+                destination,
+                `관광지 ${itemIndex + 1}`,
+              ),
+            image_url: destination?.image_url || "",
+            province: destination?.province || "",
+            city: destination?.city || "",
+            address: destination?.address || "",
+            destinationId: destination?.destination_id || null,
+            destinationName:
+              destination?.destination_name || `관광지 ${itemIndex + 1}`,
+            regionText: formatDestinationDetails(
+              destination,
+              `관광지 ${itemIndex + 1}`,
+            ),
+          };
+        }),
+      };
+    }
+
+    return {
+      day: index + 1,
+      dayLabel: `DAY ${index + 1}`,
+      date: dayDate,
+      items: [
+        {
+          time: "",
+          placeName: destinationName || region || "선택한 지역",
+          description: memo
+            ? `${memo}를 반영한 추천 일정입니다.`
+            : "추천할 관광지가 없어 기본 일정으로 구성했습니다.",
+        },
+      ],
+    };
+  });
+}
+
+async function fetchUserMbti({ supabaseUrl, headers, userId }) {
+  const url = new URL("/rest/v1/travel_mbti_results", supabaseUrl);
+  url.searchParams.set("select", "mbti_type");
+  url.searchParams.set("user_id", `eq.${userId}`);
+  url.searchParams.set("limit", "1");
+  const rows = await requestSupabaseJson(fetch, url, headers);
+  const mbti = Array.isArray(rows) ? rows[0]?.mbti_type : "";
+  if (mbti) return String(mbti).trim().toUpperCase();
+
+  const fallbackUrl = new URL("/rest/v1/user_preferences", supabaseUrl);
+  fallbackUrl.searchParams.set("select", "mbti_type");
+  fallbackUrl.searchParams.set("user_id", `eq.${userId}`);
+  fallbackUrl.searchParams.set("limit", "1");
+  const prefs = await requestSupabaseJson(fetch, fallbackUrl, headers);
+  return String(Array.isArray(prefs) ? prefs[0]?.mbti_type : "")
+    .trim()
+    .toUpperCase();
+}
+
+async function fetchDestinationScores({ supabaseUrl, headers, mbtiType }) {
+  const url = new URL("/rest/v1/destination_mbti_scores", supabaseUrl);
+  url.searchParams.set(
+    "select",
+    "destination_id,score,destinations(destination_id,destination_name,province,city,description,address,image_url,latitude,longitude,category)",
+  );
+  url.searchParams.set("mbti_type", `eq.${mbtiType}`);
+  url.searchParams.set("order", "score.desc,destination_id.asc");
+  url.searchParams.set("limit", "12");
+  const rows = await requestSupabaseJson(fetch, url, headers);
+  return Array.isArray(rows) ? rows : [];
+}
 
 router.get("/:planId", async (request, response) => {
   try {
     const user = await requireAuthenticatedUser(request, response);
     if (!user) return;
 
-    const planId = Number.parseInt(request.params.planId, 10);
-    if (!Number.isFinite(planId) || planId < 1) {
-      return response.status(400).json({
-        success: false,
-        message: "유효한 일정 ID가 필요합니다.",
-      });
+  for (const contentTypeId of contentTypeIds) {
+    const url = new URL(
+      hasKeyword || hasRegion
+        ? "https://apis.data.go.kr/B551011/KorService2/searchKeyword2"
+        : "https://apis.data.go.kr/B551011/KorService2/areaBasedList2",
+    );
+    url.searchParams.set("serviceKey", tourApiKey);
+    url.searchParams.set("MobileOS", "ETC");
+    url.searchParams.set("MobileApp", "ExploraJourneys");
+    url.searchParams.set("_type", "json");
+    url.searchParams.set("numOfRows", "20");
+    url.searchParams.set("pageNo", "1");
+    url.searchParams.set("contentTypeId", String(contentTypeId));
+    if (hasKeyword) {
+      url.searchParams.set("keyword", keyword);
+    } else if (hasRegion) {
+      url.searchParams.set("keyword", region);
     }
 
     const plan = await getTripPlanById(supabaseAdmin, planId);
@@ -100,6 +373,74 @@ router.get("/:planId", async (request, response) => {
         message: "일정을 찾을 수 없습니다.",
       });
     }
+  }
+
+  return results;
+}
+
+function mapTourDestination(item) {
+  const destination = normalizeTourDestination(item);
+  const addressParts = String(destination.address || "")
+    .split(" ")
+    .filter(Boolean);
+  return {
+    destination_id: Number(item?.contentid || item?.contentId || 0),
+    destination_name: destination.destinationName,
+    province: addressParts[0] || "",
+    city: addressParts[1] || "",
+    description: destination.description || "",
+    category: String(item?.contenttypename || item?.contenttypeid || ""),
+    image_url: destination.imageUrl || "",
+    address: destination.address || "",
+    latitude: destination.coordinates.latitude,
+    longitude: destination.coordinates.longitude,
+    tour_content_id: destination.tourContentId,
+    content_type_id: destination.contentTypeId,
+  };
+}
+
+async function callGemini({ apiKey, prompt }) {
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash-lite";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.6,
+        responseMimeType: "application/json",
+      },
+    }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message =
+      body?.error?.message || body?.message || "Gemini 요청에 실패했습니다.";
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
+  }
+  const text =
+    body?.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text || "")
+      .join("\n") || "";
+  const parsed = parseJsonBlock(text);
+  if (!parsed) throw new Error("Gemini 응답을 JSON으로 해석하지 못했습니다.");
+  return parsed;
+}
+
+async function getGeneratedItinerary({
+  cacheKey,
+  geminiApiKey,
+  prompt,
+  fallbackPayload,
+}) {
+  const cached = itineraryCache.get(cacheKey);
+  const now = Date.now();
+  if (cached && now - cached.createdAt < 1000 * 60 * 30) {
+    return cached.value;
+  }
 
     return response.json({
       success: true,
@@ -107,50 +448,386 @@ router.get("/:planId", async (request, response) => {
       message: "일정 상세 조회 성공",
     });
   } catch (error) {
-    console.error("Trip plan detail error:", error);
-    return response.status(500).json({
-      success: false,
-      message:
-        error.code === "42501"
-          ? "임시 일정 테이블 조회 권한이 없습니다."
-          : "일정 상세를 불러오지 못했습니다.",
+    console.warn("Gemini fallback used:", error.message);
+    itineraryCache.set(cacheKey, { createdAt: now, value: fallbackPayload });
+    return fallbackPayload;
+  }
+}
+
+function normalizeAiDays(aiDays, travelDays, travelDates, fallbackDays) {
+  const normalizedAiDays = Array.isArray(aiDays) ? aiDays.slice(0, travelDays) : [];
+
+  return (normalizedAiDays.length ? normalizedAiDays : fallbackDays)
+    .slice(0, travelDays)
+    .map((day, index) => {
+      const fallbackDay = fallbackDays[index] || {};
+      return {
+        ...fallbackDay,
+        ...day,
+        day: Number.isFinite(Number(day?.day)) ? Number(day.day) : index + 1,
+        dayLabel:
+          String(day?.dayLabel || "").trim() ||
+          `DAY ${Number.isFinite(Number(day?.day)) ? Number(day.day) : index + 1}`,
+        date: day?.date || fallbackDay.date || travelDates[index] || "",
+        items: Array.isArray(fallbackDay.items) ? fallbackDay.items : [],
+      };
     });
+}
+
+router.post("/plan", async (request, response) => {
+  const accessToken = getBearerToken(request.get("authorization"));
+  if (!accessToken) {
+    return response
+      .status(401)
+      .json({ success: false, message: "로그인이 필요합니다." });
+  }
+
+  const startDate = String(request.body?.startDate || "").trim();
+  const endDate = String(request.body?.endDate || "").trim();
+  const region = String(request.body?.region || "").trim();
+  const memo = String(request.body?.memo || "").trim();
+  const peopleCount = Number.parseInt(request.body?.peopleCount, 10);
+  const destinationId = Number.parseInt(request.body?.destinationId, 10);
+
+  if (!startDate || !endDate) {
+    return response
+      .status(400)
+      .json({ success: false, message: "여행 시작일과 종료일은 필수입니다." });
+  }
+  if (!Number.isFinite(peopleCount) || peopleCount < 1) {
+    return response
+      .status(400)
+      .json({ success: false, message: "인원수는 1명 이상이어야 합니다." });
+  }
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const tourApiKey = process.env.TOUR_API_KEY;
+  if (!supabaseUrl || !anonKey || !geminiApiKey) {
+    return response
+      .status(500)
+      .json({ success: false, message: "서버 환경설정이 올바르지 않습니다." });
   }
 });
 
 router.patch("/:planId/status", async (request, response) => {
   try {
-    const user = await requireAuthenticatedUser(request, response);
-    if (!user) return;
-
-    const planId = Number.parseInt(request.params.planId, 10);
-    if (!Number.isFinite(planId) || planId < 1) {
-      return response.status(400).json({
-        success: false,
-        message: "유효한 일정 ID가 필요합니다.",
-      });
+    const userId = currentUserFromAccessToken(accessToken);
+    if (!userId) {
+      return response
+        .status(401)
+        .json({ success: false, message: "사용자 정보를 확인할 수 없습니다." });
     }
 
-    const status = String(request.body?.status || "").trim();
-    if (!["planning", "in_progress", "completed"].includes(status)) {
-      return response.status(400).json({
-        success: false,
-        message: "지원하지 않는 일정 상태입니다.",
-      });
+    const headers = createSupabaseHeaders(anonKey, accessToken);
+    const userMbti = await fetchUserMbti({ supabaseUrl, headers, userId });
+
+    const destinationUrl = new URL("/rest/v1/destinations", supabaseUrl);
+    destinationUrl.searchParams.set(
+      "select",
+      "destination_id,destination_name,province,city,description,category,image_url,address,latitude,longitude",
+    );
+    destinationUrl.searchParams.set("order", "destination_id.asc");
+    if (region) {
+      destinationUrl.searchParams.set("province", `ilike.%${region}%`);
+      destinationUrl.searchParams.set("limit", "1000");
+    } else {
+      destinationUrl.searchParams.set("limit", "50");
     }
 
-    const plan = await updateTripPlanStatus(supabaseAdmin, planId, status);
-    if (!plan) {
+    const destinationRows = await requestSupabaseJson(
+      fetch,
+      destinationUrl,
+      headers,
+    );
+    const destinations = Array.isArray(destinationRows) ? destinationRows : [];
+    if (!destinations.length) {
       return response.status(404).json({
         success: false,
-        message: "일정을 찾을 수 없습니다.",
+        message: region
+          ? "해당 지역에 맞는 여행지를 찾지 못했습니다."
+          : "여행지 데이터가 없습니다.",
       });
     }
+
+    const scoreRows = userMbti
+      ? await fetchDestinationScores({
+          supabaseUrl,
+          headers,
+          mbtiType: userMbti,
+        })
+      : [];
+    const scoreMap = new Map(
+      scoreRows.map((row) => [
+        String(row.destination_id),
+        Number(row.score) || 0,
+      ]),
+    );
+
+    let rankedDestinations = destinations
+      .map((destination) => ({
+        ...destination,
+        mbti_score: scoreMap.get(String(destination.destination_id)) || 0,
+      }))
+      .sort((left, right) => right.mbti_score - left.mbti_score);
+
+    const selectedDestination = Number.isFinite(destinationId)
+      ? rankedDestinations.find(
+          (destination) => Number(destination.destination_id) === destinationId,
+        ) || null
+      : null;
+
+    if (selectedDestination) {
+      rankedDestinations = [
+        {
+          ...selectedDestination,
+          mbti_score:
+            scoreMap.get(String(selectedDestination.destination_id)) || 0,
+        },
+        ...rankedDestinations.filter(
+          (destination) =>
+            Number(destination.destination_id) !==
+            Number(selectedDestination.destination_id),
+        ),
+      ];
+    }
+
+    const activeRegion =
+      region ||
+      [selectedDestination?.province, selectedDestination?.city]
+        .filter(Boolean)
+        .join(" ");
+    const selectedKeyword =
+      selectedDestination?.destination_name || activeRegion || "";
+    const travelDays = Math.max(
+      1,
+      Math.floor(
+        (new Date(endDate).getTime() - new Date(startDate).getTime()) /
+          86400000,
+      ) + 1,
+    );
+    const travelDates = buildTravelDates(startDate, travelDays);
+    const itemsPerDay = travelDays >= 3 ? 4 : 3;
+    const dayDestinationGroups = buildClosestDestinationGroups(
+      rankedDestinations.slice(0, travelDays * 2),
+      travelDays,
+    );
+
+    const tourItems = tourApiKey
+      ? await fetchTourApiItems({
+          tourApiKey,
+          region: activeRegion,
+          keyword: selectedKeyword,
+        })
+      : [];
+    const tourDestinations = tourItems
+      .map(mapTourDestination)
+      .filter((item) => item.destination_name);
+    const tourDestination =
+      tourDestinations.find((item) => {
+        if (selectedDestination?.destination_name) {
+          return normalizeRegion(item.destination_name).includes(
+            normalizeRegion(selectedDestination.destination_name),
+          );
+        }
+        return activeRegion
+          ? normalizeRegion(
+              [item.province, item.city, item.address, item.destination_name]
+                .filter(Boolean)
+                .join(" "),
+            ).includes(normalizeRegion(activeRegion))
+          : true;
+      }) ||
+      tourDestinations[0] ||
+      null;
+    const matchedDbDestination =
+      tourDestination &&
+      rankedDestinations.find((destination) => {
+        const dbName = normalizeRegion(destination.destination_name);
+        const apiName = normalizeRegion(tourDestination.destination_name);
+        const dbAddress = normalizeRegion(destination.address);
+        const apiAddress = normalizeRegion(tourDestination.address);
+        return (
+          (dbName &&
+            apiName &&
+            (dbName.includes(apiName) || apiName.includes(dbName))) ||
+          (dbAddress &&
+            apiAddress &&
+            (dbAddress.includes(apiAddress) || apiAddress.includes(dbAddress)))
+        );
+      });
+
+    const finalDestination = {
+      ...(matchedDbDestination ||
+        selectedDestination ||
+        rankedDestinations[0] ||
+        {}),
+      ...(tourDestination || {}),
+      address:
+        tourDestination?.address ||
+        matchedDbDestination?.address ||
+        selectedDestination?.address ||
+        "",
+      province:
+        tourDestination?.province ||
+        matchedDbDestination?.province ||
+        selectedDestination?.province ||
+        "",
+      city:
+        tourDestination?.city ||
+        matchedDbDestination?.city ||
+        selectedDestination?.city ||
+        "",
+    };
+
+    const prompt = `
+여행 MBTI: ${userMbti}
+시작일: ${startDate}
+종료일: ${endDate}
+인원수: ${peopleCount}
+지역: ${activeRegion || finalDestination?.address || "전체"}
+메모: ${memo || "없음"}
+여행 일수: ${travelDays}
+하루 일정 수: ${itemsPerDay}
+선택 목적지: ${finalDestination ? `${finalDestination.destination_name} (${finalDestination.address || activeRegion})` : "없음"}
+
+아래 day별 추천 목적지를 우선 사용하고, 같은 day 안에서는 가까운 목적지끼리 묶어서 여행 일정을 작성해 주세요.
+각 day에는 반드시 실제 여행 날짜(date)를 포함하세요.
+반드시 여행 일수(${travelDays}일)에 맞춰서 days 배열을 작성하세요.
+각 day에는 반드시 아래 목적지 2개를 사용하세요. 2개를 함께 배치할 수 없으면 날짜 순서를 유지한 채 최대한 근접한 목적지끼리 배치하세요.
+반드시 JSON만 응답하세요.
+day별 추천 목적지:
+${dayDestinationGroups
+  .map((group, index) => {
+    const destinationsText = group.length
+      ? group
+          .map((destination) => {
+            const regionText = [destination.province, destination.city]
+              .filter(Boolean)
+              .join(" ");
+            return `- ${destination.destination_id}: ${destination.destination_name}${regionText ? ` (${regionText})` : ""}`;
+          })
+          .join("\n")
+      : "- 없음";
+    return `day ${index + 1}\n${destinationsText}`;
+  })
+  .join("\n\n")}
+
+후보 목록:
+${rankedDestinations
+  .slice(0, 12)
+  .map((destination) => {
+    const regionText = [destination.province, destination.city]
+      .filter(Boolean)
+      .join(" ");
+    return [
+      `- destination_id: ${destination.destination_id}`,
+      `  name: ${destination.destination_name}`,
+      `  region: ${regionText}`,
+      `  category: ${destination.category || ""}`,
+      `  mbti_score: ${destination.mbti_score ?? 0}`,
+      `  description: ${String(destination.description || "").slice(0, 180)}`,
+    ].join("\n");
+  })
+  .join("\n")}
+
+응답 형식:
+{
+  "mainDestinationId": 1,
+  "tripTitle": "string",
+  "summary": "string",
+  "days": [
+    {
+      "day": 1,
+      "items": [
+        {
+          "time": "09:00",
+          "placeName": "string",
+          "description": "string"
+        }
+      ]
+    }
+  ]
+}
+`.trim();
+
+    const fallbackDays = buildFallbackDays({
+      daysCount: travelDays,
+      travelDates,
+      destinationName:
+        finalDestination?.destination_name ||
+        rankedDestinations[0]?.destination_name ||
+        activeRegion,
+      region: finalDestination?.address || activeRegion,
+      memo,
+      destinationGroups: dayDestinationGroups,
+    });
+    const fallbackPayload = {
+      mainDestinationId:
+        finalDestination?.destination_id ||
+        rankedDestinations[0]?.destination_id ||
+        null,
+      tripTitle: `${finalDestination?.destination_name || activeRegion || "맞춤"} 여행 일정`,
+      summary:
+        memo && memo.length > 0
+          ? `${memo}를 반영한 ${travelDays}일 일정입니다.`
+          : `${finalDestination?.destination_name || activeRegion || "선택한 지역"} 중심의 ${travelDays}일 일정입니다.`,
+      days: fallbackDays,
+    };
+
+    const cacheKey = buildCacheKey({
+      userId,
+      startDate,
+      endDate,
+      region: activeRegion,
+      memo,
+      peopleCount,
+      destinationId: finalDestination?.destination_id || destinationId || "",
+    });
+
+    const aiResult = await getGeneratedItinerary({
+      cacheKey,
+      geminiApiKey,
+      prompt,
+      fallbackPayload,
+    });
+
+    const aiSuggestedDestination = rankedDestinations.find(
+      (destination) =>
+        String(destination.destination_id) ===
+        String(aiResult.mainDestinationId),
+    );
+    const mainDestination = {
+      ...(aiSuggestedDestination || rankedDestinations[0] || {}),
+      ...finalDestination,
+    };
+    const safeDays = normalizeAiDays(
+      aiResult.days,
+      travelDays,
+      travelDates,
+      fallbackDays,
+    );
 
     return response.json({
       success: true,
-      data: { plan },
-      message: "일정 상태 변경 성공",
+      data: {
+        trip: {
+          title:
+            // String(aiResult.tripTitle || "").trim() ||
+            `${activeRegion || "국내"} 여행 일정`,
+          //  summary: String(aiResult.summary || "").trim(),
+          destination: mainDestination,
+          startDate,
+          endDate,
+          peopleCount,
+        },
+        plan: {
+          days: safeDays,
+        },
+        candidateDestinations: rankedDestinations.slice(0, 12),
+      },
+      message: "여행 일정이 생성되었습니다.",
     });
   } catch (error) {
     console.error("Trip plan status update error:", error);
@@ -165,3 +842,10 @@ router.patch("/:planId/status", async (request, response) => {
 });
 
 module.exports = router;
+module.exports.__testables = {
+  calculateDistanceKm,
+  buildClosestDestinationGroups,
+  buildFallbackDays,
+  normalizeAiDays,
+  formatDestinationDetails,
+};
