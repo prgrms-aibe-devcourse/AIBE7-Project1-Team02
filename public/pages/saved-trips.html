@@ -34,7 +34,7 @@
             </a>
           </section>
 
-          <section class="saved-trips-toolbar" aria-label="일정 검색 및 필터">
+          <section class="saved-trips-toolbar" aria-label="일정 검색">
             <label class="saved-trips-search">
               <i data-lucide="search"></i>
               <span class="sr-only">일정 검색</span>
@@ -45,12 +45,9 @@
               />
             </label>
 
-            <div class="saved-trips-filters" id="trip-status-filters">
-              <button class="active" type="button" data-status="all">전체</button>
-              <button type="button" data-status="planning">계획 중</button>
-              <button type="button" data-status="ongoing">여행 중</button>
-              <button type="button" data-status="completed">완료</button>
-            </div>
+            <p class="saved-trips-toolbar-guide">
+              저장된 일정의 제목이나 지역으로 검색할 수 있습니다.
+            </p>
           </section>
 
           <section
@@ -95,6 +92,37 @@
         </header>
 
         <div class="trip-detail-body" id="trip-detail-body"></div>
+      </article>
+    </div>
+
+    <div
+      class="trip-detail-overlay trip-day-detail-overlay"
+      id="trip-day-detail-modal"
+      aria-hidden="true"
+    >
+      <article
+        class="trip-detail-dialog trip-day-detail-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trip-day-detail-title"
+      >
+        <header class="trip-detail-header">
+          <div>
+            <span id="trip-day-detail-status">DAY ROUTE</span>
+            <h2 id="trip-day-detail-title">DAY 일정</h2>
+            <p id="trip-day-detail-period"></p>
+          </div>
+          <button
+            class="trip-detail-close"
+            id="trip-day-detail-close"
+            type="button"
+            aria-label="DAY 일정 닫기"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </header>
+
+        <div class="trip-detail-body" id="trip-day-detail-body"></div>
       </article>
     </div>
   </body>

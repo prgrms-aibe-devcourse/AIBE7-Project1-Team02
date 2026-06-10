@@ -6,7 +6,8 @@ router.get("/", (req, res) => {
     success: true,
     data: {
       supabaseUrl: process.env.SUPABASE_URL,
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+      kakaoJavascriptKey: process.env.KAKAO_JAVASCRIPT_KEY
     },
     message: "설정 정보 조회 성공"
   });

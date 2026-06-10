@@ -4,6 +4,7 @@ const express = require("express");
 const healthRouter = require("./routes/health");
 const configRouter = require("./routes/config");
 const destinationsRouter = require("./routes/destinations");
+const travelRouter = require("./routes/travel");
 
 const app = express();
 const publicDirectory = path.join(__dirname, "..", "public");
@@ -15,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/health", healthRouter);
 app.use("/api/config", configRouter);
 app.use("/api/destinations", destinationsRouter);
+app.use("/api/travel", travelRouter);
 app.use("/api/user", require("./routes/user"));
 app.use("/public", express.static(publicDirectory));
 app.use(express.static(publicDirectory));
