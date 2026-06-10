@@ -133,8 +133,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const keywordText = destination.keywords.slice(0, 3).join(", ");
     return keywordText
-      ? `${keywordText} 여행 취향과 회원님의 MBTI 성향이 잘 맞는 여행지입니다.`
-      : "회원님의 여행 MBTI 적합도를 바탕으로 추천한 여행지입니다.";
+      ? `${keywordText} 여행 취향과 회원님의 여행 성향이 잘 맞는 여행지입니다.`
+      : "회원님의 여행 성향을 바탕으로 추천한 여행지입니다.";
+  }
+
+  function getTravelerTitle(mbtiType) {
+    return window.TravelerProfile?.getTitle(mbtiType) || "취향 맞춤 여행가";
+  }
+
+  function createTravelerBadge(title) {
+    return window.TravelerProfile?.createBadge
+      ? window.TravelerProfile.createBadge(title, {
+          variant: "subtle",
+          size: "compact",
+        })
+      : document.createTextNode(title);
   }
 
   function getTripCreateUrl(destinationId) {
@@ -264,7 +277,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     detailDescription.textContent = (
       destination.description ||
-      "여행 MBTI 성향과 높은 적합도를 보인 국내 여행지입니다."
+      "회원님의 여행 성향과 잘 맞는 국내 여행지입니다."
     )
       .replace(/(contentType|textRule)[\s:,\d]+/g, "")
       .trim();
@@ -549,11 +562,18 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const { mbtiType, recommendations, pagination: pageInfo } = result.data;
+      const travelerTitle = getTravelerTitle(mbtiType);
       subtitle.hidden = !authToken;
-      subtitle.textContent =
-        authToken
-          ? `${mbtiType} 여행 성향에 맞는 관광지를 적합도순으로 보여드려요.`
-          : "";
+      if (authToken) {
+        subtitle.replaceChildren(
+          createTravelerBadge(travelerTitle),
+          document.createTextNode(
+            " 여행 성향에 잘 맞는 관광지를 적합도순으로 보여드려요.",
+          ),
+        );
+      } else {
+        subtitle.textContent = "";
+      }
       resultCount.textContent =
         `조건에 맞는 관광지 ${pageInfo.totalCount.toLocaleString("ko-KR")}개`;
       grid.innerHTML = "";

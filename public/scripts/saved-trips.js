@@ -34,6 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
       destinationName: row.region || "국내 여행",
       imageUrl: firstDestination.imageUrl || "",
       mbtiType: row.mbtiType || row.mbti_type || "",
+      travelerTitle:
+        window.TravelerProfile?.getTitle(row.mbtiType || row.mbti_type) ||
+        "여행 계획",
       totalDays: row.totalDays ?? row.total_days ?? 1,
       aiSummary: row.aiSummary || row.ai_summary || "",
       itineraryCount:
@@ -98,8 +101,9 @@ document.addEventListener("DOMContentLoaded", () => {
       media = createNoImagePlaceholder("saved-trip-no-image");
     }
     const status = document.createElement("span");
-    status.className = "saved-trip-status";
-    status.textContent = trip.mbtiType || "여행 계획";
+    status.className =
+      "saved-trip-status traveler-title-badge traveler-title-badge-compact";
+    status.textContent = trip.travelerTitle;
     cover.append(media, status);
 
     const content = document.createElement("div");
@@ -117,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
     meta.className = "saved-trip-meta";
     [
       ["여행 기간", getPeriodText(trip)],
-      ["여행 성향", trip.mbtiType || "미정"],
+      ["여행 성향", trip.travelerTitle],
       ["방문 여행지", `${trip.itineraryCount}개`],
     ].forEach(([label, value]) => {
       const item = document.createElement("div");
@@ -448,7 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let selectedItemId = null;
     let dayMapController = null;
 
-    dayDetailStatus.textContent = trip.mbtiType || "DAY ROUTE";
+    dayDetailStatus.textContent = trip.travelerTitle || "DAY ROUTE";
     dayDetailTitle.textContent = `DAY ${dayNumber} 일정과 루트`;
     dayDetailPeriod.textContent =
       `${trip.destinationName} · ${dayItems.length}곳`;
@@ -518,7 +522,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderTripDetail(trip, itineraries) {
     detailRenderId += 1;
-    detailStatus.textContent = trip.mbtiType || "여행 일정";
+    detailStatus.textContent = trip.travelerTitle || "여행 일정";
     detailTitle.textContent = trip.title;
     detailPeriod.textContent = `${trip.destinationName} · ${getPeriodText(trip)}`;
     detailBody.innerHTML = "";

@@ -335,6 +335,7 @@ Request:
 ```json
 {
   "mbtiType": "INFP",
+  "badge": "꿈꾸는 이야기 여행가",
   "travelTempo": "relaxed",
   "foodPreference": "local"
 }
@@ -347,13 +348,16 @@ Response:
   "success": true,
   "data": {
     "mbtiType": "INFP",
-    "badge": "여유를 즐기는 로컬 탐험가",
+    "badge": "꿈꾸는 이야기 여행가",
     "travelTempo": "relaxed",
     "foodPreference": "local"
   },
   "message": "성향 분석 완료"
 }
 ```
+
+프런트엔드 화면에서는 내부 추천 기준인 `mbtiType` 코드보다 `badge`
+칭호를 우선 표시한다.
 
 Error Case:
 
