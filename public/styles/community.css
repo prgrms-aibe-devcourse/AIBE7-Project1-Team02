@@ -238,7 +238,9 @@ body,
   z-index: 200;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
 }
 
 #comment-modal {
@@ -268,7 +270,9 @@ body,
   position: relative;
   transform: translateY(20px);
   opacity: 0;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+  transition:
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.4s ease;
 }
 
 .modal-overlay.active .modal-content {
@@ -975,6 +979,25 @@ body,
   }
 }
 
+/* 1. Card Slider */
+.card-slider {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.card-slider::-webkit-scrollbar {
+  display: none;
+}
+.card-slider img {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  scroll-snap-align: center;
+}
 /* Skeleton Loading */
 .skeleton {
   background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
@@ -1003,26 +1026,6 @@ body,
   width: 50%;
   border-radius: 4px;
   margin-top: 4px;
-}
-
-/* 1. Card Slider */
-.card-slider {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-}
-.card-slider::-webkit-scrollbar {
-  display: none;
-}
-.card-slider img {
-  flex: 0 0 100%;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  scroll-snap-align: center;
 }
 
 /* 2. Heart Pop Animation */
@@ -1481,7 +1484,8 @@ body,
   color: #ff385c;
 }
 
-.action-link.is-liked svg {
+.action-link.is-liked svg,
+.action-link.liked svg {
   fill: #ff385c;
   animation: heart-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -1677,6 +1681,7 @@ body,
 .comment-heart-btn.liked svg {
   fill: #ef4444;
   color: #ef4444;
+  animation: heart-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .comment-heart-btn svg,
 .comment-more-opts-btn svg {
