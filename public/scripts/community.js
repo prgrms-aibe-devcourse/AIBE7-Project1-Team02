@@ -232,9 +232,35 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     els.detailLikeBtn?.addEventListener("click", async () => {
       if (!state.detailPost) return;
+      
+      // Optimistic UI update for modal button
+      const isLikedBefore = isPostLiked(state.detailPost.post_id);
+      const isLikedNow = !isLikedBefore;
+      els.detailLikeBtn.classList.toggle("liked", isLikedNow);
+      const iconHtml = isLikedNow 
+        ? `<i data-lucide="heart" style="fill: currentColor; color: #ef4444;"></i>` 
+        : `<i data-lucide="heart"></i>`;
+      let count = getLikeCount(state.detailPost);
+      if (isLikedNow && !isLikedBefore) count++;
+      else if (!isLikedNow && isLikedBefore) count = Math.max(0, count - 1);
+      
+      els.detailLikeBtn.innerHTML = `${iconHtml} 좋아요 ${count > 0 ? count : ""}`;
+      if (window.lucide) window.lucide.createIcons({ root: els.detailLikeBtn });
+
+      // Sync background feed card immediately
+      const feedBtn = document.querySelector(`[data-post-id="${CSS.escape(state.detailPost.post_id)}"][data-action="like"]`);
+      if (feedBtn) {
+        const wrapper = feedBtn.closest(".travel-card-like") || feedBtn;
+        if (isLikedNow) wrapper.classList.add("is-liked");
+        else wrapper.classList.remove("is-liked");
+      }
+
       await toggleLike(state.detailPost);
-      await openPostDetail(state.detailPost.post_id, { refresh: true });
-      await refreshCommunity();
+      
+      // Update local state without full refresh
+      state.detailPost.like_count = count;
+      const postInFeed = state.posts.find(p => String(p.post_id) === String(state.detailPost.post_id));
+      if (postInFeed) postInFeed.like_count = count;
     });
     els.detailCommentBtn?.addEventListener("click", () => {
       if (state.detailPost) openCommentModal(state.detailPost);
@@ -559,10 +585,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (els.detailDeleteBtn)
       els.detailDeleteBtn.style.display = isMine ? "inline-flex" : "none";
 
+    if (els.detailLikeBtn) {
+      const isLiked = isPostLiked(post.post_id);
+      els.detailLikeBtn.classList.toggle("liked", isLiked);
+      const iconHtml = isLiked 
+        ? `<i data-lucide="heart" style="fill: currentColor; color: #ef4444;"></i>` 
+        : `<i data-lucide="heart"></i>`;
+      const count = getLikeCount(post);
+      els.detailLikeBtn.innerHTML = `${iconHtml} 좋아요 ${count > 0 ? count : ""}`;
+    }
+
     els.detailModal?.classList.add("active");
     if (window.lucide) {
       window.lucide.createIcons({ root: els.detailModal });
     }
+    updateBodyScroll();
   }
 
   function updateGallerySlide() {
@@ -639,6 +676,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeDetailModal() {
     els.detailModal?.classList.remove("active");
     state.detailPost = null;
+    updateBodyScroll();
   }
 
   function openImageLightbox(src) {
@@ -646,6 +684,7 @@ document.addEventListener("DOMContentLoaded", () => {
     els.imageLightboxImg.src = src;
     els.imageLightbox.classList.add("active");
     els.imageLightbox.setAttribute("aria-hidden", "false");
+    updateBodyScroll();
   }
 
   function closeImageLightbox() {
@@ -653,6 +692,7 @@ document.addEventListener("DOMContentLoaded", () => {
     els.imageLightbox.classList.remove("active");
     els.imageLightbox.setAttribute("aria-hidden", "true");
     els.imageLightboxImg.src = "";
+    updateBodyScroll();
   }
 
   async function fetchPostById(postId) {
@@ -763,6 +803,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setPostSubmitLabel("게시글 등록");
     bringModalToFront(els.postModal, 210);
     els.postModal?.classList.add("active");
+    updateBodyScroll();
   }
 
   function openPostEditModal(post) {
@@ -784,10 +825,12 @@ document.addEventListener("DOMContentLoaded", () => {
     renderPostImageGallery();
     bringModalToFront(els.postModal, 210);
     els.postModal?.classList.add("active");
+    updateBodyScroll();
   }
 
   function closePostModal() {
     els.postModal?.classList.remove("active");
+    updateBodyScroll();
   }
 
   function clearPostImagePreview() {
@@ -1037,6 +1080,7 @@ document.addEventListener("DOMContentLoaded", () => {
       userAvatar.src = `https://ui-avatars.com/api/?name=${escapeAttr((userNickname || "사용자").charAt(0))}&background=random&color=fff`;
     bringModalToFront(els.commentModal, 210);
     els.commentModal?.classList.add("active");
+    updateBodyScroll();
     loadComments(post.post_id).catch(console.error);
   }
 
@@ -1045,11 +1089,17 @@ document.addEventListener("DOMContentLoaded", () => {
     state.activeCommentPostId = null;
     state.editingCommentId = null;
     state.replyingToCommentId = null;
+    updateBodyScroll();
   }
 
   function bringModalToFront(modal, zIndex) {
     if (!modal) return;
     modal.style.zIndex = String(zIndex);
+  }
+
+  function updateBodyScroll() {
+    const hasActiveModal = document.querySelectorAll(".modal-overlay.active").length > 0;
+    document.body.classList.toggle("modal-open", hasActiveModal);
   }
 
   async function loadComments(postId) {
