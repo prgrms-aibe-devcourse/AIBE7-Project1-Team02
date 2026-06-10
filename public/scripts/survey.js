@@ -372,7 +372,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Next Step CTA ──────────────────────────────────────────
   nextStepBtn.addEventListener("click", () => {
     // TODO: 실제 키워드 선택 페이지로 이동
-    alert("성향 분석이 끝났습니다!");
     window.location.href = "../index.html";
   });
 
