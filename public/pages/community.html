@@ -36,7 +36,12 @@
       </div>
     </div>
 
-    <button class="btn-write-fab" id="btn-write-post" type="button" aria-label="작성하기">
+    <button
+      class="btn-write-fab"
+      id="btn-write-post"
+      type="button"
+      aria-label="작성하기"
+    >
       <i data-lucide="plus"></i>
     </button>
 
@@ -161,37 +166,51 @@
 
     <div class="modal-overlay" id="comment-modal">
       <div class="modal-content community-modal">
-        <button
-          class="modal-close-btn"
-          id="comment-modal-close"
-          type="button"
-          aria-label="닫기"
-        >
-          <i data-lucide="x"></i>
-        </button>
-
-        <section class="flow-b-section">
-          <div class="section-header" style="margin-bottom: 1rem">
-            <h2 id="comment-post-title">댓글</h2>
-            <p>게시글에 댓글을 남기고, 수정하거나 삭제할 수 있습니다.</p>
+        <section class="comment-modal-container">
+          <div class="comment-modal-header">
+            <button
+              class="comment-back-btn"
+              id="comment-modal-close"
+              type="button"
+              aria-label="닫기"
+            >
+              <i data-lucide="arrow-left"></i>
+            </button>
+            <h2 id="comment-post-title" class="comment-modal-title">
+              Comments
+            </h2>
+            <button
+              class="comment-more-btn"
+              type="button"
+              aria-label="옵션 더보기"
+            >
+              <i data-lucide="more-horizontal"></i>
+            </button>
           </div>
 
-          <form id="comment-form" class="community-form">
-            <input type="hidden" id="comment-post-id" />
-            <label>
-              댓글 내용
-              <textarea
-                id="comment-text"
-                rows="4"
-                placeholder="댓글을 입력하세요."
-              ></textarea>
-            </label>
-            <div class="form-actions">
-              <button type="submit" class="btn-primary">댓글 등록</button>
-            </div>
-          </form>
+          <div class="comment-modal-body">
+            <div class="comment-list" id="comment-list"></div>
+          </div>
 
-          <div class="comment-list" id="comment-list"></div>
+          <div class="comment-modal-footer">
+            <img
+              id="comment-user-avatar"
+              src=""
+              alt="내 프로필"
+              class="comment-user-avatar"
+            />
+            <form id="comment-form" class="comment-chat-form">
+              <input type="hidden" id="comment-post-id" />
+              <div class="chat-input-wrapper">
+                <textarea
+                  id="comment-text"
+                  rows="1"
+                  placeholder="댓글을 입력하세요..."
+                ></textarea>
+                <button type="submit" class="btn-text-primary">게시</button>
+              </div>
+            </form>
+          </div>
         </section>
       </div>
     </div>
@@ -209,19 +228,36 @@
         <div class="detail-layout">
           <div class="detail-media">
             <div id="detail-gallery" class="detail-gallery"></div>
-            <button type="button" id="gallery-prev-btn" class="gallery-nav-btn prev-btn" hidden>
+            <button
+              type="button"
+              id="gallery-prev-btn"
+              class="gallery-nav-btn prev-btn"
+              hidden
+            >
               <i data-lucide="chevron-left"></i>
             </button>
-            <button type="button" id="gallery-next-btn" class="gallery-nav-btn next-btn" hidden>
+            <button
+              type="button"
+              id="gallery-next-btn"
+              class="gallery-nav-btn next-btn"
+              hidden
+            >
               <i data-lucide="chevron-right"></i>
             </button>
             <div id="gallery-pagination" class="gallery-pagination"></div>
           </div>
           <div class="detail-content">
-            <p class="community-kicker">게시글 상세</p>
+            <p class="community-kicker" id="detail-category">게시글 상세</p>
             <h2 id="detail-title" class="detail-title"></h2>
             <div class="detail-meta">
-              <img id="detail-author-avatar" src="" alt="프로필" class="detail-author-avatar" loading="lazy" hidden>
+              <img
+                id="detail-author-avatar"
+                src=""
+                alt="프로필"
+                class="detail-author-avatar"
+                loading="lazy"
+                hidden
+              />
               <div class="detail-meta-text">
                 <span id="detail-author"></span>
                 <span id="detail-time"></span>
@@ -231,28 +267,24 @@
             <p id="detail-summary" class="detail-summary"></p>
             <div class="detail-actions">
               <button type="button" class="action-link" id="detail-like-btn">
-                좋아요
+                <i data-lucide="heart"></i> 좋아요
               </button>
               <button type="button" class="action-link" id="detail-comment-btn">
-                댓글
+                <i data-lucide="message-circle"></i> 댓글
               </button>
               <button type="button" class="action-link" id="detail-share-btn">
-                공유
+                <i data-lucide="share-2"></i> 공유
               </button>
               <button type="button" class="action-link" id="detail-edit-btn">
-                수정
+                <i data-lucide="edit-2"></i> 수정
               </button>
               <button
                 type="button"
                 class="action-link danger"
                 id="detail-delete-btn"
               >
-                삭제
+                <i data-lucide="trash-2"></i> 삭제
               </button>
-            </div>
-            <div class="detail-comments">
-              <h3>댓글</h3>
-              <div id="detail-comment-list" class="comment-list"></div>
             </div>
           </div>
         </div>

@@ -512,9 +512,12 @@ document.addEventListener("DOMContentLoaded", () => {
     state.detailPost = post;
     state.currentGalleryIndex = 0;
     if (els.detailTitle) els.detailTitle.textContent = post.title || "";
+    const detailCategory = document.getElementById("detail-category");
+    if (detailCategory)
+      detailCategory.textContent = post.type || post.category || "게시글 상세";
     const authorName = post.nickname || userNickname;
     if (els.detailAuthor) els.detailAuthor.textContent = authorName;
-    
+
     const detailAuthorAvatar = document.getElementById("detail-author-avatar");
     if (detailAuthorAvatar) {
       detailAuthorAvatar.src = `https://ui-avatars.com/api/?name=${escapeAttr(authorName.charAt(0))}&background=random&color=fff`;
@@ -526,10 +529,7 @@ document.addEventListener("DOMContentLoaded", () => {
         post.updated_at || post.created_at,
       );
     if (els.detailSummary)
-      els.detailSummary.innerHTML = renderBody(
-        post.summary || "",
-        [],
-      );
+      els.detailSummary.innerHTML = renderBody(post.summary || "", []);
     if (els.detailTags) {
       const tags = splitTags(post.tags);
       els.detailTags.innerHTML = tags
@@ -551,18 +551,21 @@ document.addEventListener("DOMContentLoaded", () => {
       els.detailDeleteBtn.style.display = isMine ? "inline-flex" : "none";
 
     els.detailModal?.classList.add("active");
-    await loadComments(post.post_id);
-    renderComments(state.comments, els.detailCommentList);
+    if (window.lucide) {
+      window.lucide.createIcons({ root: els.detailModal });
+    }
   }
 
   function updateGallerySlide() {
     if (!els.detailGallery) return;
     const total = els.detailGallery.children.length;
     els.detailGallery.style.transform = `translateX(-${state.currentGalleryIndex * 100}%)`;
-    
-    if (els.galleryPrevBtn) els.galleryPrevBtn.hidden = state.currentGalleryIndex === 0;
-    if (els.galleryNextBtn) els.galleryNextBtn.hidden = state.currentGalleryIndex === total - 1;
-    
+
+    if (els.galleryPrevBtn)
+      els.galleryPrevBtn.hidden = state.currentGalleryIndex === 0;
+    if (els.galleryNextBtn)
+      els.galleryNextBtn.hidden = state.currentGalleryIndex === total - 1;
+
     if (els.galleryPagination) {
       Array.from(els.galleryPagination.children).forEach((dot, index) => {
         dot.classList.toggle("active", index === state.currentGalleryIndex);
@@ -592,13 +595,19 @@ document.addEventListener("DOMContentLoaded", () => {
       `,
       )
       .join("");
-      
+
     if (els.galleryPagination) {
-      els.galleryPagination.innerHTML = images.length > 1 
-        ? images.map((_, i) => `<button type="button" class="gallery-dot" data-index="${i}" aria-label="Go to slide ${i + 1}"></button>`).join("") 
-        : "";
-        
-      els.galleryPagination.querySelectorAll(".gallery-dot").forEach(dot => {
+      els.galleryPagination.innerHTML =
+        images.length > 1
+          ? images
+              .map(
+                (_, i) =>
+                  `<button type="button" class="gallery-dot" data-index="${i}" aria-label="Go to slide ${i + 1}"></button>`,
+              )
+              .join("")
+          : "";
+
+      els.galleryPagination.querySelectorAll(".gallery-dot").forEach((dot) => {
         dot.addEventListener("click", (e) => {
           e.stopPropagation();
           state.currentGalleryIndex = parseInt(dot.dataset.index, 10);
@@ -606,14 +615,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
     }
-    
+
     updateGallerySlide();
 
     els.detailGallery
       .querySelectorAll("[data-gallery-src]")
       .forEach((button) => {
         button.addEventListener("click", () => {
-
           openImageLightbox(button.dataset.gallerySrc || "");
         });
       });
@@ -1011,8 +1019,11 @@ document.addEventListener("DOMContentLoaded", () => {
     state.activeCommentPostId = post.post_id;
     state.editingCommentId = null;
     els.commentPostId.value = post.post_id;
-    els.commentPostTitle.textContent = post.title || "댓글";
+    const commentSubtitle = document.getElementById("comment-post-subtitle");
+    if (commentSubtitle) commentSubtitle.textContent = post.title || "게시글 상세";
     els.commentTextarea.value = "";
+    const userAvatar = document.getElementById("comment-user-avatar");
+    if (userAvatar) userAvatar.src = `https://ui-avatars.com/api/?name=${escapeAttr((userNickname || "사용자").charAt(0))}&background=random&color=fff`;
     bringModalToFront(els.commentModal, 210);
     els.commentModal?.classList.add("active");
     loadComments(post.post_id).catch(console.error);
@@ -1038,12 +1049,6 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     state.comments = Array.isArray(rows) ? rows : [];
     renderComments(state.comments, els.commentList);
-    if (
-      els.detailCommentList &&
-      els.detailModal?.classList.contains("active")
-    ) {
-      renderComments(state.comments, els.detailCommentList);
-    }
   }
 
   function renderComments(rows, targetList = els.commentList) {
@@ -1058,46 +1063,57 @@ document.addEventListener("DOMContentLoaded", () => {
                 comment.updated_at &&
                 comment.created_at &&
                 comment.updated_at !== comment.created_at;
+              const authorName = comment.nickname || "사용자";
+              const avatarUrl = `https://ui-avatars.com/api/?name=${escapeAttr(authorName.charAt(0))}&background=random&color=fff`;
               return `
               <article class="comment-item${isEditing ? " is-editing" : ""}" data-comment-id="${comment.comment_id}">
-                <div class="comment-item-head">
-                  <div class="comment-author-block">
-                    <strong class="comment-author">${escapeHtml(comment.nickname || "사용자")}</strong>
-                    ${isEdited ? '<span class="comment-edited-badge">수정됨</span>' : ""}
+                <div class="comment-avatar-col">
+                  <img src="${avatarUrl}" alt="프로필" loading="lazy">
+                </div>
+                <div class="comment-content-col">
+                  <div class="comment-content-header">
+                    <div>
+                      <span class="comment-author-name">${escapeHtml(authorName)}</span>
+                      <span class="comment-time">${formatRelative(comment.updated_at || comment.created_at)}${isEdited ? ' (수정됨)' : ''}</span>
+                    </div>
+                    <div class="comment-right-actions">
+                      <button type="button" class="comment-heart-btn" aria-label="좋아요"><i data-lucide="heart"></i></button>
+                      ${isMine && !isEditing ? `
+                      <div class="comment-more-wrapper">
+                        <button type="button" class="comment-more-opts-btn" data-comment-action="toggle-opts" data-comment-id="${comment.comment_id}"><i data-lucide="more-horizontal"></i></button>
+                        <div class="comment-opts-dropdown" id="comment-opts-${comment.comment_id}">
+                          <button type="button" class="comment-opt-btn" data-comment-action="edit" data-comment-id="${comment.comment_id}"><i data-lucide="edit-2"></i> 수정</button>
+                          <button type="button" class="comment-opt-btn danger" data-comment-action="delete" data-comment-id="${comment.comment_id}"><i data-lucide="trash-2"></i> 삭제</button>
+                        </div>
+                      </div>
+                      ` : ""}
+                    </div>
                   </div>
-                  <span class="comment-timestamp">${formatRelative(comment.updated_at || comment.created_at)}</span>
-                </div>
-                <div class="comment-body">
-                  ${
-                    isEditing
-                      ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3">${escapeHtml(comment.content || "")}</textarea>`
-                      : `<p class="comment-content">${escapeHtml(comment.content || "")}</p>`
-                  }
-                </div>
-                ${
-                  isMine
-                    ? `
-                  <div class="comment-item-actions">
-                    ${
-                      isEditing
-                        ? `
-                      <button type="button" class="action-link" data-comment-action="save" data-comment-id="${comment.comment_id}">저장</button>
-                      <button type="button" class="action-link" data-comment-action="cancel" data-comment-id="${comment.comment_id}">취소</button>
-                    `
-                        : `
-                      <button type="button" class="action-link" data-comment-action="edit" data-comment-id="${comment.comment_id}">수정</button>
-                      <button type="button" class="action-link danger" data-comment-action="delete" data-comment-id="${comment.comment_id}">삭제</button>
-                    `
+                  <div class="comment-text-body">
+                    ${isEditing 
+                      ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3" style="width:100%; resize:none; padding:0.5rem; border:1px solid #ddd; border-radius:4px; font-family:inherit;">${escapeHtml(comment.content || "")}</textarea>`
+                      : escapeHtml(comment.content || "").replace(/\n/g, "<br>")
                     }
                   </div>
-                `
-                    : ""
-                }
+                  <div class="comment-actions-row">
+                    ${isEditing 
+                      ? `
+                      <button type="button" class="comment-opt-btn" data-comment-action="save" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px;"><i data-lucide="check"></i> 저장</button>
+                      <button type="button" class="comment-opt-btn" data-comment-action="cancel" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px;"><i data-lucide="x"></i> 취소</button>
+                      `
+                      : `<span class="comment-reply-text">Reply</span>`
+                    }
+                  </div>
+                </div>
               </article>
-            `;
+              `;
             })
             .join("")
         : '<div class="empty-feed">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</div>';
+
+    if (window.lucide) {
+      window.lucide.createIcons({ root: targetList });
+    }
 
     targetList.querySelectorAll("[data-comment-action]").forEach((button) => {
       button.addEventListener("click", async () => {
@@ -1107,6 +1123,17 @@ document.addEventListener("DOMContentLoaded", () => {
           (row) => String(row.comment_id) === String(commentId),
         );
         if (!comment || String(comment.user_id) !== String(userId)) return;
+
+        if (action === "toggle-opts") {
+          const dropdown = targetList.querySelector(`#comment-opts-${commentId}`);
+          if (dropdown) {
+            dropdown.classList.toggle("active");
+            targetList.querySelectorAll(".comment-opts-dropdown.active").forEach(d => {
+              if (d !== dropdown) d.classList.remove("active");
+            });
+          }
+          return;
+        }
 
         if (action === "edit") {
           state.editingCommentId = comment.comment_id;

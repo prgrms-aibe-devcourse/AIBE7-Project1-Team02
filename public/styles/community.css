@@ -1,6 +1,8 @@
 /* Community feed page styles. */
 
-body, .main-wrapper, .app-container {
+body,
+.main-wrapper,
+.app-container {
   background-color: #ffffff !important;
 }
 
@@ -46,7 +48,7 @@ body, .main-wrapper, .app-container {
   border-radius: 999px;
   font-weight: 600;
   font-size: 0.95rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .category-pills-scroll {
@@ -75,12 +77,12 @@ body, .main-wrapper, .app-container {
   color: var(--color-text-main);
   transition: all 0.25s ease;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 .tag-list-horizontal .keyword-chip:hover {
   background: #f9fafb;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 .tag-list-horizontal .keyword-chip.active {
   background: #111827;
@@ -147,7 +149,11 @@ body, .main-wrapper, .app-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, #e0e7ff 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    #e0e7ff 100%
+  );
   color: var(--color-primary);
 }
 .empty-image-placeholder svg {
@@ -168,7 +174,7 @@ body, .main-wrapper, .app-container {
   z-index: 2;
   cursor: pointer;
   transition: all 0.2s ease;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 .travel-card-like:hover {
   transform: scale(1.1);
@@ -194,8 +200,6 @@ body, .main-wrapper, .app-container {
   text-overflow: ellipsis;
   line-height: 1.3;
 }
-
-
 
 .travel-card-meta {
   font-size: 0.85rem;
@@ -304,7 +308,9 @@ body, .main-wrapper, .app-container {
   padding: 0.9rem 1rem;
   background: #fff;
   color: var(--color-text-main);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .community-form input:focus,
@@ -328,12 +334,18 @@ body, .main-wrapper, .app-container {
 
 .btn-primary,
 .btn-glow {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 100%
+  );
   color: #fff;
   border-radius: 14px;
   padding: 0.9rem 1.15rem;
   font-weight: 700;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   box-shadow: 0 10px 18px rgba(59, 130, 246, 0.2);
 }
 
@@ -410,11 +422,7 @@ body, .main-wrapper, .app-container {
 }
 
 .comment-item {
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
   padding: 0.95rem 1rem;
-  background: #fff;
-  box-shadow: var(--shadow-sm);
 }
 
 .comment-item.is-editing {
@@ -463,9 +471,6 @@ body, .main-wrapper, .app-container {
   width: 100%;
   min-height: 110px;
   padding: 0.9rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-  background: #fff;
   color: var(--color-text-main);
   font-family: var(--font-main);
   font-size: 0.95rem;
@@ -537,17 +542,28 @@ body, .main-wrapper, .app-container {
 .image-dropzone {
   border: 1.5px dashed rgba(59, 130, 246, 0.45);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.03));
+  background: linear-gradient(
+    180deg,
+    rgba(59, 130, 246, 0.05),
+    rgba(139, 92, 246, 0.03)
+  );
   padding: 1rem 1.1rem;
   cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    background 0.2s ease;
 }
 
 .image-dropzone:hover,
 .image-dropzone.is-dragover {
   border-color: var(--color-primary);
   transform: translateY(-1px);
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.06));
+  background: linear-gradient(
+    180deg,
+    rgba(59, 130, 246, 0.1),
+    rgba(139, 92, 246, 0.06)
+  );
 }
 
 .image-dropzone-copy strong {
@@ -653,8 +669,6 @@ body, .main-wrapper, .app-container {
   color: var(--color-text-muted);
   font-size: 0.9rem;
 }
-
-
 
 .detail-summary img,
 .feed-card-desc img {
@@ -956,8 +970,12 @@ body, .main-wrapper, .app-container {
   animation: skeleton-loading 1.5s infinite ease-in-out;
 }
 @keyframes skeleton-loading {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 .skeleton-card .travel-card-image-wrap {
   border-radius: 16px;
@@ -984,8 +1002,8 @@ body, .main-wrapper, .app-container {
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
 }
-.card-slider::-webkit-scrollbar { 
-  display: none; 
+.card-slider::-webkit-scrollbar {
+  display: none;
 }
 .card-slider img {
   flex: 0 0 100%;
@@ -997,9 +1015,15 @@ body, .main-wrapper, .app-container {
 
 /* 2. Heart Pop Animation */
 @keyframes heart-pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.3); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 .travel-card-like.is-liked {
   color: #ff385c;
@@ -1018,7 +1042,11 @@ body, .main-wrapper, .app-container {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 100%
+  );
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -1026,7 +1054,9 @@ body, .main-wrapper, .app-container {
   border: none;
   box-shadow: 0 8px 20px var(--color-primary-glow);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   z-index: 100;
 }
 .btn-write-fab:hover {
@@ -1102,8 +1132,8 @@ body, .main-wrapper, .app-container {
 
 /* --- Post Detail Modal 2-Column Redesign --- */
 .detail-modal {
-  max-width: 1000px !important;
-  width: 90% !important;
+  max-width: 1100px !important;
+  width: 95% !important;
   padding: 0 !important;
   overflow: hidden;
   border-radius: 12px;
@@ -1123,7 +1153,7 @@ body, .main-wrapper, .app-container {
 }
 
 .detail-media {
-  flex: 1.5;
+  flex: 1.1;
   background-color: #000;
   display: flex;
   flex-direction: column;
@@ -1177,7 +1207,9 @@ body, .main-wrapper, .app-container {
   object-fit: contain;
   display: block;
   border-radius: 0;
-  transform: scale(1.01); /* Slightly more aggressive scaling to cover thin gaps */
+  transform: scale(
+    1.01
+  ); /* Slightly more aggressive scaling to cover thin gaps */
 }
 
 /* Gallery Slider UI */
@@ -1196,7 +1228,9 @@ body, .main-wrapper, .app-container {
   cursor: pointer;
   z-index: 10;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: background 0.2s, transform 0.2s;
+  transition:
+    background 0.2s,
+    transform 0.2s;
   color: #333;
 }
 
@@ -1236,7 +1270,9 @@ body, .main-wrapper, .app-container {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  transition: width 0.2s ease, background 0.2s ease;
+  transition:
+    width 0.2s ease,
+    background 0.2s ease;
 }
 
 .gallery-dot.active {
@@ -1246,18 +1282,30 @@ body, .main-wrapper, .app-container {
 
 .detail-content {
   flex: 1;
-  padding: 2rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   background-color: #fff;
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .detail-content {
+    padding: 2.5rem;
+  }
 }
 
 .detail-content .community-kicker {
-  font-size: 0.85rem;
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.8rem;
   color: var(--color-primary);
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  background: var(--color-primary-light);
+  border-radius: 99px;
 }
 
 .detail-title {
@@ -1311,6 +1359,15 @@ body, .main-wrapper, .app-container {
   padding: 0.4rem 1rem;
   font-size: 0.85rem;
   margin: 0;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.detail-tags .keyword-chip:hover {
+  background: var(--color-primary);
+  color: white;
 }
 
 .detail-summary {
@@ -1323,10 +1380,72 @@ body, .main-wrapper, .app-container {
 
 .detail-actions {
   display: flex;
-  gap: 1rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--color-border);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
   margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.detail-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.action-link {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0.35rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 99px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  background: #ffffff;
+  color: var(--color-text-main);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.action-link:hover {
+  transform: translateY(-2px);
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.action-link.is-liked {
+  background: rgba(255, 56, 92, 0.08);
+  border-color: #ff385c;
+  color: #ff385c;
+}
+
+.action-link.is-liked svg {
+  fill: #ff385c;
+  animation: heart-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.action-link.danger {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.08);
+}
+
+.action-link.danger:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+}
+
+.action-link svg {
+  width: 18px;
+  height: 18px;
 }
 
 .detail-comments {
@@ -1338,4 +1457,260 @@ body, .main-wrapper, .app-container {
 .detail-comments h3 {
   font-size: 1.1rem;
   margin-bottom: 1rem;
+}
+
+.comment-modal-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 85vh;
+}
+.comment-modal-header {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+.comment-modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+}
+.comment-back-btn {
+  position: absolute;
+  left: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+.comment-more-btn {
+  position: absolute;
+  right: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #333;
+}
+.comment-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+.comment-post-subtitle {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+.comment-post-info {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+.comment-modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background: #fff;
+  flex-shrink: 0;
+}
+.comment-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.comment-chat-form {
+  flex: 1;
+  margin: 0;
+}
+.chat-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #f3f4f6;
+  border-radius: 99px;
+  padding: 0.25rem 0.5rem 0.25rem 1rem;
+  gap: 0.5rem;
+}
+.chat-input-wrapper textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 0.95rem;
+  padding: 0.5rem 0;
+  height: 36px;
+  line-height: 1.4;
+}
+.btn-text-primary {
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Comment Item Redesign */
+.comment-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  margin-bottom: 0.5rem;
+  background: transparent;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+.comment-item:last-child {
+  border-bottom: none;
+}
+.comment-avatar-col img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.comment-content-col {
+  flex: 1;
+}
+.comment-content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.comment-author-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-right: 0.5rem;
+}
+.comment-time {
+  font-size: 0.75rem;
+  color: #888;
+}
+.comment-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.comment-heart-btn,
+.comment-more-opts-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding: 0.2rem;
+  display: flex;
+  align-items: center;
+}
+.comment-heart-btn svg,
+.comment-more-opts-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.comment-more-wrapper {
+  position: relative;
+}
+.comment-opts-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 0.25rem 0;
+  min-width: 100px;
+  z-index: 10;
+  display: none;
+}
+.comment-opts-dropdown.active {
+  display: block;
+}
+.comment-opt-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #333;
+}
+.comment-opt-btn:hover {
+  background: #f8fafc;
+}
+.comment-opt-btn.danger {
+  color: #ef4444;
+}
+.comment-opt-btn.danger:hover {
+  background: #fef2f2;
+}
+.comment-opt-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.comment-text-body {
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0.5rem 0;
+  line-height: 1.5;
+}
+.comment-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.comment-reply-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+}
+
+.comment-author {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text-main);
+}
+
+.comment-edited-badge {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: #e2e8f0;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.comment-timestamp {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.comment-body {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-text-main);
+}
+
+.comment-item-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.comment-item-actions .action-link {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
 }
