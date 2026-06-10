@@ -457,22 +457,20 @@
   background: var(--color-border);
   border-radius: 100px;
   position: relative;
-  overflow: visible; /* 중앙선이 트랙 위에 올라올 수 있도록 */
+  overflow: hidden;
 }
 
-/* 중앙 기준선 */
+/* 중앙 기준선: z-index로 바 fill 위에 올라오게 함 */
 .score-bar-track::before {
   content: '';
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  left: calc(50% - 1px);
+  top: 0;
   width: 2px;
-  height: 18px;
-  background: var(--color-text-main);
-  opacity: 0.18;
-  border-radius: 2px;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3);
   z-index: 2;
+  pointer-events: none;
 }
 
 /* 바 fill: 중앙에서 퍼지는 방식 */

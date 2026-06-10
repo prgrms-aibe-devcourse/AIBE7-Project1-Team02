@@ -242,27 +242,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
     requestAnimationFrame(() => {
       setTimeout(() => {
+        // querySelectorAll로 모든 score-row를 가져와 인덱스로 접근
+        const scoreRows = document.querySelectorAll(".score-row");
         renderCenterOutBar(
           document.getElementById("barEI"),
-          document.querySelector(".score-row:nth-child(1)"),
+          scoreRows[0],
           document.getElementById("valEI"),
           scores.ei, "활동", "휴식"
         );
         renderCenterOutBar(
           document.getElementById("barSN"),
-          document.querySelector(".score-row:nth-child(2)"),
+          scoreRows[1],
           document.getElementById("valSN"),
           scores.sn, "전통", "탐험"
         );
         renderCenterOutBar(
           document.getElementById("barTF"),
-          document.querySelector(".score-row:nth-child(3)"),
+          scoreRows[2],
           document.getElementById("valTF"),
           scores.tf, "효율", "감성"
         );
         renderCenterOutBar(
           document.getElementById("barJP"),
-          document.querySelector(".score-row:nth-child(4)"),
+          scoreRows[3],
           document.getElementById("valJP"),
           scores.jp, "계획", "즉흥"
         );
