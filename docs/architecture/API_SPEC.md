@@ -464,7 +464,8 @@ Response:
           {
             "time": "10:00",
             "placeName": "협재해수욕장",
-            "description": "오션뷰를 즐기며 가볍게 산책합니다."
+            "description": "오션뷰를 즐기며 가볍게 산책합니다.",
+            "image_url": "https://example.com/hyeopjae.jpg"
           }
         ]
       }
