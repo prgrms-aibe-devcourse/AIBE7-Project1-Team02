@@ -1273,7 +1273,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   : `
                 <span class="comment-time">${formatRelative(comment.updated_at || comment.created_at)}</span>
                 <span class="comment-like-count" style="${likeCount > 0 ? '' : 'display:none;'} font-weight: 600; font-size: 0.8rem; color: #666; cursor: pointer;">좋아요 ${likeCount}개</span>
-                <span class="comment-reply-text" data-comment-action="reply" data-comment-id="${comment.comment_id}">답글 달기</span>
+                ${!isReply ? `<span class="comment-reply-text" data-comment-action="reply" data-comment-id="${comment.comment_id}">답글 달기</span>` : ""}
                 `
               }
             </div>
