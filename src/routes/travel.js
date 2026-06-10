@@ -3,6 +3,7 @@ const { createClient } = require("@supabase/supabase-js");
 const {
   getTripPlanById,
   getTripPlans,
+  updateTripPlanStatus,
 } = require("../services/supabase/tripPlan");
 
 const router = express.Router();
@@ -113,6 +114,52 @@ router.get("/:planId", async (request, response) => {
         error.code === "42501"
           ? "임시 일정 테이블 조회 권한이 없습니다."
           : "일정 상세를 불러오지 못했습니다.",
+    });
+  }
+});
+
+router.patch("/:planId/status", async (request, response) => {
+  try {
+    const user = await requireAuthenticatedUser(request, response);
+    if (!user) return;
+
+    const planId = Number.parseInt(request.params.planId, 10);
+    if (!Number.isFinite(planId) || planId < 1) {
+      return response.status(400).json({
+        success: false,
+        message: "유효한 일정 ID가 필요합니다.",
+      });
+    }
+
+    const status = String(request.body?.status || "").trim();
+    if (!["planning", "in_progress", "completed"].includes(status)) {
+      return response.status(400).json({
+        success: false,
+        message: "지원하지 않는 일정 상태입니다.",
+      });
+    }
+
+    const plan = await updateTripPlanStatus(supabaseAdmin, planId, status);
+    if (!plan) {
+      return response.status(404).json({
+        success: false,
+        message: "일정을 찾을 수 없습니다.",
+      });
+    }
+
+    return response.json({
+      success: true,
+      data: { plan },
+      message: "일정 상태 변경 성공",
+    });
+  } catch (error) {
+    console.error("Trip plan status update error:", error);
+    return response.status(500).json({
+      success: false,
+      message:
+        error.code === "42501"
+          ? "임시 일정 테이블 수정 권한이 없습니다."
+          : "일정 상태를 변경하지 못했습니다.",
     });
   }
 });

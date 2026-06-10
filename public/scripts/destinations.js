@@ -88,6 +88,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function hasDestinationImage(destination) {
+    return Boolean(getSafeImageUrl(destination?.imageUrl));
+  }
+
   function createNoImagePlaceholder(className) {
     const placeholder = document.createElement("div");
     placeholder.className = `${className} no-image-placeholder`;
@@ -574,14 +578,15 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         subtitle.textContent = "";
       }
+      const visibleRecommendations = recommendations.filter(hasDestinationImage);
       resultCount.textContent =
-        `조건에 맞는 관광지 ${pageInfo.totalCount.toLocaleString("ko-KR")}개`;
+        `관광지 ${visibleRecommendations.length.toLocaleString("ko-KR")}개`;
       grid.innerHTML = "";
 
-      if (recommendations.length === 0) {
-        renderState("선택한 조건에 맞는 여행지가 없습니다.");
+      if (visibleRecommendations.length === 0) {
+        renderState("현재 조건에 맞는 여행지가 없습니다.");
       } else {
-        recommendations.forEach((destination) => {
+        visibleRecommendations.forEach((destination) => {
           grid.appendChild(createDestinationCard(destination));
         });
       }

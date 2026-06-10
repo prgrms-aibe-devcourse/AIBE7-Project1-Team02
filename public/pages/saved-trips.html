@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>내 여행 일정 | ExploraJourneys</title>
+    <title>Packing | 여행 일정</title>
+    <link rel="icon" type="image/png" href="/images/packing-logo.png" />
+    <link rel="apple-touch-icon" href="/images/packing-logo.png" />
     <meta
       name="description"
       content="저장한 여행 일정의 기간, 여행지, 진행 상태와 날짜별 세부 일정을 확인합니다."
@@ -35,20 +37,12 @@
             </a>
           </section>
 
-          <section class="saved-trips-toolbar" aria-label="일정 검색">
-            <label class="saved-trips-search">
-              <i data-lucide="search"></i>
-              <span class="sr-only">일정 검색</span>
-              <input
-                id="trip-search"
-                type="search"
-                placeholder="여행 제목 또는 여행지 검색"
-              />
-            </label>
-
-            <p class="saved-trips-toolbar-guide">
-              저장된 일정의 제목이나 지역으로 검색할 수 있습니다.
-            </p>
+          <section class="saved-trips-toolbar" aria-label="일정 상태 필터">
+            <div class="trip-status-tabs" role="tablist" id="trip-status-tabs">
+              <button type="button" role="tab" aria-selected="false" data-filter="planning">시작 전</button>
+              <button type="button" role="tab" aria-selected="true" data-filter="in_progress">진행중</button>
+              <button type="button" role="tab" aria-selected="false" data-filter="completed">완료</button>
+            </div>
           </section>
 
           <section
@@ -61,6 +55,12 @@
               <p>저장된 여행 일정을 불러오고 있습니다.</p>
             </div>
           </section>
+
+          <nav class="trip-pagination" id="trip-pagination" aria-label="일정 페이지 내비게이션" hidden>
+            <button type="button" id="trip-page-prev" class="page-btn" aria-label="이전 페이지"><i data-lucide="chevron-left"></i></button>
+            <span id="trip-page-info">1 / 1</span>
+            <button type="button" id="trip-page-next" class="page-btn" aria-label="다음 페이지"><i data-lucide="chevron-right"></i></button>
+          </nav>
         </main>
       </div>
     </div>

@@ -53,6 +53,7 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | DONE | GET | `/api/user/bookmarks` | Authorization Bearer Token | 저장한 여행지 ID 목록 | 로그인 만료, Supabase 조회 실패 | 백엔드 |
 | DONE | POST | `/api/user/bookmarks` | Authorization Bearer Token, `destinationId` | 북마크 저장 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 저장 실패 | 백엔드 |
 | DONE | DELETE | `/api/user/bookmarks/:destinationId` | Authorization Bearer Token | 북마크 해제 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 삭제 실패 | 백엔드 |
+| DONE | PATCH | `/api/travel/:id/status` | Authorization Bearer Token, `status` | 변경된 일정 상태 | 로그인 만료, 유효하지 않은 상태, 일정 없음 | 백엔드 |
 | PLANNED | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
 | PLANNED | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | PLANNED | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
@@ -210,6 +211,8 @@ Response:
 ### GET /api/user/bookmarks
 
 로그인 사용자가 북마크한 여행지 ID 목록을 조회한다.
+서버는 사용자의 Supabase access token과 anon key로 RLS 정책을 적용해
+조회하며, service role key에 의존하지 않는다.
 
 Request Header:
 
@@ -247,7 +250,9 @@ Response:
 ### POST /api/user/bookmarks
 
 로그인 사용자의 여행지 북마크를 저장한다. 동일 여행지는 중복 저장하지
-않는다.
+않는다. 이미 저장된 여행지를 다시 저장 요청해도 성공 응답으로 처리한다.
+서버는 사용자의 Supabase access token과 anon key로 RLS 정책을 적용해
+저장하며, service role key에 의존하지 않는다.
 
 Request Header:
 
@@ -281,6 +286,8 @@ Response:
 ### DELETE /api/user/bookmarks/:destinationId
 
 로그인 사용자의 여행지 북마크를 해제한다.
+서버는 사용자의 Supabase access token과 anon key로 RLS 정책을 적용해
+삭제하며, service role key에 의존하지 않는다.
 
 Response:
 
@@ -502,6 +509,8 @@ Response:
         "region": "제주특별자치도",
         "totalDays": 2,
         "aiSummary": "자연 속에서 여유롭게 쉬는 일정입니다.",
+        "status": "completed",
+        "completedAt": "2026-06-10T10:00:00Z",
         "itemCount": 2,
         "items": []
       }
@@ -542,6 +551,8 @@ Response:
       "mbtiType": "INFP",
       "region": "제주특별자치도",
       "totalDays": 2,
+      "status": "completed",
+      "completedAt": "2026-06-10T10:00:00Z",
       "items": [
         {
           "itemId": 1,
@@ -560,6 +571,45 @@ Response:
     }
   },
   "message": "일정 상세 조회 성공"
+}
+```
+
+### PATCH /api/travel/:id/status
+
+임시 일정의 상태를 변경한다. 일정은 `planning`, `in_progress`,
+`completed` 세 상태를 가진다. 일정 확인 페이지에서 여행 시작 버튼을
+누르면 `in_progress`로 변경하고, 모든 여행지를 완료하면 `completed`로
+저장하며 `completedAt`을 기록한다. `planning` 또는 `in_progress`로
+변경하면 `completedAt`은 `null`로 초기화한다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+Request:
+
+```json
+{
+  "status": "in_progress"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "plan": {
+      "planId": 1,
+      "title": "제주 힐링 여행",
+      "status": "completed",
+      "completedAt": "2026-06-10T10:00:00Z"
+    }
+  },
+  "message": "일정 상태 변경 성공"
 }
 ```
 

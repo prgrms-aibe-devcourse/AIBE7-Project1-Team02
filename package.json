@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "import:tour": "node src/scripts/importTourData.js",
     "test": "node --test"
   },
   "engines": {

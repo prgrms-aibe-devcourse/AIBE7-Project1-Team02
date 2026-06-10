@@ -4,6 +4,7 @@ const { createClient } = require("@supabase/supabase-js");
 const router = express.Router();
 
 const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 let supabaseAdmin = null;
@@ -24,6 +25,24 @@ function getBearerToken(req) {
   return authHeader.split(" ")[1];
 }
 
+function createAuthenticatedClient(token) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+}
+
 async function getAuthenticatedUser(req, res) {
   const token = getBearerToken(req);
 
@@ -35,16 +54,17 @@ async function getAuthenticatedUser(req, res) {
     return null;
   }
 
-  if (!supabaseAdmin) {
+  const supabase = createAuthenticatedClient(token);
+  if (!supabase) {
     res.status(500).json({
       success: false,
-      message: "서버 관리자 키가 설정되지 않았습니다.",
+      message: "Supabase 공개 키가 설정되지 않았습니다.",
     });
     return null;
   }
 
   const { data: userData, error: userError } =
-    await supabaseAdmin.auth.getUser(token);
+    await supabase.auth.getUser(token);
 
   if (userError || !userData?.user) {
     res.status(401).json({
@@ -57,13 +77,37 @@ async function getAuthenticatedUser(req, res) {
   return userData.user;
 }
 
+async function getAuthenticatedContext(req, res) {
+  const token = getBearerToken(req);
+  const user = await getAuthenticatedUser(req, res);
+  if (!user) return null;
+
+  return {
+    user,
+    supabase: createAuthenticatedClient(token),
+  };
+}
+
+function requireSupabaseAdmin(res) {
+  if (supabaseAdmin) {
+    return true;
+  }
+
+  res.status(500).json({
+    success: false,
+    message: "서버 관리자 키가 설정되지 않았습니다.",
+  });
+  return false;
+}
+
 // GET /api/user/bookmarks - Get bookmarked destination IDs
 router.get("/bookmarks", async (req, res) => {
   try {
-    const user = await getAuthenticatedUser(req, res);
-    if (!user) return;
+    const context = await getAuthenticatedContext(req, res);
+    if (!context) return;
+    const { user, supabase } = context;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from("user_bookmarks")
       .select(
         [
@@ -129,8 +173,9 @@ router.get("/bookmarks", async (req, res) => {
 // POST /api/user/bookmarks - Add a destination bookmark
 router.post("/bookmarks", async (req, res) => {
   try {
-    const user = await getAuthenticatedUser(req, res);
-    if (!user) return;
+    const context = await getAuthenticatedContext(req, res);
+    if (!context) return;
+    const { user, supabase } = context;
 
     const destinationId = Number.parseInt(req.body.destinationId, 10);
     if (!Number.isFinite(destinationId) || destinationId < 1) {
@@ -140,21 +185,27 @@ router.post("/bookmarks", async (req, res) => {
       });
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from("user_bookmarks")
-      .upsert(
-        {
-          user_id: user.id,
-          destination_id: destinationId,
-        },
-        {
-          onConflict: "user_id,destination_id",
-        },
-      )
+      .insert({
+        user_id: user.id,
+        destination_id: destinationId,
+      })
       .select("bookmark_id,user_id,destination_id,created_at")
       .single();
 
     if (error) {
+      if (error.code === "23505") {
+        return res.json({
+          success: true,
+          data: {
+            user_id: user.id,
+            destination_id: destinationId,
+          },
+          message: "이미 저장된 북마크입니다.",
+        });
+      }
+
       console.error("Bookmark add error:", error);
       return res.status(500).json({
         success: false,
@@ -179,8 +230,9 @@ router.post("/bookmarks", async (req, res) => {
 // DELETE /api/user/bookmarks/:destinationId - Remove a destination bookmark
 router.delete("/bookmarks/:destinationId", async (req, res) => {
   try {
-    const user = await getAuthenticatedUser(req, res);
-    if (!user) return;
+    const context = await getAuthenticatedContext(req, res);
+    if (!context) return;
+    const { user, supabase } = context;
 
     const destinationId = Number.parseInt(req.params.destinationId, 10);
     if (!Number.isFinite(destinationId) || destinationId < 1) {
@@ -190,7 +242,7 @@ router.delete("/bookmarks/:destinationId", async (req, res) => {
       });
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from("user_bookmarks")
       .delete()
       .eq("user_id", user.id)
@@ -225,6 +277,7 @@ router.delete("/account", async (req, res) => {
   try {
     const user = await getAuthenticatedUser(req, res);
     if (!user) return;
+    if (!requireSupabaseAdmin(res)) return;
 
     // Optional: We can delete user preferences, trips, etc. here or let Supabase triggers handle it.
     // Given the MVP constraints, we will just delete the auth user, and if cascading isn't set up, we should manually clean up public.users.
@@ -259,6 +312,7 @@ router.delete("/data", async (req, res) => {
   try {
     const user = await getAuthenticatedUser(req, res);
     if (!user) return;
+    if (!requireSupabaseAdmin(res)) return;
 
     // RLS 무시하고 관리자 권한으로 삭제
     const [prefRes, mbtiRes, tripsRes, bookmarkRes] = await Promise.all([
