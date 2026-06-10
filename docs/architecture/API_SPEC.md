@@ -210,6 +210,8 @@ Response:
 ### GET /api/user/bookmarks
 
 로그인 사용자가 북마크한 여행지 ID 목록을 조회한다.
+서버는 사용자의 Supabase access token과 anon key로 RLS 정책을 적용해
+조회하며, service role key에 의존하지 않는다.
 
 Request Header:
 
@@ -247,7 +249,9 @@ Response:
 ### POST /api/user/bookmarks
 
 로그인 사용자의 여행지 북마크를 저장한다. 동일 여행지는 중복 저장하지
-않는다.
+않는다. 이미 저장된 여행지를 다시 저장 요청해도 성공 응답으로 처리한다.
+서버는 사용자의 Supabase access token과 anon key로 RLS 정책을 적용해
+저장하며, service role key에 의존하지 않는다.
 
 Request Header:
 
@@ -281,6 +285,8 @@ Response:
 ### DELETE /api/user/bookmarks/:destinationId
 
 로그인 사용자의 여행지 북마크를 해제한다.
+서버는 사용자의 Supabase access token과 anon key로 RLS 정책을 적용해
+삭제하며, service role key에 의존하지 않는다.
 
 Response:
 
