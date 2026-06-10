@@ -1,5 +1,5 @@
 /* ============================================================
-   여행 MBTI 설문 — Light Theme Survey UI (Aligned with Prototype)
+   여행 성향 설문 — Light Theme Survey UI (Aligned with Prototype)
    ============================================================ */
 
 /* ── Overrides for Light Theme ──────────────────────────────────────────── */
@@ -363,14 +363,12 @@
 }
 
 .result-header .mbti-type {
-  font-size: 4rem;
+  margin: 0 auto;
+  font-size: clamp(1rem, 2.6vw, 1.28rem);
   font-weight: 800;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: 6px;
+  letter-spacing: -0.03em;
   line-height: 1.2;
+  word-break: keep-all;
 }
 
 .result-header .mbti-alias {
@@ -420,9 +418,9 @@
 
 .score-label-left,
 .score-label-right {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  width: 28px;
+  width: 38px;
   text-align: center;
   flex-shrink: 0;
 }
@@ -542,7 +540,7 @@
   }
 
   .result-header .mbti-type {
-    font-size: 3rem;
-    letter-spacing: 4px;
+    font-size: 1rem;
+    letter-spacing: -0.02em;
   }
 }

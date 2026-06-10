@@ -152,18 +152,31 @@ async function updateHeaderProfile() {
   try { currentUser = JSON.parse(userRaw) || {}; } catch {}
 
   const headerUserName = document.getElementById('header-user-name');
+  const headerTravelerBadge = document.getElementById('header-traveler-badge');
   const headerUserAvatar = document.getElementById('header-user-avatar');
+  const headerProfileText = document.getElementById('header-profile-text');
+  const headerAvatarWrapper = document.getElementById('header-avatar-wrapper');
+  const headerLoginButton = document.getElementById('header-login-button');
   const loginLink = document.getElementById('login-link');
   const profileDropdown = document.getElementById('profile-dropdown');
   const dropdownLogoutBtn = document.getElementById('dropdown-logout-btn');
   const profileDropdownContainer = document.getElementById('profile-dropdown-container');
 
   if (!authToken) {
+    if (headerProfileText) headerProfileText.hidden = true;
+    if (headerAvatarWrapper) headerAvatarWrapper.hidden = true;
+    if (headerLoginButton) headerLoginButton.hidden = false;
     if (headerUserName) headerUserName.textContent = '';
+    setHeaderTravelerBadge(headerTravelerBadge, '');
     if (headerUserAvatar) headerUserAvatar.src = 'https://ui-avatars.com/api/?name=User&background=eaeaea&color=333';
     if (profileDropdown) profileDropdown.style.display = 'none';
     return;
   }
+
+  if (headerProfileText) headerProfileText.hidden = false;
+  if (headerAvatarWrapper) headerAvatarWrapper.hidden = false;
+  if (headerLoginButton) headerLoginButton.hidden = true;
+  if (profileDropdown) profileDropdown.style.display = '';
 
   if (loginLink) {
     loginLink.href = '#';
@@ -190,6 +203,7 @@ async function updateHeaderProfile() {
 
   const userName = currentUser?.user_metadata?.nickname || currentUser?.user_metadata?.name || currentUser?.email?.split("@")?.[0] || "사용자";
   if (headerUserName) headerUserName.textContent = `${userName}님`;
+  setHeaderTravelerBadge(headerTravelerBadge, currentUser?.user_metadata?.badge || '');
 
   const cachedImg = currentUser?.user_metadata?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random&color=fff&size=160`;
   if (headerUserAvatar) {
@@ -201,13 +215,27 @@ async function updateHeaderProfile() {
     try {
       const result = await fetch("/api/config").then(r => r.json());
       if (result.success) {
-        const data = await fetch(
-          `${result.data.supabaseUrl}/rest/v1/users?user_id=eq.${userId}&select=profile_image,nickname`,
-          { headers: { apikey: result.data.supabaseAnonKey, Authorization: `Bearer ${authToken}` } }
-        ).then(r => r.json());
+        const requestHeaders = {
+          apikey: result.data.supabaseAnonKey,
+          Authorization: `Bearer ${authToken}`,
+        };
+        const [data, preferenceData] = await Promise.all([
+          fetch(
+            `${result.data.supabaseUrl}/rest/v1/users?user_id=eq.${userId}&select=profile_image,nickname`,
+            { headers: requestHeaders }
+          ).then(r => r.json()),
+          fetch(
+            `${result.data.supabaseUrl}/rest/v1/user_preferences?user_id=eq.${userId}&select=badge,mbti_type`,
+            { headers: requestHeaders }
+          ).then(r => r.json()),
+        ]);
         
         const dbImg = data?.[0]?.profile_image;
         const dbNick = data?.[0]?.nickname;
+        const dbBadge = preferenceData?.[0]?.badge;
+        const dbMbtiType = preferenceData?.[0]?.mbti_type;
+        const travelerBadge =
+          dbBadge || window.TravelerProfile?.getTitle(dbMbtiType) || '';
         
         const finalName = dbNick || userName;
         const finalImg = dbImg || `https://ui-avatars.com/api/?name=${encodeURIComponent(finalName)}&background=random&color=fff&size=160`;
@@ -221,6 +249,10 @@ async function updateHeaderProfile() {
           if (headerUserName) headerUserName.textContent = `${dbNick}님`;
           currentUser.user_metadata.nickname = dbNick;
         }
+        if (travelerBadge) {
+          setHeaderTravelerBadge(headerTravelerBadge, travelerBadge);
+          currentUser.user_metadata.badge = travelerBadge;
+        }
 
         sessionStorage.setItem("sb_user", JSON.stringify(currentUser));
       }
@@ -228,4 +260,12 @@ async function updateHeaderProfile() {
       console.error('Failed to load user profile in layout:', err);
     }
   }
+}
+
+function setHeaderTravelerBadge(element, badgeText) {
+  if (!element) return;
+
+  const visibleBadge = String(badgeText || '').trim();
+  element.textContent = visibleBadge;
+  element.hidden = !visibleBadge;
 }
