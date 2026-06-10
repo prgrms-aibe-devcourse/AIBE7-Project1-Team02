@@ -14,6 +14,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const dayDetailStatus = document.getElementById("trip-day-detail-status");
   const dayDetailPeriod = document.getElementById("trip-day-detail-period");
   const dayDetailBody = document.getElementById("trip-day-detail-body");
+  let currentUser = {};
+  try {
+    currentUser = JSON.parse(sessionStorage.getItem("sb_user") || "{}");
+  } catch {
+    currentUser = {};
+  }
+  const completionOwnerId = currentUser?.id || "guest";
   let trips = [];
   let kakaoMapSdkPromise = null;
   let detailRenderId = 0;
@@ -43,6 +50,73 @@ document.addEventListener("DOMContentLoaded", () => {
         row.itemCount ?? row.item_count ?? items.length ?? 0,
       itineraries: items,
     };
+  }
+
+  function getTripCompletionKey(trip) {
+    return [
+      "saved-trip-completion",
+      completionOwnerId,
+      trip.tripId || trip.title || "unknown-trip",
+    ].join(":");
+  }
+
+  function readTripCompletion(trip) {
+    try {
+      const saved = localStorage.getItem(getTripCompletionKey(trip));
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  }
+
+  function writeTripCompletion(trip, completedItemKeys) {
+    localStorage.setItem(
+      getTripCompletionKey(trip),
+      JSON.stringify([...completedItemKeys]),
+    );
+  }
+
+  function getItemKey(item, index = 0) {
+    const destination = getDestination(item);
+    return String(
+      item.itemId ??
+        item.item_id ??
+        [
+          item.dayNumber ?? item.day_number ?? 1,
+          item.orderIndex ?? item.order_index ?? index,
+          destination.destinationId ?? destination.destination_id ?? index,
+        ].join("-"),
+    );
+  }
+
+  function isItemCompleted(trip, item, index = 0) {
+    return readTripCompletion(trip).has(getItemKey(item, index));
+  }
+
+  function markItemCompleted(trip, item, index = 0) {
+    const completedItemKeys = readTripCompletion(trip);
+    completedItemKeys.add(getItemKey(item, index));
+    writeTripCompletion(trip, completedItemKeys);
+  }
+
+  function getCompletionStats(trip, items = trip.itineraries) {
+    const completedItemKeys = readTripCompletion(trip);
+    const itemKeys = items.map((item, index) => getItemKey(item, index));
+    const completedCount = itemKeys.filter((itemKey) =>
+      completedItemKeys.has(itemKey),
+    ).length;
+
+    return {
+      completedCount,
+      totalCount: itemKeys.length,
+      isCompleted: itemKeys.length > 0 && completedCount === itemKeys.length,
+    };
+  }
+
+  function getTripStatusText(trip) {
+    return getCompletionStats(trip).isCompleted
+      ? "완료한 여행"
+      : trip.travelerTitle || "여행 일정";
   }
 
   function getPeriodText(trip) {
@@ -82,8 +156,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function createTripCard(trip) {
+    const completionStats = getCompletionStats(trip);
     const card = document.createElement("article");
     card.className = "saved-trip-card";
+    card.classList.toggle("completed", completionStats.isCompleted);
 
     const cover = document.createElement("div");
     cover.className = "saved-trip-cover";
@@ -103,7 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const status = document.createElement("span");
     status.className =
       "saved-trip-status traveler-title-badge traveler-title-badge-compact";
-    status.textContent = trip.travelerTitle;
+    status.textContent = getTripStatusText(trip);
     cover.append(media, status);
 
     const content = document.createElement("div");
@@ -122,7 +198,10 @@ document.addEventListener("DOMContentLoaded", () => {
     [
       ["여행 기간", getPeriodText(trip)],
       ["여행 성향", trip.travelerTitle],
-      ["방문 여행지", `${trip.itineraryCount}개`],
+      [
+        "여행 완료",
+        `${completionStats.completedCount}/${completionStats.totalCount || trip.itineraryCount}`,
+      ],
     ].forEach(([label, value]) => {
       const item = document.createElement("div");
       const labelElement = document.createElement("span");
@@ -137,7 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
     action.className = "saved-trip-action";
     action.type = "button";
     action.innerHTML =
-      '<span>일정 상세 보기</span><i data-lucide="arrow-right"></i>';
+      `<span>${completionStats.isCompleted ? "완료한 여행 보기" : "일정 상세 보기"}</span><i data-lucide="arrow-right"></i>`;
     action.addEventListener("click", () => openTripDetail(trip));
 
     content.append(title, destination, meta, action);
@@ -197,7 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function getItemId(item, index) {
-    return item.itemId ?? item.item_id ?? index;
+    return getItemKey(item, index);
   }
 
   function getCoordinate(item) {
@@ -288,7 +367,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return kakaoMapSdkPromise;
   }
 
-  function createDestinationDetail(item) {
+  function createDestinationDetail(item, isCompleted, onComplete) {
     const destination = getDestination(item);
     const detail = document.createElement("div");
     detail.className = "trip-place-detail";
@@ -315,14 +394,36 @@ document.addEventListener("DOMContentLoaded", () => {
       detail.appendChild(memo);
     }
 
+    const completeAction = document.createElement("button");
+    completeAction.className = "trip-place-complete-button";
+    completeAction.type = "button";
+    completeAction.disabled = isCompleted;
+    completeAction.innerHTML = isCompleted
+      ? '<i data-lucide="check-circle-2"></i><span>여행 완료됨</span>'
+      : '<i data-lucide="check"></i><span>여행 완료</span>';
+    completeAction.addEventListener("click", (event) => {
+      event.stopPropagation();
+      onComplete();
+    });
+    detail.appendChild(completeAction);
+
     return detail;
   }
 
-  function createDestinationCard(item, itemIndex, selectedItemId, onSelect) {
+  function createDestinationCard(
+    trip,
+    item,
+    itemIndex,
+    selectedItemId,
+    onSelect,
+    onComplete,
+  ) {
     const destination = getDestination(item);
-    const itemId = item.itemId ?? item.item_id ?? itemIndex;
+    const itemId = getItemKey(item, itemIndex);
+    const completed = isItemCompleted(trip, item, itemIndex);
     const card = document.createElement("article");
     card.className = "trip-place-card";
+    card.classList.toggle("completed", completed);
     card.classList.toggle("active", itemId === selectedItemId);
     card.tabIndex = 0;
     card.setAttribute("role", "button");
@@ -350,10 +451,24 @@ document.addEventListener("DOMContentLoaded", () => {
     order.textContent = `${itemIndex + 1}번째 여행지`;
     const name = document.createElement("strong");
     name.textContent = getDestinationName(item);
-    content.append(order, name);
+    const titleRow = document.createElement("div");
+    titleRow.className = "trip-place-title-row";
+    titleRow.appendChild(name);
+    if (completed) {
+      const completedBadge = document.createElement("span");
+      completedBadge.className = "trip-place-completed-badge";
+      completedBadge.textContent = "완료";
+      titleRow.appendChild(completedBadge);
+    }
+    content.append(order, titleRow);
 
     if (itemId === selectedItemId) {
-      content.appendChild(createDestinationDetail(item));
+      content.appendChild(
+        createDestinationDetail(item, completed, () => {
+          markItemCompleted(trip, item, itemIndex);
+          onComplete();
+        }),
+      );
     }
 
     card.append(media, content);
@@ -452,10 +567,18 @@ document.addEventListener("DOMContentLoaded", () => {
     let selectedItemId = null;
     let dayMapController = null;
 
-    dayDetailStatus.textContent = trip.travelerTitle || "DAY ROUTE";
+    const updateDayHeader = () => {
+      const tripStats = getCompletionStats(trip);
+      const dayStats = getCompletionStats(trip, dayItems);
+      dayDetailStatus.textContent = tripStats.isCompleted
+        ? "완료한 여행"
+        : trip.travelerTitle || "DAY ROUTE";
+      dayDetailPeriod.textContent =
+        `${trip.destinationName} · ${dayItems.length}곳 중 ${dayStats.completedCount}곳 완료`;
+    };
+
+    updateDayHeader();
     dayDetailTitle.textContent = `DAY ${dayNumber} 일정과 루트`;
-    dayDetailPeriod.textContent =
-      `${trip.destinationName} · ${dayItems.length}곳`;
     dayDetailBody.innerHTML = "";
 
     const dayContent = document.createElement("section");
@@ -485,7 +608,19 @@ document.addEventListener("DOMContentLoaded", () => {
       placeList.innerHTML = "";
       dayItems.forEach((item, itemIndex) => {
         placeList.appendChild(
-          createDestinationCard(item, itemIndex, selectedItemId, selectItem),
+          createDestinationCard(
+            trip,
+            item,
+            itemIndex,
+            selectedItemId,
+            selectItem,
+            () => {
+              updateDayHeader();
+              renderPlaceList();
+              renderTripDetail(trip, trip.itineraries);
+              renderTrips();
+            },
+          ),
         );
       });
       window.lucide?.createIcons();
@@ -522,9 +657,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderTripDetail(trip, itineraries) {
     detailRenderId += 1;
-    detailStatus.textContent = trip.travelerTitle || "여행 일정";
+    const completionStats = getCompletionStats(trip, itineraries);
+    detailStatus.textContent = completionStats.isCompleted
+      ? "완료한 여행"
+      : trip.travelerTitle || "여행 일정";
     detailTitle.textContent = trip.title;
-    detailPeriod.textContent = `${trip.destinationName} · ${getPeriodText(trip)}`;
+    detailPeriod.textContent =
+      `${trip.destinationName} · ${getPeriodText(trip)} · ${completionStats.completedCount}/${completionStats.totalCount}곳 완료`;
     detailBody.innerHTML = "";
 
     if (trip.aiSummary) {
@@ -563,8 +702,10 @@ document.addEventListener("DOMContentLoaded", () => {
     detailBody.appendChild(dayGrid);
 
     days.forEach(([dayNumber, dayItems]) => {
+      const dayStats = getCompletionStats(trip, dayItems);
       const dayButton = document.createElement("button");
       dayButton.className = "trip-day-card trip-day-card-large";
+      dayButton.classList.toggle("completed", dayStats.isCompleted);
       dayButton.type = "button";
       const previewNames = dayItems
         .slice(0, 3)
@@ -572,7 +713,8 @@ document.addEventListener("DOMContentLoaded", () => {
         .join(" · ");
       dayButton.innerHTML = [
         `<span>DAY ${dayNumber}</span>`,
-        `<strong>${dayItems.length}곳의 일정</strong>`,
+        `<strong>${dayStats.isCompleted ? "DAY 완료" : `${dayItems.length}곳의 일정`}</strong>`,
+        `<em>${dayStats.completedCount}/${dayStats.totalCount}곳 완료</em>`,
         `<small>${previewNames || "저장된 여행지를 확인하세요"}</small>`,
       ].join("");
       dayButton.addEventListener("click", () => {
@@ -613,10 +755,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (response.ok && result.success) {
         const detail = result.data?.plan || result.data || {};
+        const normalizedTrip = { ...trip, ...normalizeTrip(detail) };
+        trips = trips.map((savedTrip) =>
+          savedTrip.tripId === normalizedTrip.tripId ? normalizedTrip : savedTrip,
+        );
         renderTripDetail(
-          { ...trip, ...normalizeTrip(detail) },
+          normalizedTrip,
           detail.items || result.data?.items || [],
         );
+        renderTrips();
       }
     } catch {
       // The list summary remains visible when the detail API is unavailable.

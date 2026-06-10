@@ -126,6 +126,14 @@
   transform: scale(1.04);
 }
 
+.saved-trip-card.completed {
+  border-color: rgba(16, 185, 129, 0.38);
+}
+
+.saved-trip-card.completed .saved-trip-status {
+  background: linear-gradient(135deg, #10b981 0%, #22c55e 100%);
+}
+
 .saved-trip-status {
   position: absolute;
   top: 0.85rem;
@@ -364,6 +372,11 @@
   transform: translateY(-3px);
 }
 
+.trip-day-card.completed {
+  border-color: rgba(16, 185, 129, 0.42);
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+}
+
 .trip-day-card span {
   color: var(--color-primary);
   font-size: 0.8rem;
@@ -374,6 +387,18 @@
 .trip-day-card strong {
   color: var(--color-text-main);
   font-size: 1.35rem;
+}
+
+.trip-day-card.completed span,
+.trip-day-card.completed strong {
+  color: #047857;
+}
+
+.trip-day-card em {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .trip-day-card small {
@@ -460,6 +485,11 @@
   transform: translateY(-1px);
 }
 
+.trip-place-card.completed {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: #f0fdf4;
+}
+
 .trip-place-media {
   width: 92px;
   height: 76px;
@@ -490,13 +520,30 @@
   font-weight: 800;
 }
 
-.trip-place-card-content > strong {
+.trip-place-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.trip-place-title-row > strong {
   display: block;
   overflow: hidden;
   margin-top: 0.25rem;
   font-size: 0.95rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.trip-place-completed-badge {
+  flex: 0 0 auto;
+  padding: 0.18rem 0.42rem;
+  border-radius: 999px;
+  background: #10b981;
+  color: #ffffff;
+  font-size: 0.66rem;
+  font-weight: 900;
 }
 
 .trip-place-detail {
@@ -527,6 +574,40 @@
   margin-top: 0.45rem;
   color: var(--color-primary) !important;
   font-weight: 700;
+}
+
+.trip-place-complete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  padding: 0.48rem 0.78rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.trip-place-complete-button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.trip-place-complete-button:disabled {
+  background: #10b981;
+  cursor: default;
+}
+
+.trip-place-complete-button svg {
+  width: 15px;
+  height: 15px;
 }
 
 .trip-day-map {
