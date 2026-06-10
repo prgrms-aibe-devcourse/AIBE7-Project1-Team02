@@ -213,9 +213,8 @@ function createScoreUrl({
     "/rest/v1/destination_mbti_scores",
     supabaseUrl,
   );
-  const destinationRelation =
-    provinces.length > 0 ? "destinations!inner" : "destinations";
 
+  // 이미지 필터를 위해 항상 destinations!inner(inner join) 사용
   scoreUrl.searchParams.set(
     "select",
     [
@@ -223,7 +222,7 @@ function createScoreUrl({
       "score",
       "reason",
       [
-        `${destinationRelation}(`,
+        "destinations!inner(",
         [
           "destination_id",
           "destination_name",
@@ -239,6 +238,9 @@ function createScoreUrl({
   );
   scoreUrl.searchParams.set("mbti_type", `eq.${mbtiType}`);
   scoreUrl.searchParams.set("order", "score.desc,destination_id.asc");
+
+  // 이미지가 없는 관광지는 DB 단에서 제외 — 페이지네이션 카운트도 정확해짐
+  scoreUrl.searchParams.set("destinations.image_url", "not.is.null");
 
   if (provinces.length > 0) {
     scoreUrl.searchParams.set(
@@ -447,9 +449,11 @@ async function getRecommendedDestinationFilters({
   );
   scoreUrl.searchParams.set(
     "select",
-    "destination_id,destinations!inner(province)",
+    "destination_id,destinations!inner(province,image_url)",
   );
   scoreUrl.searchParams.set("mbti_type", `eq.${mbtiType}`);
+  // 이미지가 없는 관광지는 필터 옵션에서도 제외
+  scoreUrl.searchParams.set("destinations.image_url", "not.is.null");
   scoreUrl.searchParams.set("limit", "1000");
 
   const scoreRows = await requestSupabaseJson(fetchImpl, scoreUrl, headers);
