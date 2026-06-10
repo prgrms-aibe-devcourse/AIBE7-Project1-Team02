@@ -463,7 +463,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         if (!post) return;
 
-        if (action === "detail") await openPostDetail(post.post_id);
+        if (action === "detail") openPostDetail(post.post_id, { initialData: post });
         if (action === "like") {
           await toggleLike(post);
           const btn = el.closest(".travel-card-like") || el;
@@ -565,6 +565,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function openPostDetail(postId, options = {}) {
     if (!postId) return;
+
+    if (options.initialData) {
+      state.detailPost = options.initialData;
+      renderDetailContent(options.initialData);
+      els.detailModal?.classList.add("active");
+      if (window.lucide) {
+        window.lucide.createIcons({ root: els.detailModal });
+      }
+      updateBodyScroll();
+
+      fetchPostById(postId).then(updatedPost => {
+        if (updatedPost && state.detailPost && String(state.detailPost.post_id) === String(postId)) {
+          state.detailPost = updatedPost;
+          renderDetailContent(updatedPost);
+          if (window.lucide) {
+            window.lucide.createIcons({ root: els.detailModal });
+          }
+        }
+      }).catch(console.error);
+      return;
+    }
+
     const post =
       options.refresh ||
       !state.detailPost ||
@@ -574,6 +596,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!post) return;
 
     state.detailPost = post;
+    renderDetailContent(post);
+    els.detailModal?.classList.add("active");
+    if (window.lucide) {
+      window.lucide.createIcons({ root: els.detailModal });
+    }
+    updateBodyScroll();
+  }
+
+  function renderDetailContent(post) {
     state.currentGalleryIndex = 0;
     if (els.detailTitle) els.detailTitle.textContent = post.title || "";
     const detailCategory = document.getElementById("detail-category");
@@ -623,12 +654,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const count = getLikeCount(post);
       els.detailLikeBtn.innerHTML = `${iconHtml} 좋아요 ${count > 0 ? count : ""}`;
     }
-
-    els.detailModal?.classList.add("active");
-    if (window.lucide) {
-      window.lucide.createIcons({ root: els.detailModal });
-    }
-    updateBodyScroll();
   }
 
   function updateGallerySlide() {
