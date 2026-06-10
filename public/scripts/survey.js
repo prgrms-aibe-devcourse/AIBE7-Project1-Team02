@@ -192,6 +192,37 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ── Show Result ────────────────────────────────────────────
+  /**
+   * 각 축의 score(0~100)를 50 기준으로 분기하여 양방향 바를 렌더링한다.
+   * - score > 50 : 왼쪽(A 성향) 방향으로 퍼짐. 바 너비 = (score - 50) * 2 %
+   * - score < 50 : 오른쪽(B 성향) 방향으로 퍼짐. 바 너비 = (50 - score) * 2 %
+   * - score = 50 : 중앙 고정, 바 너비 0
+   */
+  function renderCenterOutBar(barEl, rowEl, valEl, score, labelLeft, labelRight) {
+    // 방향 및 너비 계산
+    const deviation = score - 50; // 양수: 왼쪽, 음수: 오른쪽
+    const barWidth = Math.abs(deviation) * 2; // 0~100%
+
+    // 방향 클래스 초기화
+    barEl.classList.remove("direction-left", "direction-right", "direction-center");
+    rowEl.classList.remove("dominant-left", "dominant-right");
+
+    if (deviation > 0) {
+      barEl.classList.add("direction-left");
+      rowEl.classList.add("dominant-left");
+      valEl.textContent = `${labelLeft} ${Math.round(barWidth)}%`;
+    } else if (deviation < 0) {
+      barEl.classList.add("direction-right");
+      rowEl.classList.add("dominant-right");
+      valEl.textContent = `${labelRight} ${Math.round(barWidth)}%`;
+    } else {
+      barEl.classList.add("direction-center");
+      valEl.textContent = "균형";
+    }
+
+    barEl.style.width = `${barWidth}%`;
+  }
+
   function showResult({ scores, mbtiType }) {
     // Hide survey elements
     surveyHeader.style.display = "none";
@@ -206,20 +237,37 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("resultDesc").textContent =
       getTravelerDescription(mbtiType);
 
-    // Score bars (animated)
+    // Score bars (양방향, 중앙 기준 애니메이션)
     resultContainer.classList.add("visible");
 
     requestAnimationFrame(() => {
       setTimeout(() => {
-        document.getElementById("barEI").style.width = `${scores.ei}%`;
-        document.getElementById("barSN").style.width = `${scores.sn}%`;
-        document.getElementById("barTF").style.width = `${scores.tf}%`;
-        document.getElementById("barJP").style.width = `${scores.jp}%`;
-
-        document.getElementById("valEI").textContent = `${scores.ei}%`;
-        document.getElementById("valSN").textContent = `${scores.sn}%`;
-        document.getElementById("valTF").textContent = `${scores.tf}%`;
-        document.getElementById("valJP").textContent = `${scores.jp}%`;
+        // querySelectorAll로 모든 score-row를 가져와 인덱스로 접근
+        const scoreRows = document.querySelectorAll(".score-row");
+        renderCenterOutBar(
+          document.getElementById("barEI"),
+          scoreRows[0],
+          document.getElementById("valEI"),
+          scores.ei, "활동", "휴식"
+        );
+        renderCenterOutBar(
+          document.getElementById("barSN"),
+          scoreRows[1],
+          document.getElementById("valSN"),
+          scores.sn, "전통", "탐험"
+        );
+        renderCenterOutBar(
+          document.getElementById("barTF"),
+          scoreRows[2],
+          document.getElementById("valTF"),
+          scores.tf, "효율", "감성"
+        );
+        renderCenterOutBar(
+          document.getElementById("barJP"),
+          scoreRows[3],
+          document.getElementById("valJP"),
+          scores.jp, "계획", "즉흥"
+        );
       }, 100);
     });
   }
@@ -324,7 +372,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Next Step CTA ──────────────────────────────────────────
   nextStepBtn.addEventListener("click", () => {
     // TODO: 실제 키워드 선택 페이지로 이동
-    alert("성향 분석이 끝났습니다!");
     window.location.href = "../index.html";
   });
 
