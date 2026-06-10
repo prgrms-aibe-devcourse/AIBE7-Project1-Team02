@@ -69,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
     widgetUserName: document.getElementById("widget-user-name"),
     btnSidebarCreate: document.getElementById("btn-sidebar-create"),
     btnWritePost: document.getElementById("btn-write-post"),
+    btnWritePostTop: document.getElementById("btn-write-post-top"),
     postFullscreenEditor: document.getElementById("post-fullscreen-editor"),
     postModalClose: document.getElementById("post-modal-close"),
     postForm: document.getElementById("post-form"),
@@ -195,14 +196,16 @@ document.addEventListener("DOMContentLoaded", () => {
     els.logoutBtn?.addEventListener("click", handleLogout);
     els.btnSidebarCreate?.addEventListener("click", openPostModal);
     els.btnWritePost?.addEventListener("click", openPostModal);
+    els.btnWritePostTop?.addEventListener("click", openPostModal);
     els.mobileToggle?.addEventListener("click", () => toggleSidebar(true));
     els.sidebarOverlay?.addEventListener("click", () => toggleSidebar(false));
     els.postModalClose?.addEventListener("click", closePostModal);
     els.commentModalClose?.addEventListener("click", closeCommentModal);
     els.detailModalClose?.addEventListener("click", closeDetailModal);
-    els.postFullscreenEditor?.addEventListener("click", (e) => {
-      if (e.target === els.postFullscreenEditor) closePostModal();
-    });
+    // Background click disabled to prevent accidental post loss
+    // els.postFullscreenEditor?.addEventListener("click", (e) => {
+    //   if (e.target === els.postFullscreenEditor) closePostModal();
+    // });
     els.commentModal?.addEventListener("click", (e) => {
       if (e.target === els.commentModal) closeCommentModal();
     });
@@ -480,9 +483,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      const writeCardHtml = state.feedPage === 0 ? `
+        <article class="travel-card write-post-card" data-action="write" style="box-shadow: none; background: transparent; cursor: pointer;">
+          <div class="travel-card-image-wrap" style="aspect-ratio: 1 / 1; border-radius: 12px; background: rgba(59, 130, 246, 0.04); display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed rgba(59, 130, 246, 0.25); transition: all 0.2s ease;">
+            <i data-lucide="plus-circle" style="width: 42px; height: 42px; color: var(--color-primary); margin-bottom: 0.5rem; opacity: 0.8;"></i>
+            <span style="font-weight: 600; color: var(--color-primary);">새 글 작성하기</span>
+          </div>
+        </article>
+      ` : "";
+
       if (newPosts.length === 0 && state.feedPage === 0) {
-        els.feed.innerHTML =
-          '<div class="empty-feed">아직 게시글이 없습니다. 첫 게시글을 작성해보세요.</div>';
+        els.feed.innerHTML = writeCardHtml + '<div class="empty-feed" style="grid-column: 1 / -1;">아직 게시글이 없습니다. 첫 게시글을 작성해보세요.</div>';
+        if (window.lucide) window.lucide.createIcons({ root: els.feed });
+        bindCardEvents();
         return;
       }
 
@@ -527,7 +540,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .join("");
 
       if (state.feedPage === 0) {
-        els.feed.innerHTML = html;
+        els.feed.innerHTML = writeCardHtml + html;
       } else {
         els.feed.insertAdjacentHTML("beforeend", html);
       }
@@ -551,6 +564,12 @@ document.addEventListener("DOMContentLoaded", () => {
       el.addEventListener("click", async (e) => {
         e.stopPropagation();
         const action = el.dataset.action;
+
+        if (action === "write") {
+          openPostModal();
+          return;
+        }
+
         const postId = el.dataset.postId;
         const post = state.posts.find(
           (row) => String(row.post_id) === String(postId),
