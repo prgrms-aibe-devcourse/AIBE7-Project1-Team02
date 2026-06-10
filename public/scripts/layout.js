@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (breadcrumbIcon && breadcrumbText) {
       if (currentPath.includes("community")) {
         breadcrumbIcon.innerHTML = '<i data-lucide="users"></i>';
-        breadcrumbText.textContent = "Local Stories";
+        breadcrumbText.textContent = "커뮤니티";
       } else if (
         currentPath.includes("trip-create") ||
         currentPath.includes("destinations")

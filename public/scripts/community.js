@@ -458,25 +458,36 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (newPosts.length > 0) {
-        const userIds = [...new Set(newPosts.map((p) => p.user_id))].filter(
-          Boolean,
-        );
+        const userIds = [...new Set(newPosts.map((p) => p.user_id))].filter(Boolean);
         if (userIds.length > 0) {
           try {
-            const usersRes = await request(
-              `${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`,
-              { method: "GET" },
-            );
-            if (Array.isArray(usersRes)) {
-              const userMap = {};
-              usersRes.forEach((u) => (userMap[u.user_id] = u));
-              newPosts.forEach((p) => {
-                if (userMap[p.user_id]) {
-                  p.profile_image = userMap[p.user_id].profile_image;
-                  p.nickname = userMap[p.user_id].nickname || p.nickname;
+            const [usersRes, prefRes] = await Promise.all([
+              request(`${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`, { method: "GET" }).catch(() => []),
+              fetch(`${state.supabaseUrl}/rest/v1/user_preferences?user_id=in.(${userIds.join(",")})&select=user_id,mbti_type,badge`, {
+                method: "GET",
+                headers: {
+                  apikey: state.supabaseAnonKey,
+                  Authorization: `Bearer ${authToken}`
                 }
-              });
-            }
+              }).then(r => r.ok ? r.json() : []).catch(() => [])
+            ]);
+
+            const userMap = {};
+            if (Array.isArray(usersRes)) usersRes.forEach((u) => (userMap[u.user_id] = u));
+
+            const prefMap = {};
+            if (Array.isArray(prefRes)) prefRes.forEach((p) => (prefMap[p.user_id] = p));
+
+            newPosts.forEach((p) => {
+              if (userMap[p.user_id]) {
+                p.profile_image = userMap[p.user_id].profile_image;
+                p.nickname = userMap[p.user_id].nickname || p.nickname;
+              }
+              if (prefMap[p.user_id]) {
+                p.mbti_type = prefMap[p.user_id].mbti_type;
+                p.badge = prefMap[p.user_id].badge;
+              }
+            });
           } catch (e) {
             console.error("작성자 프로필 조회 실패:", e);
           }
@@ -529,9 +540,13 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="travel-card-info">
                 <div class="travel-card-title">${escapeHtml(post.title || "무제")}</div>
-                <div class="travel-card-meta">
-                  <img src="${escapeAttr(getAvatarUrl(post.profile_image, post.nickname || userNickname))}" alt="프로필" loading="lazy">
-                  <span>${escapeHtml(post.nickname || userNickname)}</span>
+                <div class="travel-card-meta" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                  <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <img src="${escapeAttr(getAvatarUrl(post.profile_image, post.nickname || userNickname))}" alt="프로필" loading="lazy">
+                    <span style="font-weight: 500;">${escapeHtml(post.nickname || userNickname)}</span>
+                    ${post.mbti_type ? `<img src="/assets/icons/mbti/${post.mbti_type.toLowerCase()}.png" alt="${escapeAttr(post.badge || '뱃지')}" title="${escapeAttr(post.badge || '뱃지')}" style="width: 1.2rem; height: 1.2rem; border-radius: 0; object-fit: contain;">` : ""}
+                  </div>
+                  <span style="font-size: 0.75rem; color: var(--color-text-muted);">${formatRelative(post.created_at)}</span>
                 </div>
               </div>
             </article>
