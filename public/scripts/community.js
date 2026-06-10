@@ -45,6 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
     isLoadingFeed: false,
     draftTags: [],
     currentGalleryIndex: 0,
+    likedCommentIds: [],
   };
 
   const els = {
@@ -148,6 +149,7 @@ document.addEventListener("DOMContentLoaded", () => {
       posts: `${state.supabaseUrl}/rest/v1/community_posts`,
       likes: `${state.supabaseUrl}/rest/v1/community_likes`,
       comments: `${state.supabaseUrl}/rest/v1/community_comments`,
+      commentLikes: `${state.supabaseUrl}/rest/v1/community_comment_likes`,
       shares: `${state.supabaseUrl}/rest/v1/community_shares`,
       tags: `${state.supabaseUrl}/rest/v1/community_tags_popular`,
       users: `${state.supabaseUrl}/rest/v1/users`,
@@ -199,6 +201,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     els.postForm?.addEventListener("submit", handlePostSubmit);
     els.commentForm?.addEventListener("submit", handleCommentSubmit);
+    els.commentTextarea?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        els.commentForm?.requestSubmit();
+      }
+    });
     els.postImageFile?.addEventListener("change", handlePostFilesSelected);
     els.postImageDropzone?.addEventListener("click", () =>
       els.postImageFile?.click(),
@@ -1021,10 +1029,12 @@ document.addEventListener("DOMContentLoaded", () => {
     state.editingCommentId = null;
     els.commentPostId.value = post.post_id;
     const commentSubtitle = document.getElementById("comment-post-subtitle");
-    if (commentSubtitle) commentSubtitle.textContent = post.title || "게시글 상세";
+    if (commentSubtitle)
+      commentSubtitle.textContent = post.title || "게시글 상세";
     els.commentTextarea.value = "";
     const userAvatar = document.getElementById("comment-user-avatar");
-    if (userAvatar) userAvatar.src = `https://ui-avatars.com/api/?name=${escapeAttr((userNickname || "사용자").charAt(0))}&background=random&color=fff`;
+    if (userAvatar)
+      userAvatar.src = `https://ui-avatars.com/api/?name=${escapeAttr((userNickname || "사용자").charAt(0))}&background=random&color=fff`;
     bringModalToFront(els.commentModal, 210);
     els.commentModal?.classList.add("active");
     loadComments(post.post_id).catch(console.error);
@@ -1044,23 +1054,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadComments(postId) {
     const rows = await request(
-      `${state.api.comments}?post_id=eq.${encodeURIComponent(postId)}&select=*&order=created_at.asc`,
+      `${state.api.comments}?post_id=eq.${encodeURIComponent(postId)}&select=*,likes:community_comment_likes(count)&order=created_at.asc`,
       {
         method: "GET",
       },
     );
     state.comments = Array.isArray(rows) ? rows : [];
+    
+    if (userId) {
+      try {
+        const likes = await request(
+          `${state.api.commentLikes}?user_id=eq.${encodeURIComponent(userId)}&select=comment_id`,
+          { method: "GET" }
+        );
+        state.likedCommentIds = Array.isArray(likes) ? likes.map(l => String(l.comment_id)) : [];
+      } catch (e) {
+        console.error("댓글 좋아요 정보 불러오기 실패:", e);
+      }
+    }
+    
     renderComments(state.comments, els.commentList);
   }
 
   function renderComments(rows, targetList = els.commentList) {
     if (!Array.isArray(rows) || !rows.length) {
-      targetList.innerHTML = '<div class="empty-feed">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</div>';
+      targetList.innerHTML =
+        '<div class="empty-feed">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</div>';
       return;
     }
 
     const threads = [];
-    rows.forEach(c => {
+    rows.forEach((c) => {
       let displayContent = c.content || "";
       let targetParentId = null;
       let isReply = false;
@@ -1070,22 +1094,27 @@ document.addEventListener("DOMContentLoaded", () => {
       if (replyMatch) {
         targetParentId = replyMatch[1];
         displayContent = displayContent.replace(replyMatch[0], "").trim();
-      } else if (displayContent.startsWith('@')) {
+      } else if (displayContent.startsWith("@")) {
         isReply = true;
       }
 
       // Try explicit target parent first
       if (targetParentId) {
-        const parent = threads.find(t => String(t.comment_id) === String(targetParentId));
+        const parent = threads.find(
+          (t) => String(t.comment_id) === String(targetParentId),
+        );
         if (parent) {
           parent.replies.push({ ...c, content: displayContent });
           return;
         }
-      } 
-      
+      }
+
       // Fallback for legacy comments or missing parent
       if (isReply && threads.length > 0) {
-        threads[threads.length - 1].replies.push({ ...c, content: displayContent });
+        threads[threads.length - 1].replies.push({
+          ...c,
+          content: displayContent,
+        });
         return;
       }
 
@@ -1093,21 +1122,29 @@ document.addEventListener("DOMContentLoaded", () => {
       threads.push({ ...c, content: displayContent, replies: [] });
     });
 
-    const generateCommentHtml = (comment, isReply = false, repliesHtml = "") => {
+    const generateCommentHtml = (
+      comment,
+      isReply = false,
+      repliesHtml = "",
+    ) => {
       const isMine = String(comment.user_id) === String(userId);
-      const isEditing = String(state.editingCommentId) === String(comment.comment_id);
+      const isEditing =
+        String(state.editingCommentId) === String(comment.comment_id);
       const authorName = comment.nickname || "사용자";
       const avatarUrl = `https://ui-avatars.com/api/?name=${escapeAttr(authorName.charAt(0))}&background=random&color=fff`;
-      
+      const isLiked = state.likedCommentIds.includes(String(comment.comment_id));
+      const likeCount = comment.likes && comment.likes.length > 0 ? comment.likes[0].count : 0;
+
       return `
         <article class="comment-item${isEditing ? " is-editing" : ""}${isReply ? " is-reply" : ""}" data-comment-id="${comment.comment_id}">
           <div class="comment-avatar-col">
             <img src="${avatarUrl}" alt="프로필" loading="lazy">
           </div>
           <div class="comment-content-col">
-            ${isEditing 
-              ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3" style="width:100%; resize:none; padding:0.5rem; border:1px solid #ddd; border-radius:4px; font-family:inherit; margin-bottom:0.5rem;">${escapeHtml(comment.content || "")}</textarea>`
-              : `
+            ${
+              isEditing
+                ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3" style="width:100%; resize:none; padding:0.5rem; border:1px solid #ddd; border-radius:4px; font-family:inherit; margin-bottom:0.5rem;">${escapeHtml(comment.content || "")}</textarea>`
+                : `
                 <div class="comment-text-block">
                   <span class="comment-author-name">${escapeHtml(authorName)}</span>
                   <span class="comment-text-body">${escapeHtml(comment.content || "").replace(/\n/g, "<br>")}</span>
@@ -1115,42 +1152,55 @@ document.addEventListener("DOMContentLoaded", () => {
               `
             }
             <div class="comment-actions-row">
-              ${isEditing 
-                ? `
+              ${
+                isEditing
+                  ? `
                 <button type="button" class="comment-opt-btn" data-comment-action="save" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px; margin-right: 0.5rem;"><i data-lucide="check"></i> 저장</button>
                 <button type="button" class="comment-opt-btn" data-comment-action="cancel" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px;"><i data-lucide="x"></i> 취소</button>
                 `
-                : `
+                  : `
                 <span class="comment-time">${formatRelative(comment.updated_at || comment.created_at)}</span>
+                <span class="comment-like-count" style="${likeCount > 0 ? '' : 'display:none;'} font-weight: 600; font-size: 0.8rem; color: #666; cursor: pointer;">좋아요 ${likeCount}개</span>
                 <span class="comment-reply-text" data-comment-action="reply" data-comment-id="${comment.comment_id}">답글 달기</span>
-                ${isMine ? `
-                <div class="comment-more-wrapper">
-                  <button type="button" class="comment-more-opts-btn" data-comment-action="toggle-opts" data-comment-id="${comment.comment_id}"><i data-lucide="more-horizontal"></i></button>
-                  <div class="comment-opts-dropdown" id="comment-opts-${comment.comment_id}">
-                    <button type="button" class="comment-opt-btn" data-comment-action="edit" data-comment-id="${comment.comment_id}"><i data-lucide="edit-2"></i> 수정</button>
-                    <button type="button" class="comment-opt-btn danger" data-comment-action="delete" data-comment-id="${comment.comment_id}"><i data-lucide="trash-2"></i> 삭제</button>
-                  </div>
-                </div>
-                ` : ""}
                 `
               }
             </div>
             ${repliesHtml}
           </div>
-          ${!isEditing ? `
-          <div class="comment-right-col">
-            <button type="button" class="comment-heart-btn" aria-label="좋아요" data-comment-action="like" data-comment-id="${comment.comment_id}"><i data-lucide="heart"></i></button>
+          ${
+            !isEditing
+              ? `
+          <div class="comment-right-col" style="display: flex; align-items: center; gap: 0.5rem;">
+            <button type="button" class="comment-heart-btn${isLiked ? " liked" : ""}" aria-label="좋아요" data-comment-action="like" data-comment-id="${comment.comment_id}"><i data-lucide="heart"></i></button>
+            ${
+              isMine
+                ? `
+            <div class="comment-more-wrapper">
+              <button type="button" class="comment-more-opts-btn" data-comment-action="toggle-opts" data-comment-id="${comment.comment_id}"><i data-lucide="more-horizontal"></i></button>
+              <div class="comment-opts-dropdown" id="comment-opts-${comment.comment_id}" style="right: 0; left: auto; transform: translateX(0);">
+                <button type="button" class="comment-opt-btn" data-comment-action="edit" data-comment-id="${comment.comment_id}"><i data-lucide="edit-2"></i> 수정</button>
+                <button type="button" class="comment-opt-btn danger" data-comment-action="delete" data-comment-id="${comment.comment_id}"><i data-lucide="trash-2"></i> 삭제</button>
+              </div>
+            </div>
+            `
+                : ""
+            }
           </div>
-          ` : ''}
+          `
+              : ""
+          }
         </article>
       `;
     };
 
-    targetList.innerHTML = threads.map(thread => {
-      let repliesWrapperHtml = "";
-      if (thread.replies.length > 0) {
-        const repliesHtmlInner = thread.replies.map(r => generateCommentHtml(r, true)).join("");
-        repliesWrapperHtml = `
+    targetList.innerHTML = threads
+      .map((thread) => {
+        let repliesWrapperHtml = "";
+        if (thread.replies.length > 0) {
+          const repliesHtmlInner = thread.replies
+            .map((r) => generateCommentHtml(r, true))
+            .join("");
+          repliesWrapperHtml = `
           <div class="comment-replies-wrapper">
             <button type="button" class="comment-replies-toggle" data-comment-action="toggle-replies" data-comment-id="${thread.comment_id}">
               <span class="line"></span> 답글 보기(${thread.replies.length}개)
@@ -1160,13 +1210,27 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
           </div>
         `;
-      }
-      return generateCommentHtml(thread, false, repliesWrapperHtml);
-    }).join("");
+        }
+        return generateCommentHtml(thread, false, repliesWrapperHtml);
+      })
+      .join("");
 
     if (window.lucide) {
       window.lucide.createIcons({ root: targetList });
     }
+
+    targetList.querySelectorAll(".comment-inline-edit").forEach((textarea) => {
+      textarea.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          const commentId = textarea.dataset.inlineEditInput;
+          const saveBtn = targetList.querySelector(
+            `button[data-comment-action="save"][data-comment-id="${commentId}"]`,
+          );
+          if (saveBtn) saveBtn.click();
+        }
+      });
+    });
 
     targetList.querySelectorAll("[data-comment-action]").forEach((button) => {
       button.addEventListener("click", async () => {
@@ -1193,7 +1257,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const isHidden = list.style.display === "none";
           list.style.display = isHidden ? "block" : "none";
           const count = list.children.length;
-          button.innerHTML = isHidden 
+          button.innerHTML = isHidden
             ? `<span class="line"></span> 답글 숨기기`
             : `<span class="line"></span> 답글 보기(${count}개)`;
           return;
@@ -1201,18 +1265,57 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (action === "like") {
           button.classList.toggle("liked");
+          const isLiked = button.classList.contains("liked");
+          const cIdStr = String(commentId);
+          
+          const countSpan = button.closest(".comment-item").querySelector(".comment-like-count");
+          let currentCount = countSpan ? (parseInt(countSpan.textContent.replace(/[^0-9]/g, '')) || 0) : 0;
+          
+          if (isLiked) {
+            currentCount++;
+            if (!state.likedCommentIds.includes(cIdStr)) state.likedCommentIds.push(cIdStr);
+            request(state.api.commentLikes, {
+              method: "POST",
+              headers: { Prefer: "return=minimal" },
+              body: JSON.stringify({ comment_id: commentId, user_id: userId }),
+            }).catch(e => console.error("댓글 좋아요 실패:", e));
+          } else {
+            currentCount--;
+            state.likedCommentIds = state.likedCommentIds.filter((id) => id !== cIdStr);
+            request(
+              `${state.api.commentLikes}?comment_id=eq.${encodeURIComponent(commentId)}&user_id=eq.${encodeURIComponent(userId)}`,
+              {
+                method: "DELETE",
+                headers: { Prefer: "return=minimal" },
+              }
+            ).catch(e => console.error("댓글 좋아요 취소 실패:", e));
+          }
+          
+          if (countSpan) {
+            if (currentCount > 0) {
+              countSpan.textContent = `좋아요 ${currentCount}개`;
+              countSpan.style.display = 'inline-block';
+            } else {
+              countSpan.textContent = `좋아요 0개`;
+              countSpan.style.display = 'none';
+            }
+          }
           return;
         }
 
         if (String(comment.user_id) !== String(userId)) return;
 
         if (action === "toggle-opts") {
-          const dropdown = targetList.querySelector(`#comment-opts-${commentId}`);
+          const dropdown = targetList.querySelector(
+            `#comment-opts-${commentId}`,
+          );
           if (dropdown) {
             dropdown.classList.toggle("active");
-            targetList.querySelectorAll(".comment-opts-dropdown.active").forEach(d => {
-              if (d !== dropdown) d.classList.remove("active");
-            });
+            targetList
+              .querySelectorAll(".comment-opts-dropdown.active")
+              .forEach((d) => {
+                if (d !== dropdown) d.classList.remove("active");
+              });
           }
           return;
         }
@@ -1335,7 +1438,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (state.replyingToCommentId) {
-      const parent = state.comments.find(c => String(c.comment_id) === String(state.replyingToCommentId));
+      const parent = state.comments.find(
+        (c) => String(c.comment_id) === String(state.replyingToCommentId),
+      );
       const expectedPrefix = parent ? `@${parent.nickname || "사용자"}` : "";
       if (content.startsWith(expectedPrefix) || content.startsWith("@")) {
         content += `\n<!--reply:${state.replyingToCommentId}-->`;

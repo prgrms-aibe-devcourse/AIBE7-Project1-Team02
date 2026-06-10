@@ -1753,3 +1753,14 @@ body,
   padding: 0.3rem 0.7rem;
   font-size: 0.8rem;
 }
+
+#comment-text,
+.comment-inline-edit {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#comment-text::-webkit-scrollbar,
+.comment-inline-edit::-webkit-scrollbar {
+  display: none;
+}

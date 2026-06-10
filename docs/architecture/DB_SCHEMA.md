@@ -38,6 +38,7 @@ MBTI 16유형 적합도 점수를 Supabase에 적재했다.
 | `destination_keywords` | TourAPI 원본을 규칙으로 가공한 여행지 키워드를 관리한다. |
 | `destination_mbti_scores` | 여행지별 MBTI 16유형 적합도 점수를 관리한다. |
 | `user_bookmarks` | 사용자가 저장한 여행지를 관리한다. |
+| `community_comment_likes` | 사용자의 커뮤니티 댓글 좋아요 정보를 관리한다. |
 
 ## users
 
@@ -393,6 +394,18 @@ FOR DELETE
 TO authenticated
 USING (auth.uid() = user_id);
 ```
+
+## community_comment_likes
+
+사용자의 커뮤니티 댓글 좋아요 정보를 저장한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `comment_id` | `bigint` | PK, FK, NOT NULL | 좋아요 대상 댓글 (`community_comments.comment_id` 참조, ON DELETE CASCADE) |
+| `user_id` | `uuid` | PK, FK, NOT NULL | 좋아요를 누른 사용자 (`auth.users.id` 참조, ON DELETE CASCADE) |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+
+복합 기본키(`comment_id`, `user_id`)를 사용하여 한 사용자가 한 댓글에 한 번만 좋아요를 누를 수 있도록 한다.
 
 ## 추후 확장 예정 테이블
 
