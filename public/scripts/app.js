@@ -187,6 +187,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return "";
   }
 
+  function hasDestinationImage(destination) {
+    return Boolean(getSafeImageUrl(destination?.imageUrl));
+  }
+
   function createNoImagePlaceholder(className) {
     const placeholder = document.createElement("div");
     placeholder.className = `${className} no-image-placeholder`;
@@ -618,8 +622,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const { mbtiType, recommendations } = result.data;
+      const visibleRecommendations = recommendations.filter(hasDestinationImage);
       const travelerTitle = getTravelerTitle(mbtiType);
-      recommendationTitle.textContent = `맞춤 여행지 TOP ${recommendations.length}`;
+      recommendationTitle.textContent =
+        `맞춤 여행지 TOP ${visibleRecommendations.length}`;
       recommendationSubtitle.replaceChildren(
         createTravelerBadge(travelerTitle, {
           variant: "subtle",
@@ -630,15 +636,15 @@ document.addEventListener("DOMContentLoaded", () => {
         ),
       );
 
-      if (recommendations.length === 0) {
+      if (visibleRecommendations.length === 0) {
         renderRecommendationState(
-          "해당 여행 성향의 관광지 점수가 아직 없습니다.",
+          "이미지가 등록된 추천 관광지가 아직 없습니다.",
           "성향 다시 분석하기",
         );
         return;
       }
 
-      initializeFeaturedRecommendations(recommendations);
+      initializeFeaturedRecommendations(visibleRecommendations);
     } catch (error) {
       recommendationTitle.textContent = "추천 결과를 불러오지 못했습니다";
       recommendationSubtitle.textContent = error.message;
