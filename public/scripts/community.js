@@ -1510,7 +1510,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ${
             !isEditing
               ? `
-          <div class="comment-right-col" style="display: flex; align-items: center; gap: 0.5rem;">
+          <div class="comment-right-col" style="display: flex; align-items: flex-start; gap: 0.5rem;">
             <button type="button" class="comment-heart-btn${isLiked ? " liked" : ""}" aria-label="좋아요" data-comment-action="like" data-comment-id="${comment.comment_id}"><i data-lucide="heart"></i></button>
             ${
               isMine
