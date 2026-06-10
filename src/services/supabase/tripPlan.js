@@ -37,6 +37,8 @@ function mapTripPlan(row) {
     region: row.region || "",
     totalDays: row.total_days || 1,
     aiSummary: row.ai_summary || "",
+    status: row.status || "planning",
+    completedAt: row.completed_at || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     itemCount: items.length,
@@ -52,6 +54,8 @@ function createTripPlanSelect() {
     "region",
     "total_days",
     "ai_summary",
+    "status",
+    "completed_at",
     "created_at",
     "updated_at",
     [
@@ -104,9 +108,28 @@ async function getTripPlanById(supabaseClient, planId) {
   return data ? mapTripPlan(data) : null;
 }
 
+async function updateTripPlanStatus(supabaseClient, planId, status) {
+  const updatePayload = {
+    status,
+    completed_at: status === "completed" ? new Date().toISOString() : null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabaseClient
+    .from("trip_plans")
+    .update(updatePayload)
+    .eq("plan_id", planId)
+    .select(createTripPlanSelect())
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? mapTripPlan(data) : null;
+}
+
 module.exports = {
   getTripPlanById,
   getTripPlans,
   mapTripPlan,
   mapTripPlanItem,
+  updateTripPlanStatus,
 };

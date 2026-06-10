@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let kakaoMapSdkPromise = null;
   let detailRenderId = 0;
   let dayRenderId = 0;
+  const syncingCompletedTripIds = new Set();
 
   if (!authToken) {
     window.location.replace("./login.html");
@@ -46,6 +47,8 @@ document.addEventListener("DOMContentLoaded", () => {
         "여행 계획",
       totalDays: row.totalDays ?? row.total_days ?? 1,
       aiSummary: row.aiSummary || row.ai_summary || "",
+      status: row.status || "planning",
+      completedAt: row.completedAt || row.completed_at || null,
       itineraryCount:
         row.itemCount ?? row.item_count ?? items.length ?? 0,
       itineraries: items,
@@ -90,6 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function isItemCompleted(trip, item, index = 0) {
+    if (trip.status === "completed") return true;
     return readTripCompletion(trip).has(getItemKey(item, index));
   }
 
@@ -100,6 +104,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function getCompletionStats(trip, items = trip.itineraries) {
+    if (trip.status === "completed") {
+      const totalCount = items.length;
+      return {
+        completedCount: totalCount,
+        totalCount,
+        isCompleted: totalCount > 0,
+      };
+    }
+
     const completedItemKeys = readTripCompletion(trip);
     const itemKeys = items.map((item, index) => getItemKey(item, index));
     const completedCount = itemKeys.filter((itemKey) =>
@@ -114,9 +127,69 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function getTripStatusText(trip) {
-    return getCompletionStats(trip).isCompleted
+    return trip.status === "completed" || getCompletionStats(trip).isCompleted
       ? "완료한 여행"
       : trip.travelerTitle || "여행 일정";
+  }
+
+  async function markTripCompletedInDatabase(trip) {
+    if (
+      !trip.tripId ||
+      trip.status === "completed" ||
+      syncingCompletedTripIds.has(String(trip.tripId))
+    ) {
+      return false;
+    }
+
+    try {
+      syncingCompletedTripIds.add(String(trip.tripId));
+      const response = await fetch(`/api/travel/${trip.tripId}/status`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "completed" }),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "일정 완료 저장 실패");
+      }
+
+      trip.status = "completed";
+      trip.completedAt =
+        result.data?.plan?.completedAt || new Date().toISOString();
+      trips = trips.map((savedTrip) =>
+        savedTrip.tripId === trip.tripId ? { ...savedTrip, ...trip } : savedTrip,
+      );
+      return true;
+    } catch (error) {
+      console.error("일정 완료 상태 저장 실패:", error);
+      return false;
+    } finally {
+      syncingCompletedTripIds.delete(String(trip.tripId));
+    }
+  }
+
+  async function syncLocalCompletedTripsToDatabase() {
+    const localCompletedTrips = trips.filter(
+      (trip) =>
+        trip.status !== "completed" &&
+        trip.tripId &&
+        getCompletionStats(trip).isCompleted,
+    );
+
+    if (localCompletedTrips.length === 0) return;
+
+    let hasUpdatedTrip = false;
+    for (const trip of localCompletedTrips) {
+      hasUpdatedTrip = (await markTripCompletedInDatabase(trip)) || hasUpdatedTrip;
+    }
+
+    if (hasUpdatedTrip) {
+      renderTrips();
+    }
   }
 
   function getPeriodText(trip) {
@@ -464,8 +537,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (itemId === selectedItemId) {
       content.appendChild(
-        createDestinationDetail(item, completed, () => {
+        createDestinationDetail(item, completed, async () => {
           markItemCompleted(trip, item, itemIndex);
+          if (getCompletionStats(trip).isCompleted) {
+            await markTripCompletedInDatabase(trip);
+          }
           onComplete();
         }),
       );
@@ -799,6 +875,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const rows = result.data?.plans || result.data || [];
       trips = Array.isArray(rows) ? rows.map(normalizeTrip) : [];
       renderTrips();
+      window.setTimeout(syncLocalCompletedTripsToDatabase, 0);
     } catch (error) {
       createState(
         "일정을 불러오지 못했습니다",
