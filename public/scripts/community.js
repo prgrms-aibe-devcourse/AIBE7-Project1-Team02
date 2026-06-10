@@ -19,7 +19,15 @@ document.addEventListener("DOMContentLoaded", () => {
     currentUser?.user_metadata?.name ||
     currentUser?.email?.split("@")?.[0] ||
     "사용자";
-  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(userNickname)}&background=random&color=fff&size=160`;
+  const userProfileImage = currentUser?.user_metadata?.profile_image || "";
+
+  function getAvatarUrl(profileImage, nickname) {
+    if (profileImage) return profileImage;
+    const name = nickname || "사용자";
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name.charAt(0))}&background=random&color=fff`;
+  }
+
+  const defaultAvatar = getAvatarUrl(userProfileImage, userNickname);
 
   const state = {
     supabaseUrl: "",
@@ -31,6 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
     detailPost: null,
     editingPostId: null,
     editingCommentId: null,
+    replyingToCommentId: null,
     activeCommentPostId: null,
     postImages: [],
     existingPostImages: [],
@@ -44,6 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
     isLoadingFeed: false,
     draftTags: [],
     currentGalleryIndex: 0,
+    likedCommentIds: [],
   };
 
   const els = {
@@ -147,6 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
       posts: `${state.supabaseUrl}/rest/v1/community_posts`,
       likes: `${state.supabaseUrl}/rest/v1/community_likes`,
       comments: `${state.supabaseUrl}/rest/v1/community_comments`,
+      commentLikes: `${state.supabaseUrl}/rest/v1/community_comment_likes`,
       shares: `${state.supabaseUrl}/rest/v1/community_shares`,
       tags: `${state.supabaseUrl}/rest/v1/community_tags_popular`,
       users: `${state.supabaseUrl}/rest/v1/users`,
@@ -198,6 +209,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     els.postForm?.addEventListener("submit", handlePostSubmit);
     els.commentForm?.addEventListener("submit", handleCommentSubmit);
+    els.commentTextarea?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        els.commentForm?.requestSubmit();
+      }
+    });
     els.postImageFile?.addEventListener("change", handlePostFilesSelected);
     els.postImageDropzone?.addEventListener("click", () =>
       els.postImageFile?.click(),
@@ -223,9 +240,35 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     els.detailLikeBtn?.addEventListener("click", async () => {
       if (!state.detailPost) return;
+      
+      // Optimistic UI update for modal button
+      const isLikedBefore = isPostLiked(state.detailPost.post_id);
+      const isLikedNow = !isLikedBefore;
+      els.detailLikeBtn.classList.toggle("liked", isLikedNow);
+      const iconHtml = isLikedNow 
+        ? `<i data-lucide="heart" style="fill: currentColor; color: #ef4444;"></i>` 
+        : `<i data-lucide="heart"></i>`;
+      let count = getLikeCount(state.detailPost);
+      if (isLikedNow && !isLikedBefore) count++;
+      else if (!isLikedNow && isLikedBefore) count = Math.max(0, count - 1);
+      
+      els.detailLikeBtn.innerHTML = `${iconHtml} 좋아요 ${count > 0 ? count : ""}`;
+      if (window.lucide) window.lucide.createIcons({ root: els.detailLikeBtn });
+
+      // Sync background feed card immediately
+      const feedBtn = document.querySelector(`[data-post-id="${CSS.escape(state.detailPost.post_id)}"][data-action="like"]`);
+      if (feedBtn) {
+        const wrapper = feedBtn.closest(".travel-card-like") || feedBtn;
+        if (isLikedNow) wrapper.classList.add("is-liked");
+        else wrapper.classList.remove("is-liked");
+      }
+
       await toggleLike(state.detailPost);
-      await openPostDetail(state.detailPost.post_id, { refresh: true });
-      await refreshCommunity();
+      
+      // Update local state without full refresh
+      state.detailPost.like_count = count;
+      const postInFeed = state.posts.find(p => String(p.post_id) === String(state.detailPost.post_id));
+      if (postInFeed) postInFeed.like_count = count;
     });
     els.detailCommentBtn?.addEventListener("click", () => {
       if (state.detailPost) openCommentModal(state.detailPost);
@@ -322,6 +365,27 @@ document.addEventListener("DOMContentLoaded", () => {
         state.hasMoreFeed = false;
       }
 
+      if (newPosts.length > 0) {
+        const userIds = [...new Set(newPosts.map((p) => p.user_id))].filter(Boolean);
+        if (userIds.length > 0) {
+          try {
+            const usersRes = await request(`${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`, { method: "GET" });
+            if (Array.isArray(usersRes)) {
+              const userMap = {};
+              usersRes.forEach((u) => (userMap[u.user_id] = u));
+              newPosts.forEach((p) => {
+                if (userMap[p.user_id]) {
+                  p.profile_image = userMap[p.user_id].profile_image;
+                  p.nickname = userMap[p.user_id].nickname || p.nickname;
+                }
+              });
+            }
+          } catch (e) {
+            console.error("작성자 프로필 조회 실패:", e);
+          }
+        }
+      }
+
       if (newPosts.length === 0 && state.feedPage === 0) {
         els.feed.innerHTML =
           '<div class="empty-feed">아직 게시글이 없습니다. 첫 게시글을 작성해보세요.</div>';
@@ -359,7 +423,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="travel-card-info">
                 <div class="travel-card-title">${escapeHtml(post.title || "무제")}</div>
                 <div class="travel-card-meta">
-                  <img src="https://ui-avatars.com/api/?name=${escapeAttr((post.nickname || userNickname).charAt(0))}&background=random&color=fff" alt="프로필" loading="lazy">
+                  <img src="${escapeAttr(getAvatarUrl(post.profile_image, post.nickname || userNickname))}" alt="프로필" loading="lazy">
                   <span>${escapeHtml(post.nickname || userNickname)}</span>
                 </div>
               </div>
@@ -512,12 +576,15 @@ document.addEventListener("DOMContentLoaded", () => {
     state.detailPost = post;
     state.currentGalleryIndex = 0;
     if (els.detailTitle) els.detailTitle.textContent = post.title || "";
+    const detailCategory = document.getElementById("detail-category");
+    if (detailCategory)
+      detailCategory.textContent = post.type || post.category || "게시글 상세";
     const authorName = post.nickname || userNickname;
     if (els.detailAuthor) els.detailAuthor.textContent = authorName;
-    
+
     const detailAuthorAvatar = document.getElementById("detail-author-avatar");
     if (detailAuthorAvatar) {
-      detailAuthorAvatar.src = `https://ui-avatars.com/api/?name=${escapeAttr(authorName.charAt(0))}&background=random&color=fff`;
+      detailAuthorAvatar.src = getAvatarUrl(post.profile_image, authorName);
       detailAuthorAvatar.hidden = false;
     }
 
@@ -526,10 +593,7 @@ document.addEventListener("DOMContentLoaded", () => {
         post.updated_at || post.created_at,
       );
     if (els.detailSummary)
-      els.detailSummary.innerHTML = renderBody(
-        post.summary || "",
-        [],
-      );
+      els.detailSummary.innerHTML = renderBody(post.summary || "", []);
     if (els.detailTags) {
       const tags = splitTags(post.tags);
       els.detailTags.innerHTML = tags
@@ -550,19 +614,33 @@ document.addEventListener("DOMContentLoaded", () => {
     if (els.detailDeleteBtn)
       els.detailDeleteBtn.style.display = isMine ? "inline-flex" : "none";
 
+    if (els.detailLikeBtn) {
+      const isLiked = isPostLiked(post.post_id);
+      els.detailLikeBtn.classList.toggle("liked", isLiked);
+      const iconHtml = isLiked 
+        ? `<i data-lucide="heart" style="fill: currentColor; color: #ef4444;"></i>` 
+        : `<i data-lucide="heart"></i>`;
+      const count = getLikeCount(post);
+      els.detailLikeBtn.innerHTML = `${iconHtml} 좋아요 ${count > 0 ? count : ""}`;
+    }
+
     els.detailModal?.classList.add("active");
-    await loadComments(post.post_id);
-    renderComments(state.comments, els.detailCommentList);
+    if (window.lucide) {
+      window.lucide.createIcons({ root: els.detailModal });
+    }
+    updateBodyScroll();
   }
 
   function updateGallerySlide() {
     if (!els.detailGallery) return;
     const total = els.detailGallery.children.length;
     els.detailGallery.style.transform = `translateX(-${state.currentGalleryIndex * 100}%)`;
-    
-    if (els.galleryPrevBtn) els.galleryPrevBtn.hidden = state.currentGalleryIndex === 0;
-    if (els.galleryNextBtn) els.galleryNextBtn.hidden = state.currentGalleryIndex === total - 1;
-    
+
+    if (els.galleryPrevBtn)
+      els.galleryPrevBtn.hidden = state.currentGalleryIndex === 0;
+    if (els.galleryNextBtn)
+      els.galleryNextBtn.hidden = state.currentGalleryIndex === total - 1;
+
     if (els.galleryPagination) {
       Array.from(els.galleryPagination.children).forEach((dot, index) => {
         dot.classList.toggle("active", index === state.currentGalleryIndex);
@@ -592,13 +670,19 @@ document.addEventListener("DOMContentLoaded", () => {
       `,
       )
       .join("");
-      
+
     if (els.galleryPagination) {
-      els.galleryPagination.innerHTML = images.length > 1 
-        ? images.map((_, i) => `<button type="button" class="gallery-dot" data-index="${i}" aria-label="Go to slide ${i + 1}"></button>`).join("") 
-        : "";
-        
-      els.galleryPagination.querySelectorAll(".gallery-dot").forEach(dot => {
+      els.galleryPagination.innerHTML =
+        images.length > 1
+          ? images
+              .map(
+                (_, i) =>
+                  `<button type="button" class="gallery-dot" data-index="${i}" aria-label="Go to slide ${i + 1}"></button>`,
+              )
+              .join("")
+          : "";
+
+      els.galleryPagination.querySelectorAll(".gallery-dot").forEach((dot) => {
         dot.addEventListener("click", (e) => {
           e.stopPropagation();
           state.currentGalleryIndex = parseInt(dot.dataset.index, 10);
@@ -606,14 +690,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
     }
-    
+
     updateGallerySlide();
 
     els.detailGallery
       .querySelectorAll("[data-gallery-src]")
       .forEach((button) => {
         button.addEventListener("click", () => {
-
           openImageLightbox(button.dataset.gallerySrc || "");
         });
       });
@@ -622,6 +705,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeDetailModal() {
     els.detailModal?.classList.remove("active");
     state.detailPost = null;
+    updateBodyScroll();
   }
 
   function openImageLightbox(src) {
@@ -629,6 +713,7 @@ document.addEventListener("DOMContentLoaded", () => {
     els.imageLightboxImg.src = src;
     els.imageLightbox.classList.add("active");
     els.imageLightbox.setAttribute("aria-hidden", "false");
+    updateBodyScroll();
   }
 
   function closeImageLightbox() {
@@ -636,6 +721,7 @@ document.addEventListener("DOMContentLoaded", () => {
     els.imageLightbox.classList.remove("active");
     els.imageLightbox.setAttribute("aria-hidden", "true");
     els.imageLightboxImg.src = "";
+    updateBodyScroll();
   }
 
   async function fetchPostById(postId) {
@@ -643,7 +729,19 @@ document.addEventListener("DOMContentLoaded", () => {
       `${state.api.feed}?post_id=eq.${encodeURIComponent(postId)}&select=*`,
       { method: "GET" },
     );
-    return Array.isArray(rows) ? rows[0] : null;
+    const post = Array.isArray(rows) ? rows[0] : null;
+    if (post && post.user_id) {
+      try {
+        const usersRes = await request(`${state.api.users}?user_id=eq.${encodeURIComponent(post.user_id)}&select=profile_image,nickname`, { method: "GET" });
+        if (Array.isArray(usersRes) && usersRes[0]) {
+          post.profile_image = usersRes[0].profile_image;
+          post.nickname = usersRes[0].nickname || post.nickname;
+        }
+      } catch (e) {
+        console.error("작성자 프로필 조회 실패:", e);
+      }
+    }
+    return post;
   }
 
   async function toggleLike(post) {
@@ -746,6 +844,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setPostSubmitLabel("게시글 등록");
     bringModalToFront(els.postModal, 210);
     els.postModal?.classList.add("active");
+    updateBodyScroll();
   }
 
   function openPostEditModal(post) {
@@ -767,10 +866,12 @@ document.addEventListener("DOMContentLoaded", () => {
     renderPostImageGallery();
     bringModalToFront(els.postModal, 210);
     els.postModal?.classList.add("active");
+    updateBodyScroll();
   }
 
   function closePostModal() {
     els.postModal?.classList.remove("active");
+    updateBodyScroll();
   }
 
   function clearPostImagePreview() {
@@ -1011,10 +1112,16 @@ document.addEventListener("DOMContentLoaded", () => {
     state.activeCommentPostId = post.post_id;
     state.editingCommentId = null;
     els.commentPostId.value = post.post_id;
-    els.commentPostTitle.textContent = post.title || "댓글";
+    const commentSubtitle = document.getElementById("comment-post-subtitle");
+    if (commentSubtitle)
+      commentSubtitle.textContent = post.title || "게시글 상세";
     els.commentTextarea.value = "";
+    const userAvatar = document.getElementById("comment-user-avatar");
+    if (userAvatar)
+      userAvatar.src = getAvatarUrl(userProfileImage, userNickname);
     bringModalToFront(els.commentModal, 210);
     els.commentModal?.classList.add("active");
+    updateBodyScroll();
     loadComments(post.post_id).catch(console.error);
   }
 
@@ -1022,6 +1129,8 @@ document.addEventListener("DOMContentLoaded", () => {
     els.commentModal?.classList.remove("active");
     state.activeCommentPostId = null;
     state.editingCommentId = null;
+    state.replyingToCommentId = null;
+    updateBodyScroll();
   }
 
   function bringModalToFront(modal, zIndex) {
@@ -1029,75 +1138,211 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.style.zIndex = String(zIndex);
   }
 
+  function updateBodyScroll() {
+    const hasActiveModal = document.querySelectorAll(".modal-overlay.active").length > 0;
+    document.body.classList.toggle("modal-open", hasActiveModal);
+  }
+
   async function loadComments(postId) {
     const rows = await request(
-      `${state.api.comments}?post_id=eq.${encodeURIComponent(postId)}&select=*&order=created_at.asc`,
+      `${state.api.comments}?post_id=eq.${encodeURIComponent(postId)}&select=*,likes:community_comment_likes(count)&order=created_at.asc`,
       {
         method: "GET",
       },
     );
     state.comments = Array.isArray(rows) ? rows : [];
-    renderComments(state.comments, els.commentList);
-    if (
-      els.detailCommentList &&
-      els.detailModal?.classList.contains("active")
-    ) {
-      renderComments(state.comments, els.detailCommentList);
+    
+    if (state.comments.length > 0) {
+      const userIds = [...new Set(state.comments.map((c) => c.user_id))].filter(Boolean);
+      if (userIds.length > 0) {
+        try {
+          const usersRes = await request(`${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`, { method: "GET" });
+          if (Array.isArray(usersRes)) {
+            const userMap = {};
+            usersRes.forEach((u) => (userMap[u.user_id] = u));
+            state.comments.forEach((c) => {
+              if (userMap[c.user_id]) {
+                c.profile_image = userMap[c.user_id].profile_image;
+                c.nickname = userMap[c.user_id].nickname || c.nickname;
+              }
+            });
+          }
+        } catch (e) {
+          console.error("댓글 작성자 프로필 조회 실패:", e);
+        }
+      }
     }
+    
+    if (userId) {
+      try {
+        const likes = await request(
+          `${state.api.commentLikes}?user_id=eq.${encodeURIComponent(userId)}&select=comment_id`,
+          { method: "GET" }
+        );
+        state.likedCommentIds = Array.isArray(likes) ? likes.map(l => String(l.comment_id)) : [];
+      } catch (e) {
+        console.error("댓글 좋아요 정보 불러오기 실패:", e);
+      }
+    }
+    
+    renderComments(state.comments, els.commentList);
   }
 
   function renderComments(rows, targetList = els.commentList) {
-    targetList.innerHTML =
-      Array.isArray(rows) && rows.length
-        ? rows
-            .map((comment) => {
-              const isMine = String(comment.user_id) === String(userId);
-              const isEditing =
-                String(state.editingCommentId) === String(comment.comment_id);
-              const isEdited =
-                comment.updated_at &&
-                comment.created_at &&
-                comment.updated_at !== comment.created_at;
-              return `
-              <article class="comment-item${isEditing ? " is-editing" : ""}" data-comment-id="${comment.comment_id}">
-                <div class="comment-item-head">
-                  <div class="comment-author-block">
-                    <strong class="comment-author">${escapeHtml(comment.nickname || "사용자")}</strong>
-                    ${isEdited ? '<span class="comment-edited-badge">수정됨</span>' : ""}
-                  </div>
-                  <span class="comment-timestamp">${formatRelative(comment.updated_at || comment.created_at)}</span>
+    if (!Array.isArray(rows) || !rows.length) {
+      targetList.innerHTML =
+        '<div class="empty-feed">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</div>';
+      return;
+    }
+
+    const threads = [];
+    rows.forEach((c) => {
+      let displayContent = c.content || "";
+      let targetParentId = null;
+      let isReply = false;
+
+      // Extract hidden reply metadata if exists
+      const replyMatch = displayContent.match(/<!--reply:([^>]+)-->$/);
+      if (replyMatch) {
+        targetParentId = replyMatch[1];
+        displayContent = displayContent.replace(replyMatch[0], "").trim();
+      } else if (displayContent.startsWith("@")) {
+        isReply = true;
+      }
+
+      // Try explicit target parent first
+      if (targetParentId) {
+        const parent = threads.find(
+          (t) => String(t.comment_id) === String(targetParentId),
+        );
+        if (parent) {
+          parent.replies.push({ ...c, content: displayContent });
+          return;
+        }
+      }
+
+      // Fallback for legacy comments or missing parent
+      if (isReply && threads.length > 0) {
+        threads[threads.length - 1].replies.push({
+          ...c,
+          content: displayContent,
+        });
+        return;
+      }
+
+      // Otherwise it's a main thread
+      threads.push({ ...c, content: displayContent, replies: [] });
+    });
+
+    const generateCommentHtml = (
+      comment,
+      isReply = false,
+      repliesHtml = "",
+    ) => {
+      const isMine = String(comment.user_id) === String(userId);
+      const isEditing =
+        String(state.editingCommentId) === String(comment.comment_id);
+      const authorName = comment.nickname || "사용자";
+      const avatarUrl = getAvatarUrl(comment.profile_image, authorName);
+      const isLiked = state.likedCommentIds.includes(String(comment.comment_id));
+      const likeCount = comment.likes && comment.likes.length > 0 ? comment.likes[0].count : 0;
+
+      return `
+        <article class="comment-item${isEditing ? " is-editing" : ""}${isReply ? " is-reply" : ""}" data-comment-id="${comment.comment_id}">
+          <div class="comment-avatar-col">
+            <img src="${avatarUrl}" alt="프로필" loading="lazy">
+          </div>
+          <div class="comment-content-col">
+            ${
+              isEditing
+                ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3" style="width:100%; resize:none; padding:0.5rem; border:1px solid #ddd; border-radius:4px; font-family:inherit; margin-bottom:0.5rem;">${escapeHtml(comment.content || "")}</textarea>`
+                : `
+                <div class="comment-text-block">
+                  <span class="comment-author-name">${escapeHtml(authorName)}</span>
+                  <span class="comment-text-body">${escapeHtml(comment.content || "").replace(/\n/g, "<br>")}</span>
                 </div>
-                <div class="comment-body">
-                  ${
-                    isEditing
-                      ? `<textarea class="comment-inline-edit" data-inline-edit-input="${comment.comment_id}" rows="3">${escapeHtml(comment.content || "")}</textarea>`
-                      : `<p class="comment-content">${escapeHtml(comment.content || "")}</p>`
-                  }
-                </div>
-                ${
-                  isMine
-                    ? `
-                  <div class="comment-item-actions">
-                    ${
-                      isEditing
-                        ? `
-                      <button type="button" class="action-link" data-comment-action="save" data-comment-id="${comment.comment_id}">저장</button>
-                      <button type="button" class="action-link" data-comment-action="cancel" data-comment-id="${comment.comment_id}">취소</button>
-                    `
-                        : `
-                      <button type="button" class="action-link" data-comment-action="edit" data-comment-id="${comment.comment_id}">수정</button>
-                      <button type="button" class="action-link danger" data-comment-action="delete" data-comment-id="${comment.comment_id}">삭제</button>
-                    `
-                    }
-                  </div>
+              `
+            }
+            <div class="comment-actions-row">
+              ${
+                isEditing
+                  ? `
+                <button type="button" class="comment-opt-btn" data-comment-action="save" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px; margin-right: 0.5rem;"><i data-lucide="check"></i> 저장</button>
+                <button type="button" class="comment-opt-btn" data-comment-action="cancel" data-comment-id="${comment.comment_id}" style="width:auto; padding:0.3rem 0.6rem; border:1px solid #ddd; border-radius:99px;"><i data-lucide="x"></i> 취소</button>
                 `
-                    : ""
-                }
-              </article>
-            `;
-            })
-            .join("")
-        : '<div class="empty-feed">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</div>';
+                  : `
+                <span class="comment-time">${formatRelative(comment.updated_at || comment.created_at)}</span>
+                <span class="comment-like-count" style="${likeCount > 0 ? '' : 'display:none;'} font-weight: 600; font-size: 0.8rem; color: #666; cursor: pointer;">좋아요 ${likeCount}개</span>
+                <span class="comment-reply-text" data-comment-action="reply" data-comment-id="${comment.comment_id}">답글 달기</span>
+                `
+              }
+            </div>
+            ${repliesHtml}
+          </div>
+          ${
+            !isEditing
+              ? `
+          <div class="comment-right-col" style="display: flex; align-items: center; gap: 0.5rem;">
+            <button type="button" class="comment-heart-btn${isLiked ? " liked" : ""}" aria-label="좋아요" data-comment-action="like" data-comment-id="${comment.comment_id}"><i data-lucide="heart"></i></button>
+            ${
+              isMine
+                ? `
+            <div class="comment-more-wrapper">
+              <button type="button" class="comment-more-opts-btn" data-comment-action="toggle-opts" data-comment-id="${comment.comment_id}"><i data-lucide="more-horizontal"></i></button>
+              <div class="comment-opts-dropdown" id="comment-opts-${comment.comment_id}" style="right: 0; left: auto; transform: translateX(0);">
+                <button type="button" class="comment-opt-btn" data-comment-action="edit" data-comment-id="${comment.comment_id}"><i data-lucide="edit-2"></i> 수정</button>
+                <button type="button" class="comment-opt-btn danger" data-comment-action="delete" data-comment-id="${comment.comment_id}"><i data-lucide="trash-2"></i> 삭제</button>
+              </div>
+            </div>
+            `
+                : ""
+            }
+          </div>
+          `
+              : ""
+          }
+        </article>
+      `;
+    };
+
+    targetList.innerHTML = threads
+      .map((thread) => {
+        let repliesWrapperHtml = "";
+        if (thread.replies.length > 0) {
+          const repliesHtmlInner = thread.replies
+            .map((r) => generateCommentHtml(r, true))
+            .join("");
+          repliesWrapperHtml = `
+          <div class="comment-replies-wrapper">
+            <button type="button" class="comment-replies-toggle" data-comment-action="toggle-replies" data-comment-id="${thread.comment_id}">
+              <span class="line"></span> 답글 보기(${thread.replies.length}개)
+            </button>
+            <div class="comment-replies-list" style="display: none;">
+              ${repliesHtmlInner}
+            </div>
+          </div>
+        `;
+        }
+        return generateCommentHtml(thread, false, repliesWrapperHtml);
+      })
+      .join("");
+
+    if (window.lucide) {
+      window.lucide.createIcons({ root: targetList });
+    }
+
+    targetList.querySelectorAll(".comment-inline-edit").forEach((textarea) => {
+      textarea.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          const commentId = textarea.dataset.inlineEditInput;
+          const saveBtn = targetList.querySelector(
+            `button[data-comment-action="save"][data-comment-id="${commentId}"]`,
+          );
+          if (saveBtn) saveBtn.click();
+        }
+      });
+    });
 
     targetList.querySelectorAll("[data-comment-action]").forEach((button) => {
       button.addEventListener("click", async () => {
@@ -1106,7 +1351,86 @@ document.addEventListener("DOMContentLoaded", () => {
         const comment = state.comments.find(
           (row) => String(row.comment_id) === String(commentId),
         );
-        if (!comment || String(comment.user_id) !== String(userId)) return;
+        if (!comment) return;
+
+        if (action === "reply") {
+          state.replyingToCommentId = comment.comment_id;
+          const input = document.getElementById("comment-text");
+          if (input) {
+            input.value = `@${comment.nickname || "사용자"} `;
+            input.focus();
+          }
+          return;
+        }
+
+        if (action === "toggle-replies") {
+          const wrapper = button.closest(".comment-replies-wrapper");
+          const list = wrapper.querySelector(".comment-replies-list");
+          const isHidden = list.style.display === "none";
+          list.style.display = isHidden ? "block" : "none";
+          const count = list.children.length;
+          button.innerHTML = isHidden
+            ? `<span class="line"></span> 답글 숨기기`
+            : `<span class="line"></span> 답글 보기(${count}개)`;
+          return;
+        }
+
+        if (action === "like") {
+          button.classList.toggle("liked");
+          const isLiked = button.classList.contains("liked");
+          const cIdStr = String(commentId);
+          
+          const countSpan = button.closest(".comment-item").querySelector(".comment-like-count");
+          let currentCount = countSpan ? (parseInt(countSpan.textContent.replace(/[^0-9]/g, '')) || 0) : 0;
+          
+          if (isLiked) {
+            currentCount++;
+            if (!state.likedCommentIds.includes(cIdStr)) state.likedCommentIds.push(cIdStr);
+            request(state.api.commentLikes, {
+              method: "POST",
+              headers: { Prefer: "return=minimal" },
+              body: JSON.stringify({ comment_id: commentId, user_id: userId }),
+            }).catch(e => console.error("댓글 좋아요 실패:", e));
+          } else {
+            currentCount--;
+            state.likedCommentIds = state.likedCommentIds.filter((id) => id !== cIdStr);
+            request(
+              `${state.api.commentLikes}?comment_id=eq.${encodeURIComponent(commentId)}&user_id=eq.${encodeURIComponent(userId)}`,
+              {
+                method: "DELETE",
+                headers: { Prefer: "return=minimal" },
+              }
+            ).catch(e => console.error("댓글 좋아요 취소 실패:", e));
+          }
+          
+          if (countSpan) {
+            if (currentCount > 0) {
+              countSpan.textContent = `좋아요 ${currentCount}개`;
+              countSpan.style.display = 'inline-block';
+            } else {
+              countSpan.textContent = `좋아요 0개`;
+              countSpan.style.display = 'none';
+            }
+          }
+          return;
+        }
+
+        if (String(comment.user_id) !== String(userId)) return;
+
+        if (action === "toggle-opts") {
+          const dropdown = targetList.querySelector(
+            `#comment-opts-${commentId}`,
+          );
+          if (dropdown) {
+            dropdown.classList.toggle("active");
+            targetList
+              .querySelectorAll(".comment-opts-dropdown.active")
+              .forEach((d) => {
+                if (d !== dropdown) d.classList.remove("active");
+              });
+          }
+          return;
+        }
 
         if (action === "edit") {
           state.editingCommentId = comment.comment_id;
@@ -1219,10 +1543,22 @@ document.addEventListener("DOMContentLoaded", () => {
   async function handleCommentSubmit(e) {
     e.preventDefault();
     const postId = state.activeCommentPostId || els.commentPostId.value;
-    const content = els.commentTextarea.value.trim();
+    let content = els.commentTextarea.value.trim();
     if (!postId || !content) {
       alert("댓글 내용을 입력해주세요.");
       return;
+    }
+
+    if (state.replyingToCommentId) {
+      const parent = state.comments.find(
+        (c) => String(c.comment_id) === String(state.replyingToCommentId),
+      );
+      const expectedPrefix = parent ? `@${parent.nickname || "사용자"}` : "";
+      if (content.startsWith(expectedPrefix) || content.startsWith("@")) {
+        content += `\n<!--reply:${state.replyingToCommentId}-->`;
+      } else {
+        state.replyingToCommentId = null;
+      }
     }
 
     if (state.editingCommentId) {
@@ -1260,6 +1596,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }),
     });
     els.commentTextarea.value = "";
+    state.replyingToCommentId = null;
     await loadComments(postId);
     await refreshCommunity();
   }
