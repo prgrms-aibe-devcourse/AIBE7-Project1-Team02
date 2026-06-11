@@ -1121,6 +1121,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         type: "success",
         title: "일정 저장 완료",
       });
+      window.location.replace("/pages/saved-trips.html");
     } catch (error) {
       console.error(error);
       await window.PackingUI.alert(
