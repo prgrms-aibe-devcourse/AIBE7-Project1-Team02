@@ -246,7 +246,7 @@ function showSocialProfileAlert(message) {
 
 async function getUserProfile(accessToken, userId) {
   const url = new URL(getSupabaseRestUrl('/rest/v1/users'));
-  url.searchParams.set('select', 'nickname,profile_image');
+  url.searchParams.set('select', 'nickname,profile_image,profile_completed');
   url.searchParams.set('user_id', `eq.${userId}`);
   url.searchParams.set('limit', '1');
 
@@ -264,7 +264,9 @@ async function getUserProfile(accessToken, userId) {
 }
 
 async function openSocialProfileModal(context) {
-  const profile = await getUserProfile(context.accessToken, context.userId);
+  const profile =
+    context.profile ||
+    (await getUserProfile(context.accessToken, context.userId));
   const metadata = context.userData?.user_metadata || {};
   const nickname =
     profile?.nickname ||
@@ -334,6 +336,7 @@ async function saveSocialProfile({
       body: JSON.stringify({
         nickname,
         profile_image: profileImage,
+        profile_completed: true,
       }),
     },
   );
@@ -441,12 +444,18 @@ async function redirectAfterAgreementCheck(
   redirectPath,
   userData,
 ) {
+  const isSocialLogin = requiresSocialProfileSetup(userData);
+  const profile = isSocialLogin
+    ? await getUserProfile(accessToken, userId)
+    : null;
   const context = {
     accessToken,
     userId,
     redirectPath,
     userData,
-    requiresProfileSetup: requiresSocialProfileSetup(userData),
+    profile,
+    requiresProfileSetup:
+      isSocialLogin && profile?.profile_completed !== true,
   };
   const agreement = await getUserAgreement(accessToken, userId);
   if (agreement) {
