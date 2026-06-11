@@ -213,6 +213,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 마이페이지 버튼 이벤트 핸들러 연동
   const btnSettings = document.getElementById("btn-settings");
+
+  // 소셜 로그인 유저는 비밀번호 변경 기능 숨기기
+  const isSocialLogin = user?.app_metadata?.provider && user.app_metadata.provider !== 'email';
+  if (isSocialLogin) {
+    const btnChangePassword = document.getElementById("btn-change-password");
+    if (btnChangePassword && btnChangePassword.parentElement) {
+      btnChangePassword.parentElement.style.display = 'none';
+      const passwordTitle = btnChangePassword.parentElement.previousElementSibling;
+      if (passwordTitle && passwordTitle.tagName === 'H3') {
+        passwordTitle.style.display = 'none';
+      }
+    }
+  }
   const btnEditProfile = document.getElementById("btn-edit-profile");
   const btnNewTrip = document.getElementById("btn-new-trip");
   const btnViewRec = document.getElementById("btn-view-recommendations");
