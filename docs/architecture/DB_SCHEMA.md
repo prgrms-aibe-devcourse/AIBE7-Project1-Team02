@@ -6,9 +6,10 @@
 
 MVP 단계에서는 대한민국 국내 여행만 지원한다. 국내 관광지 정보는 한국관광공사 TourAPI 4.0 활용을 우선 고려하며, 해외 여행 지원에 필요한 국가 정보와 다국가 행정구역 구조는 추후 확장한다.
 
-현재 MVP 스키마는 아래 9개 테이블을 사용한다.
+현재 MVP 스키마는 아래 테이블을 사용한다.
 
 - `users`
+- `user_agreements`
 - `user_preferences`
 - `travel_mbti_results`
 - `destinations`
@@ -30,6 +31,7 @@ MBTI 16유형 적합도 점수를 Supabase에 적재했다.
 | 테이블 | 역할 |
 | --- | --- |
 | `users` | 회원의 계정 및 기본 프로필 정보를 관리한다. |
+| `user_agreements` | 회원의 필수 이용약관 및 개인정보 처리방침 동의 이력을 관리한다. |
 | `user_preferences` | 여행 템포, 음식 선호도, 성향 칭호 등 사용자별 여행 성향을 관리한다. |
 | `travel_mbti_results` | 여행 MBTI 진단 결과와 축별 세부 점수를 관리한다. |
 | `destinations` | 추천과 일정 생성에 사용하는 도시 및 여행지 기본 정보를 관리한다. |
@@ -55,6 +57,21 @@ MBTI 16유형 적합도 점수를 Supabase에 적재했다.
 | `updated_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 수정 일시 |
 
 Supabase Auth 회원가입 완료 시 트리거를 통해 `public.users` 프로필을 자동 생성한다.
+
+## user_agreements
+
+회원가입 및 로그인 후 필수 약관 동의 이력을 사용자별로 저장한다. 마케팅 수신 동의는 사용하지 않는다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `user_id` | `uuid` | PK, FK, NOT NULL | `auth.users.id`와 동일한 사용자 식별자 |
+| `terms_agreed_at` | `timestamptz` | NOT NULL | 이용약관 동의 일시 |
+| `privacy_agreed_at` | `timestamptz` | NOT NULL | 개인정보 처리방침 동의 일시 |
+| `terms_version` | `varchar(30)` | NOT NULL | 동의한 이용약관 버전 |
+| `privacy_version` | `varchar(30)` | NOT NULL | 동의한 개인정보 처리방침 버전 |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+
+RLS는 로그인한 사용자가 본인의 `user_id = auth.uid()` 행만 조회 및 생성할 수 있도록 설정한다.
 
 ## user_preferences
 

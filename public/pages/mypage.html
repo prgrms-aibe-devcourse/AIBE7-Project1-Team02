@@ -125,7 +125,11 @@
 
             <!-- Stats (Small) -->
             <div class="bento-item bento-small widget-stats mypage-stats-bento">
-              <div class="stat-number" style="color: var(--color-primary)">
+              <div
+                class="stat-number"
+                id="completed-trip-count"
+                style="color: var(--color-primary)"
+              >
                 0
               </div>
               <div class="stat-label" style="color: var(--color-primary-hover)">
@@ -134,10 +138,14 @@
               <div class="stat-bar" style="background: rgba(59, 130, 246, 0.2)">
                 <div
                   class="stat-bar-fill"
+                  id="completed-trip-stat-fill"
                   style="width: 0%; background: var(--color-primary)"
                 ></div>
               </div>
-              <span class="stat-sub" style="color: var(--color-text-muted)"
+              <span
+                class="stat-sub"
+                id="completed-trip-stat-sub"
+                style="color: var(--color-text-muted)"
                 >첫 여행을 기록해 보세요!</span
               >
             </div>
@@ -158,6 +166,7 @@
               </div>
               <div
                 class="trip-list-wrapper"
+                id="completed-trip-list"
                 style="
                   justify-content: center;
                   align-items: center;
@@ -436,24 +445,66 @@
           <ul class="settings-info-list">
             <li><strong>버전</strong> <span>1.0.0 (MVP)</span></li>
             <li>
-              <a
-                href="#"
+              <span>이용약관</span>
+              <button
                 id="link-tos"
-                style="color: var(--color-primary); text-decoration: underline"
-                >이용약관</a
+                class="settings-policy-button"
+                type="button"
+                data-policy-view="terms"
               >
+                보기
+              </button>
             </li>
             <li>
-              <a
-                href="#"
+              <span>개인정보처리방침</span>
+              <button
                 id="link-privacy"
-                style="color: var(--color-primary); text-decoration: underline"
-                >개인정보처리방침</a
+                class="settings-policy-button"
+                type="button"
+                data-policy-view="privacy"
               >
+                보기
+              </button>
             </li>
           </ul>
         </div>
       </div>
+    </div>
+
+    <div id="policy-modal" class="modal-overlay policy-modal-overlay">
+      <section
+        class="modal-content policy-modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="policy-modal-title"
+      >
+        <button
+          id="policy-modal-close-btn"
+          class="modal-close-btn"
+          type="button"
+          aria-label="약관 닫기"
+        >
+          <i data-lucide="x"></i>
+        </button>
+        <div class="policy-modal-header">
+          <span class="policy-modal-chip">PACKING POLICY</span>
+          <div class="policy-modal-title-row">
+            <span class="policy-modal-icon">
+              <i data-lucide="file-text"></i>
+            </span>
+            <div>
+              <h2 id="policy-modal-title">서비스 약관</h2>
+              <p>서비스 이용에 필요한 내용을 한눈에 확인할 수 있어요.</p>
+            </div>
+          </div>
+        </div>
+        <div id="policy-modal-body" class="policy-modal-body"></div>
+        <div class="policy-modal-footer">
+          <button id="policy-modal-confirm-btn" class="btn-primary" type="button">
+            확인
+          </button>
+        </div>
+      </section>
     </div>
 
     <script src="../scripts/traveler-profile.js"></script>

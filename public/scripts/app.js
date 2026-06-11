@@ -653,18 +653,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!document.getElementById("recommendation-list")) return;
 
     if (!authToken) {
-      recommendationTitle.textContent = "국내 여행지를 먼저 둘러보세요";
-      recommendationSubtitle.textContent =
-        "로그인하면 여행 성향 기반 TOP 10 추천을 볼 수 있습니다.";
-      recommendationLink.href =
-        "./pages/login.html?redirect=/pages/survey.html";
-      recommendationLink.textContent = "로그인하고 추천 받기";
-      if (recommendationPosition) recommendationPosition.textContent = "게스트";
-      recommendationPrev.disabled = true;
-      recommendationNext.disabled = true;
-      renderRecommendationState(
-        "추천 여행지 전체 목록은 로그인 없이도 둘러볼 수 있습니다.",
-      );
+      window.location.replace("./pages/destinations.html");
       return;
     }
 
