@@ -16,6 +16,22 @@ const router = express.Router();
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const itineraryCache = new Map();
+const DESTINATION_SELECT_FIELDS =
+  "destination_id,destination_name,province,city,description,category,image_url,address,latitude,longitude";
+const KEYWORD_ALIASES = {
+  오션뷰: ["오션뷰", "자연", "인생샷"],
+  로컬맛집: ["로컬맛집", "맛집", "로컬푸드"],
+  미술관투어: ["미술관투어", "문화", "전시"],
+  역사유적: ["역사유적", "역사", "전통문화"],
+  산악트레킹: ["산악트레킹", "자연", "산책"],
+  나이트라이프: ["나이트라이프", "야경명소", "활기"],
+  웰니스휴양: ["웰니스휴양", "힐링", "숙박", "휴식"],
+  나만의숨은명소: ["나만의숨은명소", "명소"],
+  럭셔리스테이: ["럭셔리스테이", "숙박", "휴식"],
+  배낭여행: ["배낭여행", "계획여행", "여행코스"],
+  인생샷: ["인생샷", "오션뷰", "야경명소"],
+  로컬축제: ["로컬축제", "축제", "활기"],
+};
 
 function getBearerToken(request) {
   const authorization = request.headers.authorization || "";
@@ -96,6 +112,7 @@ router.post("/plan", async (request, response) => {
   const endDate = String(request.body?.endDate || "").trim();
   const region = String(request.body?.region || "").trim();
   const memo = String(request.body?.memo || "").trim();
+  const keywords = normalizeRequestedKeywords(request.body?.keywords);
   const peopleCount = Number.parseInt(request.body?.peopleCount, 10);
   const destinationId = Number.parseInt(request.body?.destinationId, 10);
   const userId = request.body.userId;
@@ -134,10 +151,7 @@ router.post("/plan", async (request, response) => {
     const userMbti = await fetchUserMbti({ supabaseUrl, headers, userId });
 
     const destinationUrl = new URL("/rest/v1/destinations", supabaseUrl);
-    destinationUrl.searchParams.set(
-      "select",
-      "destination_id,destination_name,province,city,description,category,image_url,address,latitude,longitude",
-    );
+    destinationUrl.searchParams.set("select", DESTINATION_SELECT_FIELDS);
     destinationUrl.searchParams.set("order", "destination_id.asc");
     if (region) {
       destinationUrl.searchParams.set("province", `ilike.%${region}%`);
@@ -151,13 +165,30 @@ router.post("/plan", async (request, response) => {
       destinationUrl,
       headers,
     );
-    const destinations = Array.isArray(destinationRows) ? destinationRows : [];
+    const keywordRows = keywords.length
+      ? await fetchDestinationKeywordRows({
+          supabaseUrl,
+          headers,
+          keywords,
+        })
+      : [];
+    const keywordScoreMap = createKeywordScoreMap(keywordRows);
+    const destinations = mergeDestinations(
+      Array.isArray(destinationRows) ? destinationRows : [],
+      !region && keywordRows.length
+        ? await fetchDestinationsByIds({
+            supabaseUrl,
+            headers,
+            destinationIds: [...keywordScoreMap.keys()],
+          })
+        : [],
+    ).filter(hasDestinationImage);
     if (!destinations.length) {
       return response.status(404).json({
         success: false,
         message: region
-          ? "해당 지역에 맞는 여행지를 찾지 못했습니다."
-          : "여행지 데이터가 없습니다.",
+          ? "해당 지역에서 이미지가 있는 여행지를 찾지 못했습니다."
+          : "일정 생성에 사용할 이미지가 있는 여행지 데이터가 없습니다.",
       });
     }
 
@@ -179,8 +210,9 @@ router.post("/plan", async (request, response) => {
       .map((destination) => ({
         ...destination,
         mbti_score: scoreMap.get(String(destination.destination_id)) || 0,
+        keyword_score: keywordScoreMap.get(String(destination.destination_id)) || 0,
       }))
-      .sort((left, right) => right.mbti_score - left.mbti_score);
+      .sort(compareRankedDestinations);
 
     const selectedDestination = Number.isFinite(destinationId)
       ? rankedDestinations.find(
@@ -209,7 +241,7 @@ router.post("/plan", async (request, response) => {
         .filter(Boolean)
         .join(" ");
     const selectedKeyword =
-      selectedDestination?.destination_name || activeRegion || "";
+      selectedDestination?.destination_name || keywords[0] || activeRegion || "";
     const travelDays = Math.max(
       1,
       Math.floor(
@@ -297,6 +329,7 @@ router.post("/plan", async (request, response) => {
 종료일: ${endDate}
 인원수: ${peopleCount}
 지역: ${activeRegion || finalDestination?.address || "전체"}
+선택 키워드: ${keywords.length ? keywords.join(", ") : "없음"}
 메모: ${memo || "없음"}
 여행 일수: ${travelDays}
 하루 일정 수: ${itemsPerDay}
@@ -336,6 +369,7 @@ ${rankedDestinations
       `  name: ${destination.destination_name}`,
       `  region: ${regionText}`,
       `  category: ${destination.category || ""}`,
+      `  keyword_score: ${destination.keyword_score ?? 0}`,
       `  mbti_score: ${destination.mbti_score ?? 0}`,
       `  description: ${String(destination.description || "").slice(0, 180)}`,
     ].join("\n");
@@ -749,9 +783,12 @@ function buildFallbackDays({
             destination?.description ||
             formatDestinationDetails(destination, `관광지 ${itemIndex + 1}`),
           image_url: destination?.image_url || "",
+          imageUrl: destination?.image_url || "",
           province: destination?.province || "",
           city: destination?.city || "",
           address: destination?.address || "",
+          latitude: destination?.latitude || null,
+          longitude: destination?.longitude || null,
           destinationId: destination?.destination_id || null,
           destinationName:
             destination?.destination_name || `관광지 ${itemIndex + 1}`,
@@ -853,6 +890,92 @@ async function requestSupabaseJson(fetchImpl, url, headers) {
     throw error;
   }
   return body;
+}
+
+function normalizeRequestedKeywords(rawKeywords) {
+  const values = Array.isArray(rawKeywords)
+    ? rawKeywords
+    : String(rawKeywords || "")
+        .split(",")
+        .map((value) => value.trim());
+
+  const expandedKeywords = [];
+  values.forEach((value) => {
+    const normalizedKeyword = String(value || "")
+      .replace(/^#/, "")
+      .trim();
+    if (!normalizedKeyword) return;
+
+    const aliases = KEYWORD_ALIASES[normalizedKeyword] || [normalizedKeyword];
+    expandedKeywords.push(...aliases);
+  });
+
+  return [...new Set(expandedKeywords.filter(Boolean))];
+}
+
+function createInFilter(values) {
+  return `in.(${values.map((value) => JSON.stringify(value)).join(",")})`;
+}
+
+async function fetchDestinationKeywordRows({ supabaseUrl, headers, keywords }) {
+  if (!keywords.length) return [];
+
+  const keywordUrl = new URL("/rest/v1/destination_keywords", supabaseUrl);
+  keywordUrl.searchParams.set("select", "destination_id,keyword");
+  keywordUrl.searchParams.set("keyword", createInFilter(keywords));
+  keywordUrl.searchParams.set("limit", "1000");
+
+  const rows = await requestSupabaseJson(fetch, keywordUrl, headers);
+  return Array.isArray(rows) ? rows : [];
+}
+
+function createKeywordScoreMap(keywordRows) {
+  return keywordRows.reduce((scoreMap, row) => {
+    const destinationId = String(row?.destination_id || "");
+    if (!destinationId) return scoreMap;
+
+    scoreMap.set(destinationId, (scoreMap.get(destinationId) || 0) + 1);
+    return scoreMap;
+  }, new Map());
+}
+
+function hasDestinationImage(destination) {
+  return Boolean(String(destination?.image_url || "").trim());
+}
+
+async function fetchDestinationsByIds({ supabaseUrl, headers, destinationIds }) {
+  const ids = [...new Set(destinationIds.map((id) => Number(id)).filter(Number.isFinite))];
+  if (!ids.length) return [];
+
+  const destinationUrl = new URL("/rest/v1/destinations", supabaseUrl);
+  destinationUrl.searchParams.set("select", DESTINATION_SELECT_FIELDS);
+  destinationUrl.searchParams.set("destination_id", `in.(${ids.join(",")})`);
+  destinationUrl.searchParams.set("limit", String(ids.length));
+
+  const rows = await requestSupabaseJson(fetch, destinationUrl, headers);
+  return Array.isArray(rows) ? rows : [];
+}
+
+function mergeDestinations(...destinationLists) {
+  const mergedDestinationMap = new Map();
+  destinationLists.flat().forEach((destination) => {
+    if (!destination?.destination_id) return;
+    mergedDestinationMap.set(String(destination.destination_id), {
+      ...mergedDestinationMap.get(String(destination.destination_id)),
+      ...destination,
+    });
+  });
+  return [...mergedDestinationMap.values()];
+}
+
+function compareRankedDestinations(left, right) {
+  const keywordDiff = (right.keyword_score || 0) - (left.keyword_score || 0);
+  if (keywordDiff !== 0) return keywordDiff;
+
+  const mbtiDiff = (right.mbti_score || 0) - (left.mbti_score || 0);
+  if (mbtiDiff !== 0) return mbtiDiff;
+
+  return Number(left.destination_id || 0) - Number(right.destination_id || 0);
 }
 
 async function fetchDestinationScores({ supabaseUrl, headers, mbtiType }) {
