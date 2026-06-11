@@ -276,7 +276,8 @@ function setHeaderTravelerBadge(element, badgeText, mbtiType) {
   
   if (visibleBadge) {
     if (mbtiType) {
-      element.innerHTML = `<img src="/assets/icons/mbti/${mbtiType}.png" alt="badge icon" style="width: 1.1rem; height: 1.1rem; vertical-align: middle; display: inline-block;"><span>${escapeHtml(visibleBadge)}</span>`;
+      const lowerMbti = mbtiType.toLowerCase();
+      element.innerHTML = `<img src="/assets/icons/mbti/${lowerMbti}.png" alt="badge icon" style="width: 1.1rem; height: 1.1rem; vertical-align: middle; display: inline-block;"><span>${escapeHtml(visibleBadge)}</span>`;
     } else {
       element.innerHTML = `<span>${escapeHtml(visibleBadge)}</span>`;
     }
