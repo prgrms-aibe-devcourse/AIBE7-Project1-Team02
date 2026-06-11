@@ -1098,27 +1098,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function saveTripToSupabase(savePayload) {
     await loadConfig();
-    debugger;
-    /*
-    const existingPlanId =
-      savePayload?.itinerary?.trip?.planId ||
-      savePayload?.itinerary?.trip?.plan_id;
-    if (existingPlanId) {
-      const days = Array.isArray(savePayload?.itinerary?.plan?.days)
-        ? savePayload.itinerary.plan.days
-        : [];
-      return {
-        tripPlan: savePayload.itinerary.trip,
-        planCount: days.length,
-        itemCount: days.reduce(
-          (count, day) =>
-            count + (Array.isArray(day?.items) ? day.items.length : 0),
-          0,
-        ),
-      };
-    }
-    */
-    debugger;
+
     const authToken = sessionStorage.getItem("sb_access_token") || "";
     const supabaseHeaders = {
       apikey: SUPABASE_ANON_KEY,
@@ -1243,76 +1223,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         totalItemCount += 1;
       }
     }
-    /*
-    for (const [dayIndex, day] of days.entries()) {
-      // trip_plans 테이블: 날짜 단위 계획 1행 INSERT
-      const planInsertPayload = {
-        trip_id: savedTrip.trip_id,
-        day_number: Number.isFinite(Number(day?.day))
-          ? Number(day.day)
-          : dayIndex + 1,
-        date: day?.date || null,
-        day_label: day?.dayLabel || `DAY ${dayIndex + 1}`,
-      };
 
-      const planResponse = await fetch(`${SUPABASE_URL}/rest/v1/trip_plans`, {
-        method: "POST",
-        headers: supabaseHeaders,
-        body: JSON.stringify(planInsertPayload),
-      });
-
-      const planResponseData = await planResponse.json().catch(() => ({}));
-      if (!planResponse.ok) {
-        throw new Error(
-          planResponseData?.message ||
-            `DAY ${dayIndex + 1} 일정 저장에 실패했습니다.`,
-        );
-      }
-
-      const savedPlan = Array.isArray(planResponseData)
-        ? planResponseData[0] || null
-        : planResponseData;
-
-      if (!savedPlan?.plan_id) {
-        throw new Error(`DAY ${dayIndex + 1} 일정 ID를 확인할 수 없습니다.`);
-      }
-
-      // trip_plan_items 테이블: 해당 날짜의 항목들 일괄 INSERT
-      const items = Array.isArray(day?.items) ? day.items : [];
-      if (items.length > 0) {
-        const itemRows = items.map((item, itemIndex) => ({
-          plan_id: savedPlan.plan_id,
-          trip_id: savedTrip.trip_id,
-          place_name:
-            item?.placeName ||
-            item?.title ||
-            item?.location_name ||
-            `일정 ${itemIndex + 1}`,
-          description: item?.description || null,
-          sort_order: itemIndex,
-        }));
-
-        const itemsResponse = await fetch(
-          `${SUPABASE_URL}/rest/v1/trip_plan_items`,
-          {
-            method: "POST",
-            headers: supabaseHeaders,
-            body: JSON.stringify(itemRows),
-          },
-        );
-
-        const itemsResponseData = await itemsResponse.json().catch(() => ({}));
-        if (!itemsResponse.ok) {
-          throw new Error(
-            itemsResponseData?.message ||
-              `DAY ${dayIndex + 1} 세부 항목 저장에 실패했습니다.`,
-          );
-        }
-
-        totalItemCount += items.length;
-      }
-    }
-*/
     return {
       trip: savedTrip,
       planCount: days.length,
