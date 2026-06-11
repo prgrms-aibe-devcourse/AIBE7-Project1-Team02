@@ -201,14 +201,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Show Result ────────────────────────────────────────────
   /**
    * 각 축의 score(0~100)를 50 기준으로 분기하여 양방향 바를 렌더링한다.
-   * - score > 50 : 왼쪽(A 성향) 방향으로 퍼짐. 바 너비 = (score - 50) * 2 %
-   * - score < 50 : 오른쪽(B 성향) 방향으로 퍼짐. 바 너비 = (50 - score) * 2 %
+   * - score > 50 : 왼쪽(A 성향) 방향으로 퍼짐
+   * - score < 50 : 오른쪽(B 성향) 방향으로 퍼짐
    * - score = 50 : 중앙 고정, 바 너비 0
    */
   function renderCenterOutBar(barEl, rowEl, valEl, score, labelLeft, labelRight) {
     // 방향 및 너비 계산
     const deviation = score - 50; // 양수: 왼쪽, 음수: 오른쪽
-    const barWidth = Math.abs(deviation) * 2; // 0~100%
+    const dominancePercent = Math.abs(deviation) * 2; // 표시용 0~100%
+    // 중앙 기준 양방향 바는 한쪽에 트랙의 50%만 사용할 수 있다.
+    const trackWidthPercent = dominancePercent / 2;
 
     // 방향 클래스 초기화
     barEl.classList.remove("direction-left", "direction-right", "direction-center");
@@ -217,17 +219,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (deviation > 0) {
       barEl.classList.add("direction-left");
       rowEl.classList.add("dominant-left");
-      valEl.textContent = `${labelLeft} ${Math.round(barWidth)}%`;
+      valEl.textContent = `${labelLeft} ${Math.round(dominancePercent)}%`;
     } else if (deviation < 0) {
       barEl.classList.add("direction-right");
       rowEl.classList.add("dominant-right");
-      valEl.textContent = `${labelRight} ${Math.round(barWidth)}%`;
+      valEl.textContent = `${labelRight} ${Math.round(dominancePercent)}%`;
     } else {
       barEl.classList.add("direction-center");
       valEl.textContent = "균형";
     }
 
-    barEl.style.width = `${barWidth}%`;
+    barEl.style.width = `${trackWidthPercent}%`;
   }
 
   function showResult({ scores, mbtiType }) {
