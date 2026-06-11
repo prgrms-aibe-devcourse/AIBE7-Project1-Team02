@@ -2084,7 +2084,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!badgeText) return "";
     let html = `<span class="traveler-title-badge traveler-title-badge-subtle traveler-title-badge-compact">`;
     if (mbtiType) {
-      html += `<img src="/assets/icons/mbti/${mbtiType}.png" alt="badge" style="width: 1.1rem; height: 1.1rem; vertical-align: middle; display: inline-block; border-radius: 0;">`;
+      const lowerMbti = mbtiType.toLowerCase();
+      html += `<img src="/assets/icons/mbti/${lowerMbti}.png" alt="badge" style="width: 1.1rem; height: 1.1rem; vertical-align: middle; display: inline-block; border-radius: 0;">`;
     }
     html += `<span>${escapeHtml(badgeText)}</span></span>`;
     return html;
