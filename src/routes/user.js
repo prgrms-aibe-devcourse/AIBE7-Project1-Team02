@@ -1,5 +1,9 @@
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
+const {
+  deleteUserAccountData,
+  deleteUserActivityData,
+} = require("../services/supabase/userData");
 
 const router = express.Router();
 
@@ -310,16 +314,15 @@ router.delete("/bookmarks/:destinationId", async (req, res) => {
   }
 });
 
-// POST /api/user/account - Delete user account
+// DELETE /api/user/account - Delete user account
 router.delete("/account", async (req, res) => {
   try {
     const user = await getAuthenticatedUser(req, res);
     if (!user) return;
     if (!requireSupabaseAdmin(res)) return;
 
-    // Optional: We can delete user preferences, trips, etc. here or let Supabase triggers handle it.
-    // Given the MVP constraints, we will just delete the auth user, and if cascading isn't set up, we should manually clean up public.users.
-    // Assuming public.users is set to ON DELETE CASCADE with auth.users, deleting auth.users will clean up public.users and everything related.
+    // Auth 사용자 삭제를 막는 FK가 남지 않도록 사용자 소유 데이터를 먼저 정리한다.
+    await deleteUserAccountData(supabaseAdmin, user.id);
 
     const { error: deleteError } =
       await supabaseAdmin.auth.admin.deleteUser(user.id);
@@ -328,7 +331,8 @@ router.delete("/account", async (req, res) => {
       console.error("Auth user delete error:", deleteError);
       return res.status(500).json({
         success: false,
-        message: "회원 탈퇴 처리 중 오류가 발생했습니다.",
+        message:
+          "계정 정보 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.",
       });
     }
 
@@ -337,7 +341,10 @@ router.delete("/account", async (req, res) => {
       message: "회원 탈퇴가 완료되었습니다.",
     });
   } catch (error) {
-    console.error("Account deletion failed:", error);
+    console.error(
+      `Account deletion failed${error.userDataStep ? ` (${error.userDataStep})` : ""}:`,
+      error,
+    );
     res.status(500).json({
       success: false,
       message: "서버 오류로 회원 탈퇴를 진행할 수 없습니다.",
@@ -352,32 +359,17 @@ router.delete("/data", async (req, res) => {
     if (!user) return;
     if (!requireSupabaseAdmin(res)) return;
 
-    // RLS 무시하고 관리자 권한으로 삭제
-    const [prefRes, mbtiRes, tripsRes, bookmarkRes] = await Promise.all([
-      supabaseAdmin.from("user_preferences").delete().eq("user_id", user.id),
-      supabaseAdmin.from("travel_mbti_results").delete().eq("user_id", user.id),
-      supabaseAdmin.from("trips").delete().eq("user_id", user.id),
-      supabaseAdmin.from("user_bookmarks").delete().eq("user_id", user.id),
-    ]);
-
-    if (prefRes.error) console.error("pref delete error:", prefRes.error);
-    if (mbtiRes.error) console.error("mbti delete error:", mbtiRes.error);
-    if (tripsRes.error) console.error("trips delete error:", tripsRes.error);
-    if (bookmarkRes.error) console.error("bookmark delete error:", bookmarkRes.error);
-
-    if (prefRes.error || mbtiRes.error || tripsRes.error || bookmarkRes.error) {
-      return res.status(500).json({
-        success: false,
-        message: "일부 데이터를 초기화하는 데 실패했습니다.",
-      });
-    }
+    await deleteUserActivityData(supabaseAdmin, user.id);
 
     return res.json({
       success: true,
       message: "데이터 초기화가 완료되었습니다.",
     });
   } catch (error) {
-    console.error("Data reset failed:", error);
+    console.error(
+      `Data reset failed${error.userDataStep ? ` (${error.userDataStep})` : ""}:`,
+      error,
+    );
     res.status(500).json({
       success: false,
       message: "서버 오류로 데이터를 초기화할 수 없습니다.",

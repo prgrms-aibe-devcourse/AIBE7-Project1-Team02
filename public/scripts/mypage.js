@@ -412,13 +412,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.location.reload();
       } catch (err) {
         console.error(err);
-        await window.PackingUI.alert(
-          "데이터 초기화 중 오류가 발생했습니다.",
-          {
-            type: "error",
-            title: "데이터 초기화 실패",
-          },
-        );
+        await window.PackingUI.alert(err.message, {
+          type: "error",
+          title: "데이터 초기화 실패",
+        });
       } finally {
         btnResetData.disabled = false;
         btnResetData.textContent = "내 데이터 모두 지우기";
