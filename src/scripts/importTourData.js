@@ -6,12 +6,32 @@ const {
   processTourDestination,
 } = require("../services/destination-processing");
 
-const CONTENT_TYPE_IDS = [
-  12, // 관광지
-  14, // 문화시설
-  28, // 레포츠
-  39, // 음식점
+const CONTENT_TYPE_TARGETS = [
+  { contentTypeId: 12, name: "관광지", targetCount: 40 },
+  { contentTypeId: 14, name: "문화시설", targetCount: 25 },
+  { contentTypeId: 39, name: "음식점", targetCount: 25 },
+  { contentTypeId: 28, name: "레포츠", targetCount: 10 },
 ];
+
+const TOUR_REGIONS = {
+  강원특별자치도: "32",
+  경기도: "31",
+  경상남도: "36",
+  경상북도: "35",
+  광주광역시: "5",
+  대구광역시: "4",
+  대전광역시: "3",
+  부산광역시: "6",
+  서울특별시: "1",
+  세종특별자치시: "8",
+  울산광역시: "7",
+  인천광역시: "2",
+  전라남도: "38",
+  전북특별자치도: "37",
+  제주특별자치도: "39",
+  충청남도: "34",
+  충청북도: "33",
+};
 
 const PAGE_SIZE = getPositiveInteger(process.env.TOUR_API_PAGE_SIZE, 50);
 const MAX_PAGES = getPositiveInteger(process.env.TOUR_API_MAX_PAGES, 3);
@@ -21,6 +41,7 @@ const REQUEST_DELAY_MS = getPositiveInteger(
 );
 const DB_BATCH_SIZE = 500;
 const MAX_REQUEST_ATTEMPTS = 3;
+const TOUR_API_QUOTA_STATUS = 429;
 
 let supabaseClient = null;
 
@@ -48,6 +69,16 @@ function sleep(milliseconds) {
   });
 }
 
+function createTourApiError(message, statusCode) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function isTourApiQuotaError(error) {
+  return error?.statusCode === TOUR_API_QUOTA_STATUS;
+}
+
 function chunkRows(rows, chunkSize = DB_BATCH_SIZE) {
   const chunks = [];
 
@@ -62,6 +93,36 @@ function getTourApiItems(body) {
   const items = body?.items?.item;
   if (!items) return [];
   return Array.isArray(items) ? items : [items];
+}
+
+function getSelectedRegions(regionValue = process.env.TOUR_API_REGIONS) {
+  if (!regionValue?.trim()) {
+    return Object.entries(TOUR_REGIONS).map(([name, areaCode]) => ({
+      name,
+      areaCode,
+    }));
+  }
+
+  const regionNames = [
+    ...new Set(
+      regionValue
+        .split(",")
+        .map((regionName) => regionName.trim())
+        .filter(Boolean),
+    ),
+  ];
+  const unknownRegions = regionNames.filter(
+    (regionName) => !TOUR_REGIONS[regionName],
+  );
+
+  if (unknownRegions.length > 0) {
+    throw new Error(`지원하지 않는 지역: ${unknownRegions.join(", ")}`);
+  }
+
+  return regionNames.map((name) => ({
+    name,
+    areaCode: TOUR_REGIONS[name],
+  }));
 }
 
 function getTotalPages(totalCount, pageSize = PAGE_SIZE) {
@@ -92,7 +153,7 @@ function selectDistributedPages(totalPages, pageLimit = MAX_PAGES) {
   return Array.from(selectedPages).sort((first, second) => first - second);
 }
 
-async function fetchTourApiPage(contentTypeId, pageNo) {
+async function fetchTourApiPage(contentTypeId, areaCode, pageNo) {
   const serviceKey = process.env.TOUR_API_KEY;
 
   if (!serviceKey) {
@@ -110,6 +171,7 @@ async function fetchTourApiPage(contentTypeId, pageNo) {
   url.searchParams.set("numOfRows", String(PAGE_SIZE));
   url.searchParams.set("pageNo", String(pageNo));
   url.searchParams.set("contentTypeId", String(contentTypeId));
+  url.searchParams.set("areaCode", String(areaCode));
   url.searchParams.set("arrange", "A");
 
   for (let attempt = 1; attempt <= MAX_REQUEST_ATTEMPTS; attempt += 1) {
@@ -132,15 +194,76 @@ async function fetchTourApiPage(contentTypeId, pageNo) {
       };
     }
 
-    const isRetryable = response.status === 429 || response.status >= 500;
+    if (response.status === TOUR_API_QUOTA_STATUS) {
+      throw createTourApiError(
+        "TourAPI 일일 호출 한도를 초과했습니다.",
+        response.status,
+      );
+    }
+
+    const isRetryable = response.status >= 500;
     if (!isRetryable || attempt === MAX_REQUEST_ATTEMPTS) {
-      throw new Error(`TourAPI 요청 실패: ${response.status}`);
+      throw createTourApiError(
+        `TourAPI 요청 실패: ${response.status}`,
+        response.status,
+      );
     }
 
     await sleep(REQUEST_DELAY_MS * attempt * 2);
   }
 
   return { items: [], totalCount: 0 };
+}
+
+async function fetchTourApiDescription(contentId) {
+  const serviceKey = process.env.TOUR_API_KEY;
+  const url = new URL(
+    "https://apis.data.go.kr/B551011/KorService2/detailCommon2",
+  );
+
+  url.searchParams.set("serviceKey", serviceKey);
+  url.searchParams.set("MobileOS", "ETC");
+  url.searchParams.set("MobileApp", "TravelMBTI");
+  url.searchParams.set("_type", "json");
+  url.searchParams.set("contentId", String(contentId));
+  url.searchParams.set("overviewYN", "Y");
+
+  for (let attempt = 1; attempt <= MAX_REQUEST_ATTEMPTS; attempt += 1) {
+    const response = await fetch(url);
+
+    if (response.ok) {
+      const json = await response.json();
+      const header = json?.response?.header;
+      const body = json?.response?.body;
+
+      if (header?.resultCode && header.resultCode !== "0000") {
+        throw new Error(
+          `TourAPI 오류 ${header.resultCode}: ${header.resultMsg || "알 수 없는 오류"}`,
+        );
+      }
+
+      return getTourApiItems(body)[0]?.overview || "";
+    }
+
+    if (response.status === TOUR_API_QUOTA_STATUS) {
+      throw createTourApiError(
+        "TourAPI 일일 호출 한도를 초과했습니다.",
+        response.status,
+      );
+    }
+
+    const isRetryable = response.status >= 500;
+    if (!isRetryable || attempt === MAX_REQUEST_ATTEMPTS) {
+      throw createTourApiError(
+        `TourAPI 상세 요청 실패: ${response.status}`,
+        response.status,
+      );
+    }
+
+    await sleep(REQUEST_DELAY_MS * attempt * 2);
+  }
+
+  return "";
 }
 
 function parseRegion(address) {
@@ -264,79 +387,143 @@ async function saveProcessedItems(processedItems) {
   );
 }
 
-function processPageItems(items, seenTourContentIds, stats) {
+function hasRequiredListFields(item) {
+  const imageUrl = item?.firstimage || item?.firstimage2;
+
+  return Boolean(
+    item?.addr1 &&
+      imageUrl &&
+      item?.mapx &&
+      item?.mapy,
+  );
+}
+
+async function processPageItems(
+  items,
+  seenTourContentIds,
+  stats,
+  getDescription = fetchTourApiDescription,
+  maxItems = Number.POSITIVE_INFINITY,
+) {
   const processedItems = [];
 
-  items.forEach((item) => {
+  for (const item of items) {
+    if (processedItems.length >= maxItems) {
+      break;
+    }
+
     const tourContentId = String(item?.contentid || item?.contentId || "");
 
     if (!tourContentId) {
       stats.invalid += 1;
-      return;
+      continue;
     }
 
     if (seenTourContentIds.has(tourContentId)) {
       stats.duplicates += 1;
-      return;
+      continue;
     }
 
-    if (!item.addr1 || !item.mapx || !item.mapy) {
+    if (!hasRequiredListFields(item)) {
       stats.invalid += 1;
-      return;
+      continue;
     }
 
     try {
-      processedItems.push(processTourDestination(item));
+      const description = await getDescription(tourContentId);
+
+      if (!String(description || "").trim()) {
+        stats.noDescription += 1;
+        continue;
+      }
+
+      processedItems.push(
+        processTourDestination({
+          ...item,
+          overview: description,
+        }),
+      );
       seenTourContentIds.add(tourContentId);
+
+      if (REQUEST_DELAY_MS > 0) {
+        await sleep(REQUEST_DELAY_MS);
+      }
     } catch (error) {
+      if (isTourApiQuotaError(error)) {
+        throw error;
+      }
+
       stats.invalid += 1;
       console.error(
         `가공 제외: contentId=${tourContentId}, ${error.message}`,
       );
     }
-  });
+  }
 
   return processedItems;
 }
 
-async function importContentType(contentTypeId, seenTourContentIds, stats) {
-  const firstPage = await fetchTourApiPage(contentTypeId, 1);
+async function importContentType(
+  contentType,
+  region,
+  seenTourContentIds,
+  stats,
+) {
+  const { contentTypeId, name, targetCount } = contentType;
+  const firstPage = await fetchTourApiPage(
+    contentTypeId,
+    region.areaCode,
+    1,
+  );
   const totalPages = Math.max(1, getTotalPages(firstPage.totalCount));
   const selectedPages = selectDistributedPages(totalPages);
 
   console.log(
     [
-      `분산 조회 계획: contentTypeId=${contentTypeId}`,
+      `분산 조회 계획: region=${region.name}`,
+      `type=${name}(${contentTypeId})`,
+      `목표=${targetCount}`,
       `전체=${totalPages}페이지`,
       `선택=${selectedPages.join(",")}`,
     ].join(", "),
   );
 
+  let savedForType = 0;
+
   for (let index = 0; index < selectedPages.length; index += 1) {
+    if (savedForType >= targetCount) {
+      break;
+    }
+
     const pageNo = selectedPages[index];
     const { items } =
       pageNo === 1
         ? firstPage
-        : await fetchTourApiPage(contentTypeId, pageNo);
+        : await fetchTourApiPage(contentTypeId, region.areaCode, pageNo);
 
     if (items.length === 0) continue;
 
-    const processedItems = processPageItems(
+    const processedItems = await processPageItems(
       items,
       seenTourContentIds,
       stats,
+      fetchTourApiDescription,
+      targetCount - savedForType,
     );
     await saveProcessedItems(processedItems);
 
     stats.fetched += items.length;
     stats.saved += processedItems.length;
+    savedForType += processedItems.length;
 
     console.log(
       [
-        `저장 완료: contentTypeId=${contentTypeId}`,
+        `저장 완료: region=${region.name}`,
+        `type=${name}(${contentTypeId})`,
         `page=${pageNo}/${totalPages}`,
         `조회=${items.length}`,
         `저장=${processedItems.length}`,
+        `유형누적=${savedForType}/${targetCount}`,
         `누적=${stats.saved}`,
       ].join(", "),
     );
@@ -345,6 +532,18 @@ async function importContentType(contentTypeId, seenTourContentIds, stats) {
       await sleep(REQUEST_DELAY_MS);
     }
   }
+
+  if (savedForType < targetCount) {
+    console.warn(
+      [
+        `유형 목표 미달: region=${region.name}`,
+        `type=${name}(${contentTypeId})`,
+        `저장=${savedForType}/${targetCount}`,
+      ].join(", "),
+    );
+  }
+
+  return savedForType;
 }
 
 async function importTourData() {
@@ -357,23 +556,44 @@ async function importTourData() {
   }
 
   const seenTourContentIds = new Set();
+  const selectedRegions = getSelectedRegions();
   const stats = {
     fetched: 0,
     saved: 0,
     invalid: 0,
+    noDescription: 0,
     duplicates: 0,
   };
 
-  for (const contentTypeId of CONTENT_TYPE_IDS) {
-    try {
-      console.log(`TourAPI 분산 조회 시작: contentTypeId=${contentTypeId}`);
-      await importContentType(contentTypeId, seenTourContentIds, stats);
-    } catch (error) {
-      console.error(
-        `TourAPI 유형 적재 실패: contentTypeId=${contentTypeId}`,
-        error.message,
-      );
+  for (const region of selectedRegions) {
+    let savedForRegion = 0;
+
+    for (const contentType of CONTENT_TYPE_TARGETS) {
+      try {
+        console.log(
+          `TourAPI 분산 조회 시작: region=${region.name}, type=${contentType.name}`,
+        );
+        savedForRegion += await importContentType(
+          contentType,
+          region,
+          seenTourContentIds,
+          stats,
+        );
+      } catch (error) {
+        if (isTourApiQuotaError(error)) {
+          throw error;
+        }
+
+        console.error(
+          `TourAPI 유형 적재 실패: region=${region.name}, type=${contentType.name}`,
+          error.message,
+        );
+      }
     }
+
+    console.log(
+      `지역 적재 완료: region=${region.name}, 저장=${savedForRegion}/100`,
+    );
   }
 
   console.log(
@@ -382,6 +602,7 @@ async function importTourData() {
       `조회=${stats.fetched}`,
       `저장=${stats.saved}`,
       `제외=${stats.invalid}`,
+      `설명없음=${stats.noDescription}`,
       `중복=${stats.duplicates}`,
     ].join(", "),
   );
@@ -396,8 +617,12 @@ if (require.main === module) {
 
 module.exports = {
   chunkRows,
+  CONTENT_TYPE_TARGETS,
+  getSelectedRegions,
   getTotalPages,
   getTourApiItems,
+  hasRequiredListFields,
+  isTourApiQuotaError,
   processPageItems,
   selectDistributedPages,
 };

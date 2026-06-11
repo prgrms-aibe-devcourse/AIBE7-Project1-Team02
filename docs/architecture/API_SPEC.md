@@ -54,6 +54,7 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | DONE | POST | `/api/user/bookmarks` | Authorization Bearer Token, `destinationId` | 북마크 저장 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 저장 실패 | 백엔드 |
 | DONE | DELETE | `/api/user/bookmarks/:destinationId` | Authorization Bearer Token | 북마크 해제 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 삭제 실패 | 백엔드 |
 | DONE | PATCH | `/api/travel/:id/status` | Authorization Bearer Token, `status` | 변경된 일정 상태 | 로그인 만료, 유효하지 않은 상태, 일정 없음 | 백엔드 |
+| DONE | DELETE | `/api/travel/:id` | Authorization Bearer Token | 삭제된 일정 ID | 로그인 만료, 일정 없음, Supabase 삭제 실패 | 백엔드 |
 | PLANNED | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
 | PLANNED | POST | `/api/user/preference` | MBTI, 여행 템포, F&B 민감도 | MBTI 기반 성향 정보, 저장 결과 | 로그인 정보 없음, 필수 선택값 누락 | 백엔드 |
 | PLANNED | GET | `/api/user/preference` | 없음 | 저장된 사용자 성향 정보 | 로그인 정보 없음, 성향 정보 없음 | 백엔드 |
@@ -307,9 +308,13 @@ Request:
 
 ```json
 {
-  "userId": "traveler01",
+  "email": "traveler@example.com",
   "password": "password1234",
-  "nickname": "여행자"
+  "nickname": "여행자",
+  "agreements": {
+    "terms": true,
+    "privacy": true
+  }
 }
 ```
 
@@ -319,7 +324,7 @@ Response:
 {
   "success": true,
   "data": {
-    "userId": "traveler01",
+    "email": "traveler@example.com",
     "nickname": "여행자"
   },
   "message": "회원가입 성공"
@@ -331,9 +336,15 @@ Error Case:
 ```json
 {
   "success": false,
-  "message": "이미 사용 중인 아이디입니다."
+  "message": "이용약관과 개인정보 처리방침에 동의해주세요."
 }
 ```
+
+Implementation Note:
+
+- 현재 로그인/회원가입 화면은 `/api/config`에서 Supabase URL과 Anon Key를 받은 뒤 Supabase Auth REST API를 직접 호출한다.
+- 회원가입은 가입 요청 전 필수 동의를 확인하고, 로그인 및 소셜 로그인은 인증 완료 후 동의 이력이 없을 때 필수 동의 모달을 표시한다.
+- 동의 이력은 로그인 사용자의 토큰으로 `user_agreements`에 저장한다.
 
 ### POST /api/user/preference
 
@@ -429,24 +440,30 @@ MVP 범위를 벗어난 해외 지역 요청에는 아래와 같이 응답한다
 
 ### POST /api/travel/plan
 
+로그인 사용자의 입력값으로 임시 여행 일정을 생성해 `trip_plans`와
+`trip_plan_items`에 저장한다. 현재 관광지 데이터 규모를 고려해 최대
+7일 일정까지만 생성하며, 서버는 먼저 DB 관광지 후보를 선정한 뒤 fallback
+일정 생성기로 DAY별 일정을 구성한다. fallback 일정은 후보가 충분하면 각 DAY에
+최소 1개 관광지를 먼저 배치하고, 하루 최대 3개 관광지를 좌표 거리 기준으로
+가까운 곳끼리 묶어 추가 배치한다. 추후 AI Provider를 연결할
+때도 후보 관광지 목록 안에서만 일정이 생성되도록 이 후보 선정 계층을 재사용한다.
+이미지가 없는 관광지는 일정 후보에서 제외한다.
+`keywords`가 전달되면 `destination_keywords`에서 일치 여행지를 조회해
+키워드 매칭 수가 많은 관광지를 후보 상단에 배치한다.
+선택 조건으로 조회된 후보 관광지 수가 여행 일수보다 적으면 일정을 생성하지
+않고 데이터 부족 메시지를 반환한다.
+
 Request:
 
 ```json
 {
-  "destination": "제주 협재해수욕장",
   "startDate": "2026-07-10",
   "endDate": "2026-07-12",
-  "userPreference": {
-    "travelTempo": "relaxed",
-    "foodPreference": "local"
-  },
-  "places": [
-    {
-      "name": "협재해수욕장",
-      "type": "tourist_spot",
-      "address": "제주특별자치도 제주시 한림읍"
-    }
-  ]
+  "peopleCount": 2,
+  "region": "제주특별자치도",
+  "memo": "바다를 천천히 보고 싶어요.",
+  "keywords": ["오션뷰", "힐링"],
+  "destinationId": 93
 }
 ```
 
@@ -456,20 +473,30 @@ Response:
 {
   "success": true,
   "data": {
-    "planId": "plan_001",
-    "days": [
-      {
-        "day": 1,
-        "items": [
-          {
-            "time": "10:00",
-            "placeName": "협재해수욕장",
-            "description": "오션뷰를 즐기며 가볍게 산책합니다.",
-            "image_url": "https://example.com/hyeopjae.jpg"
-          }
-        ]
-      }
-    ]
+    "trip": {
+      "planId": 1,
+      "title": "제주특별자치도 여행",
+      "summary": "제주특별자치도 중심으로 3일 동안 둘러보는 2명 여행 일정입니다.",
+      "status": "planning"
+    },
+    "plan": {
+      "days": [
+        {
+          "day": 1,
+          "items": [
+            {
+              "placeName": "협재해수욕장",
+              "description": "오션뷰를 즐기며 가볍게 산책합니다.",
+              "destinationId": 93,
+              "imageUrl": "https://example.com/hyeopjae.jpg",
+              "address": "제주특별자치도 제주시 한림읍",
+              "latitude": 33.3948,
+              "longitude": 126.2395
+            }
+          ]
+        }
+      ]
+    }
   },
   "message": "일정 생성 성공"
 }
@@ -481,6 +508,20 @@ Error Case:
 {
   "success": false,
   "message": "일정 생성에 사용할 관광지 데이터가 없습니다."
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "여행 일정은 최대 7일까지만 생성할 수 있습니다."
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "여행지 데이터가 부족하여 3일 일정을 생성할 수 없습니다. 현재 조건에서는 1개의 관광지만 사용할 수 있습니다."
 }
 ```
 
@@ -611,6 +652,38 @@ Response:
     }
   },
   "message": "일정 상태 변경 성공"
+}
+```
+
+Error Case:
+
+```json
+{
+  "success": false,
+  "message": "일정을 찾을 수 없습니다."
+}
+```
+
+### DELETE /api/travel/:id
+
+로그인 사용자가 저장한 임시 여행 일정을 삭제한다. `trip_plan_items`는
+`trip_plans` 외래 키의 `ON DELETE CASCADE` 정책에 따라 함께 삭제된다.
+
+Request Header:
+
+```http
+Authorization: Bearer <SUPABASE_ACCESS_TOKEN>
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "planId": 1
+  },
+  "message": "일정 삭제 성공"
 }
 ```
 

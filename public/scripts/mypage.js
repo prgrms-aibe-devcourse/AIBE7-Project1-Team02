@@ -2,6 +2,43 @@ let SUPABASE_URL = "";
 let SUPABASE_ANON_KEY = "";
 let savedDestinationBookmarks = [];
 
+const POLICY_CONTENT = {
+  terms: {
+    title: "이용약관",
+    html: `
+      <article class="policy-content">
+        <h3>제1조 목적</h3>
+        <p>본 약관은 Packing이 제공하는 국내 여행지 추천, 성향 분석, 여행 일정 생성 및 저장 서비스의 이용 조건과 절차를 정합니다.</p>
+        <h3>제2조 서비스 제공 범위</h3>
+        <p>서비스는 사용자의 입력 정보와 저장된 관광지 데이터를 바탕으로 국내 여행 추천 및 일정 생성 기능을 제공합니다. 추천 결과는 참고용이며 실제 이동 가능 여부, 운영 시간, 비용 등은 사용자가 최종 확인해야 합니다.</p>
+        <h3>제3조 회원의 의무</h3>
+        <p>회원은 타인의 계정을 사용하거나 허위 정보를 입력해서는 안 되며, 서비스 운영을 방해하는 행위를 할 수 없습니다.</p>
+        <h3>제4조 계정 및 데이터 관리</h3>
+        <p>회원은 본인의 계정 정보를 안전하게 관리해야 합니다. 회원이 생성한 여행 일정, 북마크, 성향 분석 결과는 서비스 제공을 위해 저장될 수 있습니다.</p>
+        <h3>제5조 서비스 변경 및 중단</h3>
+        <p>서비스는 개발 및 운영 상황에 따라 기능이 변경되거나 일시 중단될 수 있으며, 중요한 변경 사항은 서비스 화면 또는 별도 공지로 안내합니다.</p>
+      </article>
+    `,
+  },
+  privacy: {
+    title: "개인정보 처리방침",
+    html: `
+      <article class="policy-content">
+        <h3>1. 수집하는 개인정보</h3>
+        <p>Packing은 회원가입 및 로그인 과정에서 이메일, 닉네임, 소셜 로그인 식별자와 같은 계정 정보를 수집할 수 있습니다. 서비스 이용 중 성향 분석 결과, 저장한 여행지, 생성한 여행 일정 정보가 함께 저장될 수 있습니다.</p>
+        <h3>2. 개인정보 이용 목적</h3>
+        <p>수집한 정보는 회원 식별, 로그인 유지, 여행 성향 기반 추천, 여행 일정 저장 및 조회, 서비스 오류 대응을 위해 사용합니다.</p>
+        <h3>3. 보관 및 삭제</h3>
+        <p>개인정보는 회원이 서비스를 이용하는 동안 보관하며, 회원 탈퇴 또는 삭제 요청 시 관련 법령과 내부 보관 기준에 따라 삭제합니다.</p>
+        <h3>4. 제3자 제공</h3>
+        <p>서비스는 사용자의 개인정보를 별도 동의 없이 외부에 판매하거나 제공하지 않습니다. 단, Supabase 등 서비스 운영에 필요한 인프라 제공자는 데이터 처리 과정에 관여할 수 있습니다.</p>
+        <h3>5. 이용자의 권리</h3>
+        <p>이용자는 본인의 개인정보 조회, 수정, 삭제를 요청할 수 있으며, 서비스 운영자는 가능한 범위에서 이를 처리합니다.</p>
+      </article>
+    `,
+  },
+};
+
 async function loadConfig() {
   if (SUPABASE_URL && SUPABASE_ANON_KEY) return;
   const res = await fetch("/api/config");
@@ -33,20 +70,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   let savedDestinationsDetailReturnMode = "list";
 
   const userRaw = sessionStorage.getItem("sb_user");
-  if (!userRaw) return;
+  const storedAccessToken = sessionStorage.getItem("sb_access_token");
+  if (!userRaw || !storedAccessToken) {
+    const loginUrl = new URL("./login.html", window.location.href);
+    loginUrl.searchParams.set("redirect", "/pages/mypage.html");
+    window.location.replace(loginUrl.href);
+    return;
+  }
 
   let user = {};
   let userId = null;
-  let accessToken = null;
+  let accessToken = storedAccessToken;
 
   try {
     user = JSON.parse(userRaw);
     userId = user.id;
 
-    if (!userId) return;
+    if (!userId) {
+      const loginUrl = new URL("./login.html", window.location.href);
+      loginUrl.searchParams.set("redirect", "/pages/mypage.html");
+      window.location.replace(loginUrl.href);
+      return;
+    }
 
     await loadConfig();
-    accessToken = sessionStorage.getItem("sb_access_token");
 
     const headers = {
       "apikey": SUPABASE_ANON_KEY,
@@ -138,31 +185,31 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error("추천 데이터 로드 실패:", err);
     }
 
-    await loadSavedDestinations(accessToken, savedDestinationsList, (bookmark) => {
-      savedDestinationsModalMode = "detail";
-      savedDestinationsDetailReturnMode = "page";
-      renderSavedDestinationDetail(
-        savedDestinationsModalHeader,
-        savedDestinationsModalList,
-        bookmark,
-        () => {
-          savedDestinationsModal?.classList.remove("active");
-          savedDestinationsModalMode = "list";
-        },
-      );
-      savedDestinationsModal?.classList.add("active");
-    });
-    await loadCompletedTrips(
-      accessToken,
-      completedTripList,
-      completedTripCount,
-      completedTripStatFill,
-      completedTripStatSub,
-    );
-
   } catch (error) {
     console.error("사용자 정보 로드 중 오류 발생:", error);
   }
+
+  await loadSavedDestinations(accessToken, savedDestinationsList, (bookmark) => {
+    savedDestinationsModalMode = "detail";
+    savedDestinationsDetailReturnMode = "page";
+    renderSavedDestinationDetail(
+      savedDestinationsModalHeader,
+      savedDestinationsModalList,
+      bookmark,
+      () => {
+        savedDestinationsModal?.classList.remove("active");
+        savedDestinationsModalMode = "list";
+      },
+    );
+    savedDestinationsModal?.classList.add("active");
+  });
+  await loadCompletedTrips(
+    accessToken,
+    completedTripList,
+    completedTripCount,
+    completedTripStatFill,
+    completedTripStatSub,
+  );
 
   // 마이페이지 버튼 이벤트 핸들러 연동
   const btnSettings = document.getElementById("btn-settings");
@@ -180,6 +227,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnDeleteAccount = document.getElementById("btn-delete-account");
   const btnResetData = document.getElementById("btn-reset-data");
   const inputNewPassword = document.getElementById("settings-new-password");
+  const policyModal = document.getElementById("policy-modal");
+  const policyModalTitle = document.getElementById("policy-modal-title");
+  const policyModalBody = document.getElementById("policy-modal-body");
+  const policyModalCloseBtn = document.getElementById("policy-modal-close-btn");
+  const policyModalConfirmBtn = document.getElementById("policy-modal-confirm-btn");
+  const policyViewButtons = document.querySelectorAll("[data-policy-view]");
+
+  function openPolicyModal(policyType) {
+    const policy = POLICY_CONTENT[policyType];
+    if (!policy || !policyModal || !policyModalTitle || !policyModalBody) return;
+
+    policyModalTitle.textContent = policy.title;
+    policyModalBody.innerHTML = policy.html;
+    policyModal.classList.add("active");
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  }
+
+  function closePolicyModal() {
+    policyModal?.classList.remove("active");
+  }
 
   if (btnSettings) {
     btnSettings.addEventListener("click", () => {
@@ -209,6 +279,25 @@ document.addEventListener("DOMContentLoaded", async () => {
       const targetContent = document.getElementById(`settings-tab-${tab.dataset.tab}`);
       if (targetContent) targetContent.classList.add("active");
     });
+  });
+
+  policyViewButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      openPolicyModal(button.dataset.policyView);
+    });
+  });
+
+  policyModalCloseBtn?.addEventListener("click", closePolicyModal);
+  policyModalConfirmBtn?.addEventListener("click", closePolicyModal);
+  policyModal?.addEventListener("click", (event) => {
+    if (event.target === policyModal) {
+      closePolicyModal();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closePolicyModal();
+    }
   });
 
   // 비밀번호 변경
@@ -802,8 +891,9 @@ function createCompletedTripCard(trip) {
   card.tabIndex = 0;
   card.setAttribute("role", "button");
 
-  const firstDestination = trip.items?.[0]?.destination || {};
-  const imageUrl = firstDestination.imageUrl || "";
+  const items = trip.items || trip.trip_plan_items || [];
+  const firstDestination = items[0]?.destination || items[0]?.destinations || {};
+  const imageUrl = firstDestination.imageUrl || firstDestination.image_url || "";
   let media;
   if (imageUrl) {
     const image = document.createElement("img");
@@ -827,7 +917,9 @@ function createCompletedTripCard(trip) {
   date.className = "trip-list-date";
   date.innerHTML = '<i data-lucide="calendar-check"></i>';
   const dateText = document.createElement("span");
-  dateText.textContent = formatCompletedDate(trip.completedAt);
+  dateText.textContent = formatCompletedDate(
+    trip.completedAt || trip.completed_at,
+  );
   date.appendChild(dateText);
 
   const title = document.createElement("h4");
@@ -837,8 +929,8 @@ function createCompletedTripCard(trip) {
   const description = document.createElement("p");
   description.className = "trip-list-desc";
   const region = trip.region || "국내 여행";
-  const totalDays = trip.totalDays || 1;
-  const itemCount = trip.itemCount ?? trip.items?.length ?? 0;
+  const totalDays = trip.totalDays || trip.total_days || 1;
+  const itemCount = trip.itemCount ?? trip.item_count ?? items.length ?? 0;
   description.textContent = `${region} · ${totalDays}일 · ${itemCount}곳 방문`;
 
   content.append(date, title, description);
@@ -896,11 +988,11 @@ async function loadCompletedTrips(
     }
 
     const completedTrips = (result.data.plans || [])
-      .filter((trip) => trip.status === "completed")
+      .filter((trip) => String(trip.status || "").trim() === "completed")
       .sort(
         (firstTrip, secondTrip) =>
-          new Date(secondTrip.completedAt || 0) -
-          new Date(firstTrip.completedAt || 0),
+          new Date(secondTrip.completedAt || secondTrip.completed_at || 0) -
+          new Date(firstTrip.completedAt || firstTrip.completed_at || 0),
       );
 
     if (countElement) {
