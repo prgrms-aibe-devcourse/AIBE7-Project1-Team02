@@ -100,6 +100,44 @@ function requireSupabaseAdmin(res) {
   return false;
 }
 
+// GET /api/user/preferences/batch - Get public preferences (mbti_type, badge) for multiple users
+router.get("/preferences/batch", async (req, res) => {
+  try {
+    const context = await getAuthenticatedContext(req, res);
+    if (!context) return;
+    if (!requireSupabaseAdmin(res)) return; // Use admin client to bypass RLS for public read
+
+    const userIds = req.query.userIds ? req.query.userIds.split(',') : [];
+    if (userIds.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("user_preferences")
+      .select("user_id, mbti_type, badge")
+      .in("user_id", userIds);
+
+    if (error) {
+      console.error("Batch preferences error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "사용자 성향 정보를 불러오지 못했습니다.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("Batch preferences failed:", error);
+    return res.status(500).json({
+      success: false,
+      message: "서버 오류로 사용자 성향 정보를 불러오지 못했습니다.",
+    });
+  }
+});
+
 // GET /api/user/bookmarks - Get bookmarked destination IDs
 router.get("/bookmarks", async (req, res) => {
   try {

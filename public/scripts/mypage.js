@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
     
     // DB에서 사용자 성향 뱃지 정보 조회
-    const prefRes = await fetch(`${SUPABASE_URL}/rest/v1/user_preferences?user_id=eq.${userId}&select=badge`, {
+    const prefRes = await fetch(`${SUPABASE_URL}/rest/v1/user_preferences?user_id=eq.${userId}&select=badge,mbti_type`, {
       method: 'GET',
       headers
     });
@@ -71,11 +71,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     const nickname = userData?.[0]?.nickname || user.user_metadata?.nickname || "여행자";
     const profileImage = userData?.[0]?.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(nickname)}&background=random&color=fff&size=160`;
     const badge = prefData?.[0]?.badge || "새로운 여행자";
+    const mbtiType = prefData?.[0]?.mbti_type ? prefData[0].mbti_type.toLowerCase() : null;
 
     // DOM 업데이트
     if (nameEl) nameEl.textContent = nickname;
     if (imgEl) imgEl.src = profileImage;
-    if (badgeTextEl) badgeTextEl.textContent = badge;
+    
+    const badgeContainer = document.getElementById("mypage-user-badge");
+    if (badgeContainer) {
+      if (mbtiType) {
+        badgeContainer.innerHTML = `<img src="/assets/icons/mbti/${mbtiType}.png" alt="badge icon" style="width: 1.4rem; height: 1.4rem; margin-right: 0.3rem; vertical-align: middle; display: inline-block;"><span id="mypage-badge-text">${badge}</span>`;
+      } else {
+        badgeContainer.innerHTML = `<i data-lucide="compass"></i><span id="mypage-badge-text">${badge}</span>`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+    } else if (badgeTextEl) {
+      badgeTextEl.textContent = badge;
+    }
 
     // 공통 헤더의 아바타 이미지도 업데이트 (app.js가 처리하지 않는 부분)
     const headerAvatarEl = document.getElementById("header-user-avatar");

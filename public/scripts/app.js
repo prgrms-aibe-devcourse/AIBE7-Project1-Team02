@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    const nameEl = document.getElementById('auth-user-name');
+    const nameEl = document.getElementById("auth-user-name");
     if (nameEl) nameEl.textContent = `${userName}님`;
 
     const logoutBtn = document.getElementById("auth-logout-btn");
@@ -119,40 +119,45 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    const avatarLink = document.querySelector('#login-link, .user-avatar-wrapper a');
+    const avatarLink = document.querySelector(
+      "#login-link, .user-avatar-wrapper a",
+    );
     if (avatarLink) {
-      avatarLink.setAttribute('aria-label', `${userName}님 프로필`);
-      avatarLink.setAttribute('title', `${userName}님 프로필`);
-      avatarLink.setAttribute('href', './pages/mypage.html');
+      avatarLink.setAttribute("aria-label", `${userName}님 프로필`);
+      avatarLink.setAttribute("title", `${userName}님 프로필`);
+      avatarLink.setAttribute("href", "./pages/mypage.html");
     }
 
     const userId = currentUser?.id;
     if (userId) {
       const cachedImg = currentUser?.user_metadata?.profile_image;
       if (cachedImg) {
-        const headerImg = document.getElementById('header-user-avatar');
+        const headerImg = document.getElementById("header-user-avatar");
         if (headerImg) headerImg.src = cachedImg;
       }
 
-      fetch('/api/config')
+      fetch("/api/config")
         .then((r) => r.json())
         .then((result) => {
           if (!result.success) return;
           const sUrl = result.data.supabaseUrl;
           const sKey = result.data.supabaseAnonKey;
-          return fetch(`${sUrl}/rest/v1/users?user_id=eq.${userId}&select=profile_image,nickname`, {
-            headers: {
-              apikey: sKey,
-              Authorization: `Bearer ${authToken}`,
+          return fetch(
+            `${sUrl}/rest/v1/users?user_id=eq.${userId}&select=profile_image,nickname`,
+            {
+              headers: {
+                apikey: sKey,
+                Authorization: `Bearer ${authToken}`,
+              },
             },
-          })
+          )
             .then((r) => r.json())
             .then((data) => {
               const dbImg = data?.[0]?.profile_image;
               const dbNick = data?.[0]?.nickname;
 
               if (dbImg) {
-                const headerImg = document.getElementById('header-user-avatar');
+                const headerImg = document.getElementById("header-user-avatar");
                 if (headerImg) headerImg.src = dbImg;
                 currentUser.user_metadata = currentUser.user_metadata || {};
                 currentUser.user_metadata.profile_image = dbImg;
@@ -164,13 +169,13 @@ document.addEventListener("DOMContentLoaded", () => {
               }
 
               if (dbImg || dbNick) {
-                sessionStorage.setItem('sb_user', JSON.stringify(currentUser));
+                sessionStorage.setItem("sb_user", JSON.stringify(currentUser));
               }
             });
         })
-        .catch((err) => console.error('프로필 로드 오류:', err));
+        .catch((err) => console.error("프로필 로드 오류:", err));
     }
-  }
+  };
 
   function getSafeImageUrl(imageUrl) {
     if (!imageUrl) {
@@ -197,7 +202,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function createNoImagePlaceholder(className) {
     const placeholder = document.createElement("div");
     placeholder.className = `${className} no-image-placeholder`;
-    placeholder.innerHTML = '<i data-lucide="image-off"></i><span>이미지 없음</span>';
+    placeholder.innerHTML =
+      '<i data-lucide="image-off"></i><span>이미지 없음</span>';
     return placeholder;
   }
 
@@ -483,7 +489,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const detailGuide = document.createElement("span");
     detailGuide.className = "recommendation-detail-guide";
-    detailGuide.innerHTML = '상세정보 보기 <i data-lucide="arrow-up-right"></i>';
+    detailGuide.innerHTML =
+      '상세정보 보기 <i data-lucide="arrow-up-right"></i>';
 
     info.append(meta, name, region, keywordList, description, detailGuide);
     card.append(media, info, bookmarkButton);
@@ -545,7 +552,9 @@ document.addEventListener("DOMContentLoaded", () => {
         recommendationList.classList.remove("is-sliding");
         unlockRecommendationControls();
       };
-      previousCard.addEventListener("animationend", finishSlide, { once: true });
+      previousCard.addEventListener("animationend", finishSlide, {
+        once: true,
+      });
       recommendationSlideUnlockTimer = window.setTimeout(
         finishSlide,
         RECOMMENDATION_SLIDE_LOCK_MS,
@@ -553,18 +562,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (recommendationPosition) {
-      recommendationPosition.textContent =
-        `${currentRecommendationIndex + 1} / ${featuredRecommendations.length}`;
+      recommendationPosition.textContent = `${currentRecommendationIndex + 1} / ${featuredRecommendations.length}`;
     }
-    recommendationDots
-      .querySelectorAll("button")
-      .forEach((dot, dotIndex) => {
-        dot.classList.toggle("active", dotIndex === currentRecommendationIndex);
-        dot.setAttribute(
-          "aria-current",
-          dotIndex === currentRecommendationIndex ? "true" : "false",
-        );
-      });
+    recommendationDots.querySelectorAll("button").forEach((dot, dotIndex) => {
+      dot.classList.toggle("active", dotIndex === currentRecommendationIndex);
+      dot.setAttribute(
+        "aria-current",
+        dotIndex === currentRecommendationIndex ? "true" : "false",
+      );
+    });
     setRecommendationControlsLocked(isRecommendationSliding);
     lucide.createIcons();
   }
@@ -576,11 +582,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     recommendationPrev.disabled = isLocked || isFirstRecommendation;
     recommendationNext.disabled = isLocked || isLastRecommendation;
-    recommendationDots
-      .querySelectorAll("button")
-      .forEach((dot) => {
-        dot.disabled = isLocked;
-      });
+    recommendationDots.querySelectorAll("button").forEach((dot) => {
+      dot.disabled = isLocked;
+    });
   }
 
   function lockRecommendationControls() {
@@ -652,12 +656,15 @@ document.addEventListener("DOMContentLoaded", () => {
       recommendationTitle.textContent = "국내 여행지를 먼저 둘러보세요";
       recommendationSubtitle.textContent =
         "로그인하면 여행 성향 기반 TOP 10 추천을 볼 수 있습니다.";
-      recommendationLink.href = "./pages/login.html?redirect=/pages/survey.html";
+      recommendationLink.href =
+        "./pages/login.html?redirect=/pages/survey.html";
       recommendationLink.textContent = "로그인하고 추천 받기";
       if (recommendationPosition) recommendationPosition.textContent = "게스트";
       recommendationPrev.disabled = true;
       recommendationNext.disabled = true;
-      renderRecommendationState("추천 여행지 전체 목록은 로그인 없이도 둘러볼 수 있습니다.");
+      renderRecommendationState(
+        "추천 여행지 전체 목록은 로그인 없이도 둘러볼 수 있습니다.",
+      );
       return;
     }
 
@@ -699,14 +706,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const { mbtiType, recommendations } = result.data;
-      const visibleRecommendations = recommendations.filter(hasDestinationImage);
+      const visibleRecommendations =
+        recommendations.filter(hasDestinationImage);
       const travelerTitle = getTravelerTitle(mbtiType);
-      recommendationTitle.textContent =
-        `맞춤 여행지 TOP ${visibleRecommendations.length}`;
+      recommendationTitle.textContent = `맞춤 여행지 TOP ${visibleRecommendations.length}`;
       recommendationSubtitle.replaceChildren(
         createTravelerBadge(travelerTitle, {
           variant: "subtle",
           size: "compact",
+          mbtiType: mbtiType
         }),
         document.createTextNode(
           " 한 장씩 넘겨보며 가장 마음에 드는 여행지를 골라보세요.",
