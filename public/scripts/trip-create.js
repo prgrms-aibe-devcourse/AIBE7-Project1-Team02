@@ -353,6 +353,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    if (!region) {
+      alert("지역을 선택해주세요.");
+      return;
+    }
+
     setLoading(true);
 
     try {
