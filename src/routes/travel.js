@@ -117,6 +117,7 @@ router.post("/plan", async (request, response) => {
   const destinationId = Number.parseInt(request.body?.destinationId, 10);
   const userId = request.body.userId;
   const accessToken = request.body.accessToken;
+
   if (!startDate || !endDate) {
     return response
       .status(400)
@@ -156,7 +157,7 @@ router.post("/plan", async (request, response) => {
       destinationUrl.searchParams.set("province", `ilike.%${region}%`);
       destinationUrl.searchParams.set("limit", "1000");
     } else {
-      destinationUrl.searchParams.set("limit", "50");
+      destinationUrl.searchParams.set("limit", "100");
     }
 
     const destinationRows = await requestSupabaseJson(
@@ -172,7 +173,7 @@ router.post("/plan", async (request, response) => {
         })
       : [];
     const keywordScoreMap = createKeywordScoreMap(keywordRows);
-    const destinations = mergeDestinations(
+    const shuffledDestinations = mergeDestinations(
       Array.isArray(destinationRows) ? destinationRows : [],
       !region && keywordRows.length
         ? await fetchDestinationsByIds({
@@ -182,7 +183,7 @@ router.post("/plan", async (request, response) => {
           })
         : [],
     ).filter(hasDestinationImage);
-    if (!destinations.length) {
+    if (!shuffledDestinations.length) {
       return response.status(404).json({
         success: false,
         message: region
@@ -190,6 +191,8 @@ router.post("/plan", async (request, response) => {
           : "일정 생성에 사용할 이미지가 있는 여행지 데이터가 없습니다.",
       });
     }
+
+    const destinations = shuffleDestinations(shuffledDestinations);
 
     const scoreRows = userMbti
       ? await fetchDestinationScores({
@@ -209,7 +212,8 @@ router.post("/plan", async (request, response) => {
       .map((destination) => ({
         ...destination,
         mbti_score: scoreMap.get(String(destination.destination_id)) || 0,
-        keyword_score: keywordScoreMap.get(String(destination.destination_id)) || 0,
+        keyword_score:
+          keywordScoreMap.get(String(destination.destination_id)) || 0,
       }))
       .sort(compareRankedDestinations);
 
@@ -234,13 +238,18 @@ router.post("/plan", async (request, response) => {
       ];
     }
 
+    rankedDestinations = shuffleDestinations(rankedDestinations);
+
     const activeRegion =
       region ||
       [selectedDestination?.province, selectedDestination?.city]
         .filter(Boolean)
         .join(" ");
     const selectedKeyword =
-      selectedDestination?.destination_name || keywords[0] || activeRegion || "";
+      selectedDestination?.destination_name ||
+      keywords[0] ||
+      activeRegion ||
+      "";
     const travelDays = Math.max(
       1,
       Math.floor(
@@ -322,6 +331,10 @@ router.post("/plan", async (request, response) => {
         "",
     };
 
+    //
+    //rankedDestinations
+
+    //
     const prompt = `
 여행 MBTI: ${userMbti}
 시작일: ${startDate}
@@ -468,7 +481,7 @@ ${rankedDestinations
         plan: {
           days: safeDays,
         },
-        candidateDestinations: rankedDestinations.slice(0, 12),
+        candidateDestinations: rankedDestinations.slice(0, 20),
       },
       message: "여행 일정이 생성되었습니다.",
     });
@@ -942,8 +955,14 @@ function hasDestinationImage(destination) {
   return Boolean(String(destination?.image_url || "").trim());
 }
 
-async function fetchDestinationsByIds({ supabaseUrl, headers, destinationIds }) {
-  const ids = [...new Set(destinationIds.map((id) => Number(id)).filter(Number.isFinite))];
+async function fetchDestinationsByIds({
+  supabaseUrl,
+  headers,
+  destinationIds,
+}) {
+  const ids = [
+    ...new Set(destinationIds.map((id) => Number(id)).filter(Number.isFinite)),
+  ];
   if (!ids.length) return [];
 
   const destinationUrl = new URL("/rest/v1/destinations", supabaseUrl);
@@ -1155,6 +1174,49 @@ async function callGemini({ apiKey, prompt }) {
   if (!parsed) throw new Error("Gemini 응답을 JSON으로 해석하지 못했습니다.");
   return parsed;
 }
+
+function parseJsonBlock(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return null;
+  const fenced = raw.match(/```json\s*([\s\S]*?)```/i);
+  const payload = fenced ? fenced[1] : raw;
+  try {
+    return JSON.parse(payload);
+  } catch {
+    const start = payload.indexOf("{");
+    const end = payload.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(payload.slice(start, end + 1));
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
+function shuffleDestinations(destinations) {
+  // 배열이 비어있거나 요소가 1개 이하인 경우 그대로 반환
+  if (!destinations || destinations.length <= 1) {
+    return [...destinations];
+  }
+
+  // 첫 번째 요소는 고정하고, 두 번째 요소부터 복사
+  const firstRow = destinations[0];
+  const restRows = destinations.slice(1);
+
+  // 피셔-예이츠 셔플 알고리즘으로 두 번째 요소부터 무작위로 섞음
+  for (let i = restRows.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    // 구조 분해 할당으로 두 요소의 위치를 바꿈
+    [restRows[i], restRows[j]] = [restRows[j], restRows[i]];
+  }
+
+  // 고정했던 첫 번째 요소와 섞인 나머지 요소를 합쳐서 반환
+  return [firstRow, ...restRows];
+}
+
 module.exports.__testables = {
   calculateDistanceKm,
   buildClosestDestinationGroups,
