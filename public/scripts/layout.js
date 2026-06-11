@@ -126,7 +126,7 @@ async function updateHeaderProfile() {
     if (headerAvatarWrapper) headerAvatarWrapper.hidden = true;
     if (headerLoginButton) headerLoginButton.hidden = false;
     if (headerUserName) headerUserName.textContent = "";
-    setHeaderTravelerBadge(headerTravelerBadge, "");
+    setHeaderTravelerBadge(headerTravelerBadge, "", "");
     if (headerUserAvatar)
       headerUserAvatar.src =
         "https://ui-avatars.com/api/?name=User&background=eaeaea&color=333";
@@ -174,6 +174,7 @@ async function updateHeaderProfile() {
   setHeaderTravelerBadge(
     headerTravelerBadge,
     currentUser?.user_metadata?.badge || "",
+    currentUser?.user_metadata?.badge_mbti_type || ""
   );
 
   const cachedImg =
@@ -225,8 +226,9 @@ async function updateHeaderProfile() {
           currentUser.user_metadata.nickname = dbNick;
         }
         if (travelerBadge) {
-          setHeaderTravelerBadge(headerTravelerBadge, travelerBadge);
+          setHeaderTravelerBadge(headerTravelerBadge, travelerBadge, dbMbtiType || "");
           currentUser.user_metadata.badge = travelerBadge;
+          currentUser.user_metadata.badge_mbti_type = dbMbtiType || "";
         }
 
         sessionStorage.setItem("sb_user", JSON.stringify(currentUser));
@@ -237,10 +239,28 @@ async function updateHeaderProfile() {
   }
 }
 
-function setHeaderTravelerBadge(element, badgeText) {
+function setHeaderTravelerBadge(element, badgeText, mbtiType) {
   if (!element) return;
 
   const visibleBadge = String(badgeText || "").trim();
-  element.textContent = visibleBadge;
+  
+  if (visibleBadge) {
+    if (mbtiType) {
+      element.innerHTML = `<img src="/assets/icons/mbti/${mbtiType}.png" alt="badge icon" style="width: 1.1rem; height: 1.1rem; vertical-align: middle; display: inline-block;"><span>${escapeHtml(visibleBadge)}</span>`;
+    } else {
+      element.innerHTML = `<span>${escapeHtml(visibleBadge)}</span>`;
+    }
+  } else {
+    element.innerHTML = "";
+  }
   element.hidden = !visibleBadge;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }

@@ -444,7 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const from = state.feedPage * state.feedLimit;
-      let url = `${state.api.feed}?select=*&order=created_at.desc&limit=${state.feedLimit}&offset=${from}`;
+      let url = `${state.api.feed}?select=post_id,user_id,title,nickname,profile_image,tags,image_urls,created_at&order=created_at.desc&limit=${state.feedLimit}&offset=${from}`;
       if (state.currentTagFilter) {
         url += `&tags=ilike.*${encodeURIComponent(state.currentTagFilter)}*`;
       }
@@ -458,53 +458,47 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (newPosts.length > 0) {
-        const userIds = [...new Set(newPosts.map((p) => p.user_id))].filter(Boolean);
+        const userIds = [...new Set(newPosts.map((p) => p.user_id))].filter(
+          Boolean,
+        );
         if (userIds.length > 0) {
           try {
-            const [usersRes, prefRes] = await Promise.all([
-              request(`${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`, { method: "GET" }).catch(() => []),
-              fetch(`${state.supabaseUrl}/rest/v1/user_preferences?user_id=in.(${userIds.join(",")})&select=user_id,mbti_type,badge`, {
-                method: "GET",
-                headers: {
-                  apikey: state.supabaseAnonKey,
-                  Authorization: `Bearer ${authToken}`
+            const usersRes = await request(
+              `${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`,
+              { method: "GET" },
+            );
+            if (Array.isArray(usersRes)) {
+              const userMap = {};
+              usersRes.forEach((u) => (userMap[u.user_id] = u));
+              newPosts.forEach((p) => {
+                if (userMap[p.user_id]) {
+                  p.profile_image = userMap[p.user_id].profile_image;
+                  p.nickname = userMap[p.user_id].nickname || p.nickname;
                 }
-              }).then(r => r.ok ? r.json() : []).catch(() => [])
-            ]);
-
-            const userMap = {};
-            if (Array.isArray(usersRes)) usersRes.forEach((u) => (userMap[u.user_id] = u));
-
-            const prefMap = {};
-            if (Array.isArray(prefRes)) prefRes.forEach((p) => (prefMap[p.user_id] = p));
-
-            newPosts.forEach((p) => {
-              if (userMap[p.user_id]) {
-                p.profile_image = userMap[p.user_id].profile_image;
-                p.nickname = userMap[p.user_id].nickname || p.nickname;
-              }
-              if (prefMap[p.user_id]) {
-                p.mbti_type = prefMap[p.user_id].mbti_type;
-                p.badge = prefMap[p.user_id].badge;
-              }
-            });
+              });
+            }
           } catch (e) {
             console.error("작성자 프로필 조회 실패:", e);
           }
         }
       }
 
-      const writeCardHtml = state.feedPage === 0 ? `
+      const writeCardHtml =
+        state.feedPage === 0
+          ? `
         <article class="travel-card write-post-card" data-action="write" style="box-shadow: none; background: transparent; cursor: pointer;">
           <div class="travel-card-image-wrap" style="aspect-ratio: 1 / 1; border-radius: 12px; background: rgba(59, 130, 246, 0.04); display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed rgba(59, 130, 246, 0.25); transition: all 0.2s ease;">
             <i data-lucide="plus-circle" style="width: 42px; height: 42px; color: var(--color-primary); margin-bottom: 0.5rem; opacity: 0.8;"></i>
             <span style="font-weight: 600; color: var(--color-primary);">새 글 작성하기</span>
           </div>
         </article>
-      ` : "";
+      `
+          : "";
 
       if (newPosts.length === 0 && state.feedPage === 0) {
-        els.feed.innerHTML = writeCardHtml + '<div class="empty-feed" style="grid-column: 1 / -1;">아직 게시글이 없습니다. 첫 게시글을 작성해보세요.</div>';
+        els.feed.innerHTML =
+          writeCardHtml +
+          '<div class="empty-feed" style="grid-column: 1 / -1;">아직 게시글이 없습니다. 첫 게시글을 작성해보세요.</div>';
         if (window.lucide) window.lucide.createIcons({ root: els.feed });
         bindCardEvents();
         return;
@@ -540,13 +534,9 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <div class="travel-card-info">
                 <div class="travel-card-title">${escapeHtml(post.title || "무제")}</div>
-                <div class="travel-card-meta" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <div style="display: flex; align-items: center; gap: 0.4rem;">
-                    <img src="${escapeAttr(getAvatarUrl(post.profile_image, post.nickname || userNickname))}" alt="프로필" loading="lazy">
-                    <span style="font-weight: 500;">${escapeHtml(post.nickname || userNickname)}</span>
-                    ${post.mbti_type ? `<img src="/assets/icons/mbti/${post.mbti_type.toLowerCase()}.png" alt="${escapeAttr(post.badge || '뱃지')}" title="${escapeAttr(post.badge || '뱃지')}" style="width: 1.2rem; height: 1.2rem; border-radius: 0; object-fit: contain;">` : ""}
-                  </div>
-                  <span style="font-size: 0.75rem; color: var(--color-text-muted);">${formatRelative(post.created_at)}</span>
+                <div class="travel-card-meta">
+                  <img src="${escapeAttr(getAvatarUrl(post.profile_image, post.nickname || userNickname))}" alt="프로필" loading="lazy">
+                  <span>${escapeHtml(post.nickname || userNickname)}</span>
                 </div>
               </div>
             </article>
@@ -639,7 +629,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function renderTags() {
     const rows = await request(
-      `${state.api.tags}?select=*&order=post_count.desc&limit=8`,
+      `${state.api.tags}?select=tag_name,post_count&order=post_count.desc&limit=8`,
       { method: "GET" },
     );
     const tags = Array.isArray(rows) ? rows : [];
