@@ -524,6 +524,7 @@ a {
   color: var(--color-text-main);
   font-size: 0.9rem;
   font-weight: 500;
+  font-family: inherit;
   text-decoration: none;
   background: none;
   border: none;

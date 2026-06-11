@@ -23,6 +23,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 3. Set Active Menu Item based on current path
     const currentPath = window.location.pathname;
     const navItems = document.querySelectorAll(".nav-item");
+    const protectedPaths = [
+      "/pages/community.html",
+      "/pages/saved-trips.html",
+      "/pages/survey.html",
+      "/pages/mypage.html",
+    ];
+    const getLoginUrl = (redirectPath) => {
+      const loginUrl = new URL("/pages/login.html", window.location.origin);
+      loginUrl.searchParams.set("redirect", redirectPath);
+      return loginUrl.href;
+    };
     navItems.forEach((item) => {
       let itemPath = item.getAttribute("data-path");
       item.classList.remove("active");
@@ -39,7 +50,26 @@ document.addEventListener("DOMContentLoaded", async () => {
       ) {
         item.classList.add("active");
       }
+
+      if (protectedPaths.includes(itemPath)) {
+        item.addEventListener("click", (event) => {
+          if (sessionStorage.getItem("sb_access_token")) return;
+
+          event.preventDefault();
+          window.location.href = getLoginUrl(itemPath);
+        });
+      }
     });
+
+    const createTripButton = document.getElementById("btn-sidebar-create");
+    if (createTripButton) {
+      createTripButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        window.location.href = sessionStorage.getItem("sb_access_token")
+          ? "/pages/trip-create.html"
+          : getLoginUrl("/pages/trip-create.html");
+      });
+    }
 
     // 4. Update Header Breadcrumb based on current path
     const breadcrumbIcon = document.getElementById("breadcrumb-icon-container");
@@ -174,7 +204,7 @@ async function updateHeaderProfile() {
   setHeaderTravelerBadge(
     headerTravelerBadge,
     currentUser?.user_metadata?.badge || "",
-    currentUser?.user_metadata?.badge_mbti_type || ""
+    currentUser?.user_metadata?.badge_mbti_type || "",
   );
 
   const cachedImg =
@@ -226,7 +256,11 @@ async function updateHeaderProfile() {
           currentUser.user_metadata.nickname = dbNick;
         }
         if (travelerBadge) {
-          setHeaderTravelerBadge(headerTravelerBadge, travelerBadge, dbMbtiType || "");
+          setHeaderTravelerBadge(
+            headerTravelerBadge,
+            travelerBadge,
+            dbMbtiType || "",
+          );
           currentUser.user_metadata.badge = travelerBadge;
           currentUser.user_metadata.badge_mbti_type = dbMbtiType || "";
         }
@@ -243,7 +277,7 @@ function setHeaderTravelerBadge(element, badgeText, mbtiType) {
   if (!element) return;
 
   const visibleBadge = String(badgeText || "").trim();
-  
+
   if (visibleBadge) {
     if (mbtiType) {
       element.innerHTML = `<img src="/assets/icons/mbti/${mbtiType}.png" alt="badge icon" style="width: 1.1rem; height: 1.1rem; vertical-align: middle; display: inline-block;"><span>${escapeHtml(visibleBadge)}</span>`;
