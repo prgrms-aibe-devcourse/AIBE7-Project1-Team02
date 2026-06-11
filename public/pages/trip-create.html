@@ -22,26 +22,26 @@
         <main class="trip-create-page">
           <!-- <a class="back-link" href="../index.html">메인으로 돌아가기</a> -->
 
-          <section class="trip-create-panel">
-            <div class="trip-create-heading">
-          <span>TRIP PLANNER</span>
-          <h1>AI 일정 생성</h1>
-          <p>
-            메인에서 고른 여행지와 사용자 성향, 선택한 지역을 바탕으로 일정을
-            생성합니다.
-          </p>
-        </div>
+          <section class="trip-create-panel" id="trip-create-input-view">
+            <div class="trip-create-topbar">
+              <div class="trip-create-heading">
+                <span>TRIP PLANNER</span>
+                <h1>AI 일정 생성</h1>
+                <p>
+                  메인에서 고른 여행지와 사용자 성향, 선택한 지역을 바탕으로 일정을
+                  생성합니다.
+                </p>
+              </div>
 
-        <div class="form-actions" style="margin-top: 1rem">
-          <button
-            type="button"
-            class="btn-primary"
-            id="trip-reset-btn"
-            style="width: auto; padding-inline: 1rem"
-          >
-            초기화
-          </button>
-        </div>
+              <button
+                type="button"
+                class="trip-reset-button"
+                id="trip-reset-btn"
+              >
+                <i data-lucide="rotate-ccw"></i>
+                초기화
+              </button>
+            </div>
 
         <article class="selected-destination" id="selected-destination" hidden>
           <div class="selected-destination-content">
@@ -64,53 +64,53 @@
           <label>
             여행 종료일
             <input type="date" id="end-date" required />
+            <span class="form-help">현재 관광지 데이터 기준 최대 7일 일정까지 생성할 수 있습니다.</span>
           </label>
 
           <label>
-            인원수
-            <input
-              type="number"
-              id="people-count"
-              min="1"
-              step="1"
-              value="1"
-              required
-            />
+            동행 유형
+            <button
+              class="trip-companion-select"
+              id="trip-companion-select"
+              type="button"
+            >
+              <span id="trip-companion-summary">혼자</span>
+              <i data-lucide="chevron-down"></i>
+            </button>
+            <input type="hidden" id="people-count" value="1" />
           </label>
 
           <label>
             지역
-            <select id="region">
-              <option value="">지역을 선택하세요</option>
-              <option value="강원특별자치도">강원특별자치도</option>
-              <option value="경기도">경기도</option>
-              <option value="경상남도">경상남도</option>
-              <option value="경상북도">경상북도</option>
-              <option value="광주광역시">광주광역시</option>
-              <option value="대구광역시">대구광역시</option>
-              <option value="대전광역시">대전광역시</option>
-              <option value="부산광역시">부산광역시</option>
-              <option value="서울특별시">서울특별시</option>
-              <option value="세종특별자치시">세종특별자치시</option>
-              <option value="울산광역시">울산광역시</option>
-              <option value="인천광역시">인천광역시</option>
-              <option value="전라남도">전라남도</option>
-              <option value="전북특별자치도">전북특별자치도</option>
-              <option value="제주특별자치도">제주특별자치도</option>
-              <option value="충청남도">충청남도</option>
-              <option value="충청북도">충청북도</option>
-            </select>
+            <button
+              class="trip-region-select"
+              id="trip-region-select"
+              type="button"
+            >
+              <span id="trip-region-summary">지역을 선택하세요</span>
+              <i data-lucide="chevron-down"></i>
+            </button>
+            <input type="hidden" id="region" />
           </label>
 
-          <label>
-            메모
-            <textarea
-              id="memo"
-              rows="4"
-              placeholder="원하는 분위기나 꼭 가고 싶은 장소를 적어주세요."
-            ></textarea>
-          </label>
-          <!-- <label> 키워드 </label> -->
+          <section class="trip-keyword-field" aria-labelledby="trip-keyword-title">
+            <div class="trip-keyword-header">
+              <div>
+                <span id="trip-keyword-title">여행 키워드</span>
+                <p>음악 취향을 고르듯 끌리는 분위기를 최대 3개까지 골라주세요.</p>
+              </div>
+              <strong id="trip-keyword-count">0/3</strong>
+            </div>
+            <div
+              class="trip-keyword-cloud"
+              id="trip-keyword-cloud"
+              aria-live="polite"
+            ></div>
+            <p class="trip-keyword-warning" id="trip-keyword-warning" hidden>
+              키워드는 최대 3개까지 선택할 수 있습니다.
+            </p>
+            <input type="hidden" id="memo" />
+          </section>
           <div class="form-actions">
             <button type="submit" class="btn-primary" id="plan-submit-btn">
               일정 생성하기
@@ -122,6 +122,8 @@
           AI가 일정을 생성하고 있습니다. 잠시만 기다려 주세요.
         </div>
 
+      </section>
+
         <section class="plan-result" id="plan-result" hidden>
           <div class="plan-result-header">
             <div>
@@ -129,6 +131,13 @@
               <h2 id="plan-title"></h2>
               <p id="plan-summary"></p>
             </div>
+            <button
+              type="button"
+              class="btn-secondary plan-edit-btn"
+              id="plan-edit-btn"
+            >
+              조건 다시 수정하기
+            </button>
           </div>
           <div class="plan-days" id="plan-days"></div>
           <div class="plan-result-actions">
@@ -143,11 +152,114 @@
           </div>
         </section>
 
-        <div class="trip-create-empty" id="trip-create-empty">
-          <h2>아직 일정이 없습니다.</h2>
-          <p>조건을 입력하고 AI 일정 생성을 눌러주세요.</p>
-        </div>
-      </section>
+      <div
+        class="generated-day-modal"
+        id="generated-day-modal"
+        aria-hidden="true"
+      >
+        <article
+          class="generated-day-modal-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="generated-day-modal-title"
+        >
+          <header class="generated-day-modal-header">
+            <div>
+              <span class="selected-label" id="generated-day-modal-status">DAY ROUTE</span>
+              <h2 id="generated-day-modal-title">DAY 일정</h2>
+              <p id="generated-day-modal-period"></p>
+            </div>
+            <button
+              class="generated-day-modal-close"
+              id="generated-day-modal-close"
+              type="button"
+              aria-label="DAY 일정 닫기"
+            >
+              <i data-lucide="x"></i>
+            </button>
+          </header>
+          <div class="generated-day-modal-body" id="generated-day-modal-body"></div>
+        </article>
+      </div>
+
+      <div class="trip-region-modal" id="trip-region-modal" aria-hidden="true">
+        <section
+          class="trip-region-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="trip-region-modal-title"
+        >
+          <header class="trip-region-modal-header">
+            <div>
+              <span class="selected-label">REGION</span>
+              <h2 id="trip-region-modal-title">지역 선택</h2>
+            </div>
+            <button
+              class="trip-region-modal-close"
+              id="trip-region-modal-close"
+              type="button"
+              aria-label="지역 선택 닫기"
+            >
+              <i data-lucide="x"></i>
+            </button>
+          </header>
+          <div class="trip-region-options" id="trip-region-options"></div>
+          <footer class="trip-region-modal-actions">
+            <button
+              class="trip-region-modal-clear"
+              id="trip-region-modal-clear"
+              type="button"
+            >
+              선택 해제
+            </button>
+            <button
+              class="btn-primary"
+              id="trip-region-modal-apply"
+              type="button"
+            >
+              완료
+            </button>
+          </footer>
+        </section>
+      </div>
+
+      <div
+        class="trip-region-modal"
+        id="trip-companion-modal"
+        aria-hidden="true"
+      >
+        <section
+          class="trip-region-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="trip-companion-modal-title"
+        >
+          <header class="trip-region-modal-header">
+            <div>
+              <span class="selected-label">WITH</span>
+              <h2 id="trip-companion-modal-title">동행 유형 선택</h2>
+            </div>
+            <button
+              class="trip-region-modal-close"
+              id="trip-companion-modal-close"
+              type="button"
+              aria-label="동행 유형 선택 닫기"
+            >
+              <i data-lucide="x"></i>
+            </button>
+          </header>
+          <div class="trip-region-options" id="trip-companion-options"></div>
+          <footer class="trip-region-modal-actions">
+            <button
+              class="btn-primary"
+              id="trip-companion-modal-apply"
+              type="button"
+            >
+              완료
+            </button>
+          </footer>
+        </section>
+      </div>
         </main>
       </div>
     </div>

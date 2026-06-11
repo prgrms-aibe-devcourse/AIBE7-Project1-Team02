@@ -85,7 +85,26 @@
               여행 일정
             </span>
             <h2 id="trip-detail-title">일정 상세</h2>
-            <p id="trip-detail-period"></p>
+            <div class="trip-detail-meta-row">
+              <p id="trip-detail-period"></p>
+              <button
+                class="trip-start-button"
+                id="trip-start-button"
+                type="button"
+                hidden
+              >
+                <i data-lucide="play"></i>
+                여행 시작하기
+              </button>
+              <button
+                class="trip-delete-button"
+                id="trip-delete-button"
+                type="button"
+              >
+                <i data-lucide="trash-2"></i>
+                여행 삭제하기
+              </button>
+            </div>
           </div>
           <button
             class="trip-detail-close"
@@ -134,6 +153,47 @@
         </header>
 
         <div class="trip-detail-body" id="trip-day-detail-body"></div>
+      </article>
+    </div>
+
+    <div
+      class="trip-delete-confirm-overlay"
+      id="trip-delete-confirm-modal"
+      aria-hidden="true"
+    >
+      <article
+        class="trip-delete-confirm-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trip-delete-confirm-title"
+      >
+        <div class="trip-delete-confirm-icon" aria-hidden="true">
+          <i data-lucide="trash-2"></i>
+        </div>
+        <div>
+          <span class="recommendation-eyebrow">DELETE JOURNEY</span>
+          <h2 id="trip-delete-confirm-title">여행 일정을 삭제할까요?</h2>
+          <p id="trip-delete-confirm-message">
+            삭제한 여행 일정은 다시 복구할 수 없습니다.
+          </p>
+        </div>
+        <div class="trip-delete-confirm-actions">
+          <button
+            class="trip-delete-cancel-button"
+            id="trip-delete-cancel-button"
+            type="button"
+          >
+            취소
+          </button>
+          <button
+            class="trip-delete-confirm-button"
+            id="trip-delete-confirm-button"
+            type="button"
+          >
+            <i data-lucide="trash-2"></i>
+            삭제하기
+          </button>
+        </div>
       </article>
     </div>
   </body>

@@ -16,6 +16,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const detailPeriod = document.getElementById("trip-detail-period");
   const detailBody = document.getElementById("trip-detail-body");
   const tripStartButton = document.getElementById("trip-start-button");
+  const tripDeleteButton = document.getElementById("trip-delete-button");
+  const tripDeleteConfirmModal = document.getElementById(
+    "trip-delete-confirm-modal",
+  );
+  const tripDeleteConfirmMessage = document.getElementById(
+    "trip-delete-confirm-message",
+  );
+  const tripDeleteCancelButton = document.getElementById(
+    "trip-delete-cancel-button",
+  );
+  const tripDeleteConfirmButton = document.getElementById(
+    "trip-delete-confirm-button",
+  );
   const dayDetailModal = document.getElementById("trip-day-detail-modal");
   const dayDetailClose = document.getElementById("trip-day-detail-close");
   const dayDetailTitle = document.getElementById("trip-day-detail-title");
@@ -35,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let dayRenderId = 0;
   let activeDetailTrip = null;
   let activeDetailItineraries = [];
+  let pendingDeleteTrip = null;
   const syncingCompletedTripIds = new Set();
 
   if (!authToken) {
@@ -117,6 +131,12 @@ document.addEventListener("DOMContentLoaded", () => {
     writeTripCompletion(trip, completedItemKeys);
   }
 
+  function unmarkItemCompleted(trip, item, index = 0) {
+    const completedItemKeys = readTripCompletion(trip);
+    completedItemKeys.delete(getItemKey(item, index));
+    writeTripCompletion(trip, completedItemKeys);
+  }
+
   function getCompletionStats(trip, items = trip.itineraries) {
     if (trip.status === "planning") {
       return {
@@ -161,6 +181,20 @@ document.addEventListener("DOMContentLoaded", () => {
     return "시작 전";
   }
 
+  function setStatusFilter(filter) {
+    currentStatusFilter = filter;
+    currentPage = 1;
+
+    if (!statusTabs) return;
+
+    statusTabs.querySelectorAll("button[role='tab']").forEach((button) => {
+      button.setAttribute(
+        "aria-selected",
+        button.getAttribute("data-filter") === filter ? "true" : "false",
+      );
+    });
+  }
+
   async function updateTripStatusInDatabase(trip, status) {
     if (!trip.tripId || trip.status === status) {
       return false;
@@ -203,12 +237,87 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       syncingCompletedTripIds.add(String(trip.tripId));
       return await updateTripStatusInDatabase(trip, "completed");
-    } catch (error) {
-      console.error("일정 완료 상태 저장 실패:", error);
-      return false;
     } finally {
       syncingCompletedTripIds.delete(String(trip.tripId));
     }
+  }
+
+  async function deleteTripPlanFromDatabase(trip) {
+    if (!trip.tripId) {
+      throw new Error("삭제할 일정 ID가 없습니다.");
+    }
+
+    const response = await fetch(`/api/travel/${trip.tripId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || "일정 삭제 실패");
+    }
+
+    clearTripCompletion(trip);
+    trips = trips.filter((savedTrip) => savedTrip.tripId !== trip.tripId);
+    renderTrips();
+  }
+
+  function openDeleteConfirmModal(trip) {
+    pendingDeleteTrip = trip;
+    if (tripDeleteConfirmMessage) {
+      tripDeleteConfirmMessage.textContent =
+        `"${trip.title}" 일정을 삭제하면 다시 복구할 수 없습니다.`;
+      tripDeleteConfirmMessage.classList.remove("error");
+    }
+    tripDeleteConfirmModal?.classList.add("active");
+    tripDeleteConfirmModal?.setAttribute("aria-hidden", "false");
+    tripDeleteConfirmButton?.focus();
+  }
+
+  function closeDeleteConfirmModal() {
+    pendingDeleteTrip = null;
+    tripDeleteConfirmModal?.classList.remove("active");
+    tripDeleteConfirmModal?.setAttribute("aria-hidden", "true");
+    if (tripDeleteConfirmButton) {
+      tripDeleteConfirmButton.disabled = false;
+      tripDeleteConfirmButton.innerHTML =
+        '<i data-lucide="trash-2"></i><span>삭제하기</span>';
+    }
+    window.lucide?.createIcons();
+  }
+
+  async function confirmAndDeletePendingTrip() {
+    if (!pendingDeleteTrip || !tripDeleteConfirmButton) return;
+
+    const deletingTrip = pendingDeleteTrip;
+
+    try {
+      tripDeleteConfirmButton.disabled = true;
+      tripDeleteConfirmButton.innerHTML =
+        '<i data-lucide="loader-2"></i><span>삭제 중...</span>';
+      window.lucide?.createIcons();
+      await deleteTripPlanFromDatabase(deletingTrip);
+      closeDeleteConfirmModal();
+      closeDetailModal();
+    } catch (error) {
+      console.error("일정 삭제 실패:", error);
+      if (tripDeleteConfirmMessage) {
+        tripDeleteConfirmMessage.textContent =
+          error.message || "일정을 삭제하지 못했습니다.";
+        tripDeleteConfirmMessage.classList.add("error");
+      }
+      tripDeleteConfirmButton.disabled = false;
+      tripDeleteConfirmButton.innerHTML =
+        '<i data-lucide="trash-2"></i><span>삭제하기</span>';
+      window.lucide?.createIcons();
+    }
+  }
+
+  function deleteActiveTrip() {
+    if (!activeDetailTrip) return;
+    openDeleteConfirmModal(activeDetailTrip);
   }
 
   async function syncLocalCompletedTripsToDatabase() {
@@ -603,13 +712,25 @@ document.addEventListener("DOMContentLoaded", () => {
         createDestinationDetail(
           item,
           completed,
-          trip.status === "in_progress" || trip.status === "completed",
+          trip.status === "in_progress",
           async () => {
-            markItemCompleted(trip, item, itemIndex);
-            if (getCompletionStats(trip).isCompleted) {
-              await markTripCompletedInDatabase(trip);
+            try {
+              markItemCompleted(trip, item, itemIndex);
+              if (getCompletionStats(trip).isCompleted) {
+                const didCompleteTrip = await markTripCompletedInDatabase(trip);
+                if (didCompleteTrip || trip.status === "completed") {
+                  setStatusFilter("completed");
+                  closeDayDetailModal();
+                  closeDetailModal();
+                }
+              }
+              onComplete();
+            } catch (error) {
+              unmarkItemCompleted(trip, item, itemIndex);
+              onComplete();
+              console.error("일정 완료 상태 저장 실패:", error);
+              alert(error.message || "완료한 여행을 저장하지 못했습니다.");
             }
-            onComplete();
           },
         ),
       );
@@ -815,6 +936,7 @@ document.addEventListener("DOMContentLoaded", () => {
         '<i data-lucide="loader-2"></i> 여행 시작 중...';
       await updateTripStatusInDatabase(activeDetailTrip, "in_progress");
       clearTripCompletion(activeDetailTrip);
+      setStatusFilter("in_progress");
       renderTripDetail(activeDetailTrip, activeDetailItineraries);
       renderTrips();
       window.lucide?.createIcons();
@@ -1010,13 +1132,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const filter = button.getAttribute("data-filter");
       if (filter && filter !== currentStatusFilter) {
-        currentStatusFilter = filter;
-        currentPage = 1;
-        
-        statusTabs.querySelectorAll("button[role='tab']").forEach(btn => {
-          btn.setAttribute("aria-selected", btn === button ? "true" : "false");
-        });
-        
+        setStatusFilter(filter);
         renderTrips();
       }
     });
@@ -1040,6 +1156,15 @@ document.addEventListener("DOMContentLoaded", () => {
   detailClose.addEventListener("click", closeDetailModal);
   dayDetailClose.addEventListener("click", closeDayDetailModal);
   tripStartButton?.addEventListener("click", startActiveTrip);
+  tripDeleteButton?.addEventListener("click", deleteActiveTrip);
+  tripDeleteCancelButton?.addEventListener("click", closeDeleteConfirmModal);
+  tripDeleteConfirmButton?.addEventListener(
+    "click",
+    confirmAndDeletePendingTrip,
+  );
+  tripDeleteConfirmModal?.addEventListener("click", (event) => {
+    if (event.target === tripDeleteConfirmModal) closeDeleteConfirmModal();
+  });
   detailModal.addEventListener("click", (event) => {
     if (event.target === detailModal) closeDetailModal();
   });
@@ -1047,7 +1172,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (event.target === dayDetailModal) closeDayDetailModal();
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && dayDetailModal.classList.contains("active")) {
+    if (
+      event.key === "Escape" &&
+      tripDeleteConfirmModal?.classList.contains("active")
+    ) {
+      closeDeleteConfirmModal();
+    } else if (event.key === "Escape" && dayDetailModal.classList.contains("active")) {
       closeDayDetailModal();
     } else if (
       event.key === "Escape" &&
