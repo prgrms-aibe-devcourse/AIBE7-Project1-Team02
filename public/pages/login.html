@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Packing | 로그인</title>
-    <link rel="icon" type="image/png" href="/images/packing-logo.png" />
-    <link rel="apple-touch-icon" href="/images/packing-logo.png" />
+    <link rel="icon" type="image/png" href="/assets/images/packing-logo.png" />
+    <link rel="apple-touch-icon" href="/assets/images/packing-logo.png" />
     <meta
       name="description"
       content="Packing에 로그인하고 여행 성향 추천과 일정 생성 기능을 사용해보세요."
@@ -332,6 +332,69 @@
             type="button"
           >
             동의하고 계속하기
+          </button>
+        </footer>
+      </section>
+    </div>
+
+    <div
+      id="socialProfileModal"
+      class="auth-modal"
+      aria-hidden="true"
+    >
+      <section
+        class="auth-modal-dialog auth-modal-dialog-compact"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="socialProfileTitle"
+      >
+        <header class="auth-modal-header">
+          <div>
+            <span class="recommendation-eyebrow">PROFILE</span>
+            <h2 id="socialProfileTitle">프로필 설정</h2>
+            <p>
+              서비스에서 사용할 닉네임과 프로필 이미지를 설정해주세요.
+            </p>
+          </div>
+        </header>
+        <div class="auth-modal-body">
+          <p id="socialProfileAlert" class="auth-modal-alert"></p>
+          <div class="auth-profile-editor">
+            <label
+              class="auth-profile-image-picker"
+              for="socialProfileImage"
+            >
+              <img
+                id="socialProfilePreview"
+                alt="프로필 이미지 미리보기"
+              />
+              <span>이미지 선택</span>
+            </label>
+            <input
+              id="socialProfileImage"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+            />
+            <label class="auth-profile-field">
+              <span>닉네임</span>
+              <input
+                id="socialProfileNickname"
+                type="text"
+                maxlength="100"
+                placeholder="서비스에서 사용할 닉네임"
+                autocomplete="nickname"
+              />
+            </label>
+          </div>
+        </div>
+        <footer class="auth-modal-footer">
+          <button
+            id="socialProfileConfirm"
+            class="btn-primary"
+            type="button"
+          >
+            프로필 저장하고 시작하기
           </button>
         </footer>
       </section>

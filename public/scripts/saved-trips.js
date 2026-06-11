@@ -729,7 +729,13 @@ document.addEventListener("DOMContentLoaded", () => {
               unmarkItemCompleted(trip, item, itemIndex);
               onComplete();
               console.error("일정 완료 상태 저장 실패:", error);
-              alert(error.message || "완료한 여행을 저장하지 못했습니다.");
+              window.PackingUI.alert(
+                error.message || "완료한 여행을 저장하지 못했습니다.",
+                {
+                  type: "error",
+                  title: "여행 완료 처리 실패",
+                },
+              );
             }
           },
         ),
@@ -942,7 +948,13 @@ document.addEventListener("DOMContentLoaded", () => {
       window.lucide?.createIcons();
     } catch (error) {
       console.error("여행 시작 상태 저장 실패:", error);
-      alert(error.message || "여행 시작 상태로 변경하지 못했습니다.");
+      await window.PackingUI.alert(
+        error.message || "여행 시작 상태로 변경하지 못했습니다.",
+        {
+          type: "error",
+          title: "여행 시작 처리 실패",
+        },
+      );
     } finally {
       tripStartButton.disabled = false;
       tripStartButton.innerHTML = '<i data-lucide="play"></i> 여행 시작하기';

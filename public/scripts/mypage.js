@@ -305,10 +305,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnChangePassword.addEventListener("click", async () => {
       const newPassword = inputNewPassword.value;
       if (newPassword.length < 6) {
-        alert("비밀번호는 6자 이상이어야 합니다.");
+        await window.PackingUI.alert("비밀번호는 6자 이상이어야 합니다.", {
+          type: "warning",
+          title: "비밀번호 확인",
+        });
         return;
       }
-      if (!confirm("비밀번호를 변경하시겠습니까?")) return;
+      const shouldChangePassword = await window.PackingUI.confirm(
+        "새 비밀번호로 변경하시겠습니까?",
+        {
+          title: "비밀번호 변경",
+          confirmText: "변경하기",
+        },
+      );
+      if (!shouldChangePassword) return;
 
       try {
         btnChangePassword.disabled = true;
@@ -329,10 +339,19 @@ document.addEventListener("DOMContentLoaded", async () => {
           throw new Error(errData.msg || "비밀번호 변경 실패");
         }
         
-        alert("비밀번호가 성공적으로 변경되었습니다.");
+        await window.PackingUI.alert(
+          "비밀번호가 성공적으로 변경되었습니다.",
+          {
+            type: "success",
+            title: "비밀번호 변경 완료",
+          },
+        );
         inputNewPassword.value = "";
       } catch (err) {
-        alert(err.message);
+        await window.PackingUI.alert(err.message, {
+          type: "error",
+          title: "비밀번호 변경 실패",
+        });
       } finally {
         btnChangePassword.disabled = false;
         btnChangePassword.textContent = "비밀번호 변경";
@@ -343,7 +362,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 데이터 초기화
   if (btnResetData) {
     btnResetData.addEventListener("click", async () => {
-      if (!confirm("모든 활동 데이터(성향 분석 결과, 여행지 저장, 일정 등)를 삭제합니다.\n이 작업은 복구할 수 없습니다. 계속하시겠습니까?")) return;
+      const shouldResetData = await window.PackingUI.confirm(
+        "성향 분석 결과, 저장한 여행지, 여행 일정 등 모든 활동 데이터를 삭제합니다.\n이 작업은 복구할 수 없습니다.",
+        {
+          type: "danger",
+          title: "모든 활동 데이터를 삭제할까요?",
+          confirmText: "모두 삭제",
+        },
+      );
+      if (!shouldResetData) return;
 
       try {
         btnResetData.disabled = true;
@@ -362,11 +389,23 @@ document.addEventListener("DOMContentLoaded", async () => {
           throw new Error(data.message || "데이터 초기화에 실패했습니다.");
         }
 
-        alert("모든 데이터가 성공적으로 초기화되었습니다.");
+        await window.PackingUI.alert(
+          "모든 데이터가 성공적으로 초기화되었습니다.",
+          {
+            type: "success",
+            title: "데이터 초기화 완료",
+          },
+        );
         window.location.reload();
       } catch (err) {
         console.error(err);
-        alert("데이터 초기화 중 오류가 발생했습니다.");
+        await window.PackingUI.alert(
+          "데이터 초기화 중 오류가 발생했습니다.",
+          {
+            type: "error",
+            title: "데이터 초기화 실패",
+          },
+        );
       } finally {
         btnResetData.disabled = false;
         btnResetData.textContent = "내 데이터 모두 지우기";
@@ -377,7 +416,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 회원 탈퇴 (Hard Delete)
   if (btnDeleteAccount) {
     btnDeleteAccount.addEventListener("click", async () => {
-      if (!confirm("정말 탈퇴하시겠습니까?\n모든 계정 정보와 데이터가 완전히 삭제되며 복구할 수 없습니다.")) return;
+      const shouldDeleteAccount = await window.PackingUI.confirm(
+        "모든 계정 정보와 활동 데이터가 완전히 삭제되며 복구할 수 없습니다.",
+        {
+          type: "danger",
+          title: "정말 회원 탈퇴할까요?",
+          confirmText: "회원 탈퇴",
+        },
+      );
+      if (!shouldDeleteAccount) return;
 
       try {
         btnDeleteAccount.disabled = true;
@@ -396,11 +443,22 @@ document.addEventListener("DOMContentLoaded", async () => {
           throw new Error(data.message || "회원 탈퇴에 실패했습니다.");
         }
 
-        alert("회원 탈퇴가 정상적으로 처리되었습니다.\n그동안 이용해 주셔서 감사합니다.");
+        await window.PackingUI.alert(
+          "회원 탈퇴가 정상적으로 처리되었습니다.\n그동안 이용해 주셔서 감사합니다.",
+          {
+            type: "success",
+            title: "회원 탈퇴 완료",
+            confirmText: "확인",
+            dismissible: false,
+          },
+        );
         sessionStorage.clear();
         window.location.replace("./login.html");
       } catch (err) {
-        alert(err.message);
+        await window.PackingUI.alert(err.message, {
+          type: "error",
+          title: "회원 탈퇴 실패",
+        });
         btnDeleteAccount.disabled = false;
         btnDeleteAccount.textContent = "회원 탈퇴";
       }
@@ -468,7 +526,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       let newImage = editPreview.src; // 기본적으로 현재 미리보기 된 주소 사용
 
       if (!newNickname) {
-        alert("닉네임을 입력해주세요.");
+        await window.PackingUI.alert("닉네임을 입력해주세요.", {
+          type: "warning",
+          title: "프로필 입력 확인",
+        });
         return;
       }
 
@@ -534,11 +595,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         user.user_metadata.nickname = newNickname;
         sessionStorage.setItem("sb_user", JSON.stringify(user));
 
-        alert("프로필이 성공적으로 수정되었습니다.");
         editModal.classList.remove("active");
+        await window.PackingUI.alert("프로필이 성공적으로 수정되었습니다.", {
+          type: "success",
+          title: "프로필 수정 완료",
+        });
       } catch (err) {
         console.error("프로필 수정 오류:", err);
-        alert("프로필 수정 중 오류가 발생했습니다.");
+        await window.PackingUI.alert(
+          err.message || "프로필 수정 중 오류가 발생했습니다.",
+          {
+            type: "error",
+            title: "프로필 수정 실패",
+          },
+        );
       } finally {
         btnSaveProfile.textContent = "저장하기";
         btnSaveProfile.disabled = false;

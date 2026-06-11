@@ -33,10 +33,18 @@ const socialAgreementAlertEl = $('socialAgreementAlert');
 const socialAgreeAllEl = $('socialAgreeAll');
 const socialAgreeTermsEl = $('socialAgreeTerms');
 const socialAgreePrivacyEl = $('socialAgreePrivacy');
+const socialProfileModalEl = $('socialProfileModal');
+const socialProfileAlertEl = $('socialProfileAlert');
+const socialProfilePreviewEl = $('socialProfilePreview');
+const socialProfileImageEl = $('socialProfileImage');
+const socialProfileNicknameEl = $('socialProfileNickname');
+const socialProfileConfirmBtn = $('socialProfileConfirm');
 
 let mode = 'login';
 let redirectTimer = null;
 let pendingAgreementContext = null;
+let pendingProfileContext = null;
+let selectedSocialProfileFile = null;
 const OAUTH_STATE_KEY = 'sb_oauth_redirect';
 const TERMS_VERSION = '2026-06-11';
 const PRIVACY_VERSION = '2026-06-11';
@@ -212,6 +220,130 @@ function showSocialAgreementAlert(message) {
   socialAgreementAlertEl.style.display = 'block';
 }
 
+function getDefaultProfileImage(nickname) {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(nickname || 'User')}&background=1a5c3a&color=fff&size=160`;
+}
+
+function requiresSocialProfileSetup(userData) {
+  const appMetadata = userData?.app_metadata || {};
+  const providers = [
+    appMetadata.provider,
+    ...(Array.isArray(appMetadata.providers) ? appMetadata.providers : []),
+  ]
+    .filter(Boolean)
+    .map((provider) => String(provider).toLowerCase());
+
+  return providers.some(
+    (provider) => provider === 'google' || provider.includes('kakao'),
+  );
+}
+
+function showSocialProfileAlert(message) {
+  if (!socialProfileAlertEl) return;
+  socialProfileAlertEl.textContent = message;
+  socialProfileAlertEl.style.display = 'block';
+}
+
+async function getUserProfile(accessToken, userId) {
+  const url = new URL(getSupabaseRestUrl('/rest/v1/users'));
+  url.searchParams.set('select', 'nickname,profile_image');
+  url.searchParams.set('user_id', `eq.${userId}`);
+  url.searchParams.set('limit', '1');
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  const data = await response.json().catch(() => []);
+  if (!response.ok) {
+    throw new Error(data?.message || '프로필 정보를 불러오지 못했습니다.');
+  }
+  return Array.isArray(data) ? data[0] || null : null;
+}
+
+async function openSocialProfileModal(context) {
+  const profile = await getUserProfile(context.accessToken, context.userId);
+  const metadata = context.userData?.user_metadata || {};
+  const nickname =
+    profile?.nickname ||
+    metadata.nickname ||
+    metadata.name ||
+    metadata.full_name ||
+    '';
+  const profileImage =
+    profile?.profile_image ||
+    metadata.avatar_url ||
+    metadata.picture ||
+    metadata.profile_image ||
+    getDefaultProfileImage(nickname);
+
+  pendingProfileContext = context;
+  selectedSocialProfileFile = null;
+  socialProfileImageEl.value = '';
+  socialProfileNicknameEl.value = nickname;
+  socialProfilePreviewEl.src = profileImage;
+  socialProfileAlertEl.textContent = '';
+  socialProfileAlertEl.style.display = 'none';
+  socialProfileModalEl.classList.add('active');
+  socialProfileModalEl.setAttribute('aria-hidden', 'false');
+  socialProfileNicknameEl.focus();
+}
+
+async function uploadSocialProfileImage(accessToken, userId, file) {
+  const extension = file.name.split('.').pop() || 'jpg';
+  const fileName = `${userId}-${Date.now()}.${extension}`;
+  const response = await fetch(
+    `${SUPABASE_URL}/storage/v1/object/avatars/${fileName}`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': file.type,
+      },
+      body: file,
+    },
+  );
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.message || '프로필 이미지 업로드에 실패했습니다.');
+  }
+
+  return `${SUPABASE_URL}/storage/v1/object/public/avatars/${fileName}`;
+}
+
+async function saveSocialProfile({
+  accessToken,
+  userId,
+  nickname,
+  profileImage,
+}) {
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/users?user_id=eq.${encodeURIComponent(userId)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        nickname,
+        profile_image: profileImage,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.message || '프로필 저장에 실패했습니다.');
+  }
+}
+
 function getSupabaseRestUrl(path) {
   return `${SUPABASE_URL.replace(/\/$/, '')}${path}`;
 }
@@ -303,18 +435,30 @@ function redirectToMainPage() {
   }, 700);
 }
 
-async function redirectAfterAgreementCheck(accessToken, userId, redirectPath) {
-  const agreement = await getUserAgreement(accessToken, userId);
-  if (agreement) {
-    window.location.replace(redirectPath);
-    return;
-  }
-
-  openSocialAgreementModal({
+async function redirectAfterAgreementCheck(
+  accessToken,
+  userId,
+  redirectPath,
+  userData,
+) {
+  const context = {
     accessToken,
     userId,
     redirectPath,
-  });
+    userData,
+    requiresProfileSetup: requiresSocialProfileSetup(userData),
+  };
+  const agreement = await getUserAgreement(accessToken, userId);
+  if (agreement) {
+    if (context.requiresProfileSetup) {
+      await openSocialProfileModal(context);
+    } else {
+      window.location.replace(redirectPath);
+    }
+    return;
+  }
+
+  openSocialAgreementModal(context);
 }
 
 function getOAuthRedirectUrl() {
@@ -430,7 +574,12 @@ async function handleSubmit() {
       sessionStorage.setItem('sb_refresh_token', data.refresh_token || '');
       sessionStorage.setItem('sb_user', JSON.stringify(data.user || {}));
       const redirectPath = new URLSearchParams(window.location.search).get('redirect') || '../index.html';
-      await redirectAfterAgreementCheck(data.access_token, data.user?.id, redirectPath);
+      await redirectAfterAgreementCheck(
+        data.access_token,
+        data.user?.id,
+        redirectPath,
+        data.user,
+      );
     } else {
       const nickname = nicknameEl.value.trim();
       if (!nickname) {
@@ -479,7 +628,12 @@ async function handleOAuthReturn() {
     sessionStorage.setItem('sb_user', JSON.stringify(userData || {}));
 
     const redirectPath = state.redirect || '../index.html';
-    await redirectAfterAgreementCheck(accessToken, userData.id, redirectPath);
+    await redirectAfterAgreementCheck(
+      accessToken,
+      userData.id,
+      redirectPath,
+      userData,
+    );
   } catch (error) {
     showAlert(error?.message || '소셜 로그인 처리에 실패했습니다.');
   } finally {
@@ -542,14 +696,30 @@ socialAgreementConfirmBtn?.addEventListener('click', async () => {
     return;
   }
 
-  const { accessToken, userId, redirectPath } = pendingAgreementContext;
+  const {
+    accessToken,
+    userId,
+    redirectPath,
+    userData,
+    requiresProfileSetup,
+  } = pendingAgreementContext;
   socialAgreementConfirmBtn.disabled = true;
   socialAgreementConfirmBtn.textContent = '저장 중...';
 
   try {
     await saveUserAgreement(accessToken, userId);
     closeSocialAgreementModal();
-    window.location.replace(redirectPath || '../index.html');
+    if (requiresProfileSetup) {
+      await openSocialProfileModal({
+        accessToken,
+        userId,
+        redirectPath,
+        userData,
+        requiresProfileSetup,
+      });
+    } else {
+      window.location.replace(redirectPath || '../index.html');
+    }
   } catch (error) {
     showSocialAgreementAlert(error?.message || '약관 동의 정보를 저장하지 못했습니다.');
   } finally {
@@ -558,10 +728,76 @@ socialAgreementConfirmBtn?.addEventListener('click', async () => {
   }
 });
 
+socialProfileImageEl?.addEventListener('change', () => {
+  const [file] = socialProfileImageEl.files || [];
+  if (!file) return;
+
+  selectedSocialProfileFile = file;
+  const reader = new FileReader();
+  reader.addEventListener('load', () => {
+    socialProfilePreviewEl.src = String(reader.result || '');
+  });
+  reader.readAsDataURL(file);
+});
+
+socialProfileConfirmBtn?.addEventListener('click', async () => {
+  const nickname = socialProfileNicknameEl.value.trim();
+  if (!nickname) {
+    showSocialProfileAlert('닉네임을 입력해주세요.');
+    return;
+  }
+  if (!pendingProfileContext) {
+    showSocialProfileAlert('로그인 정보를 확인하지 못했습니다. 다시 로그인해주세요.');
+    return;
+  }
+
+  socialProfileConfirmBtn.disabled = true;
+  socialProfileConfirmBtn.textContent = '저장 중...';
+
+  try {
+    const { accessToken, userId, redirectPath, userData } =
+      pendingProfileContext;
+    let profileImage = socialProfilePreviewEl.src;
+
+    if (selectedSocialProfileFile) {
+      profileImage = await uploadSocialProfileImage(
+        accessToken,
+        userId,
+        selectedSocialProfileFile,
+      );
+    }
+
+    await saveSocialProfile({
+      accessToken,
+      userId,
+      nickname,
+      profileImage,
+    });
+
+    const storedUser = {
+      ...(userData || safeJson(sessionStorage.getItem('sb_user') || '{}')),
+    };
+    storedUser.user_metadata = {
+      ...(storedUser.user_metadata || {}),
+      nickname,
+      profile_image: profileImage,
+    };
+    sessionStorage.setItem('sb_user', JSON.stringify(storedUser));
+    window.location.replace(redirectPath || '../index.html');
+  } catch (error) {
+    showSocialProfileAlert(error?.message || '프로필 저장에 실패했습니다.');
+  } finally {
+    socialProfileConfirmBtn.disabled = false;
+    socialProfileConfirmBtn.textContent = '프로필 저장하고 시작하기';
+  }
+});
+
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
   closeAgreementModal();
-  closeSocialAgreementModal();
+  if (!socialProfileModalEl?.classList.contains('active')) {
+    closeSocialAgreementModal();
+  }
 });
 
 [emailEl, passwordEl, nicknameEl].forEach((el) => {

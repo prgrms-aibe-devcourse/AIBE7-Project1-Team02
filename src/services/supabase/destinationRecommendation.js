@@ -1,7 +1,41 @@
+const {
+  CONTENT_TYPE_RULES,
+  TEXT_RULES,
+} = require("../destination-processing/mbtiRules");
+
 const DEFAULT_LIMIT = 6;
 const MAX_LIMIT = 10;
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 24;
+const SUPPORTED_PROVINCES = [
+  "강원특별자치도",
+  "경기도",
+  "경상남도",
+  "경상북도",
+  "광주광역시",
+  "대구광역시",
+  "대전광역시",
+  "부산광역시",
+  "서울특별시",
+  "세종특별자치시",
+  "울산광역시",
+  "인천광역시",
+  "전라남도",
+  "전북특별자치도",
+  "제주특별자치도",
+  "충청남도",
+  "충청북도",
+];
+const SUPPORTED_KEYWORDS = [
+  ...new Set(
+    [
+      ...Object.values(CONTENT_TYPE_RULES),
+      ...TEXT_RULES,
+    ].flatMap((rule) => rule.keywords),
+  ),
+].sort((firstKeyword, secondKeyword) =>
+  firstKeyword.localeCompare(secondKeyword, "ko"),
+);
 const MBTI_TYPES = new Set([
   "ISTJ",
   "ISFJ",
@@ -179,35 +213,11 @@ async function getUserMbti({
   return preferenceRows[0]?.mbti_type || null;
 }
 
-async function getDestinationIdsByKeywords({
-  supabaseUrl,
-  headers,
-  keywords,
-  fetchImpl,
-}) {
-  if (keywords.length === 0) {
-    return null;
-  }
-
-  const keywordUrl = new URL("/rest/v1/destination_keywords", supabaseUrl);
-  keywordUrl.searchParams.set("select", "destination_id");
-  keywordUrl.searchParams.set("keyword", createInFilter(keywords));
-
-  const keywordRows = await requestSupabaseJson(fetchImpl, keywordUrl, headers);
-  return [
-    ...new Set(
-      keywordRows
-        .map((row) => row.destination_id)
-        .filter((destinationId) => destinationId !== null),
-    ),
-  ];
-}
-
 function createScoreUrl({
   supabaseUrl,
   mbtiType,
   provinces,
-  destinationIds,
+  keywords,
 }) {
   const scoreUrl = new URL(
     "/rest/v1/destination_mbti_scores",
@@ -231,6 +241,9 @@ function createScoreUrl({
           "province",
           "city",
           "image_url",
+          ...(keywords.length > 0
+            ? ["destination_keywords!inner(keyword)"]
+            : []),
         ].join(","),
         ")",
       ].join(""),
@@ -248,10 +261,10 @@ function createScoreUrl({
       createInFilter(provinces),
     );
   }
-  if (destinationIds) {
+  if (keywords.length > 0) {
     scoreUrl.searchParams.set(
-      "destination_id",
-      `in.(${destinationIds.join(",")})`,
+      "destinations.destination_keywords.keyword",
+      createInFilter(keywords),
     );
   }
 
@@ -337,36 +350,17 @@ async function getRecommendedDestinations({
     };
   }
 
-  const destinationIds = await getDestinationIdsByKeywords({
-    supabaseUrl,
-    headers,
-    keywords: normalizedKeywords,
-    fetchImpl,
-  });
   const isPaginated = page !== undefined || pageSize !== undefined;
   const currentPage = normalizePage(page);
   const normalizedPageSize = isPaginated
     ? normalizePageSize(pageSize)
     : normalizeLimit(limit);
 
-  if (destinationIds?.length === 0) {
-    return {
-      mbtiType,
-      recommendations: [],
-      pagination: {
-        page: currentPage,
-        pageSize: normalizedPageSize,
-        totalCount: 0,
-        totalPages: 0,
-      },
-    };
-  }
-
   const scoreUrl = createScoreUrl({
     supabaseUrl,
     mbtiType,
     provinces: normalizedProvinces,
-    destinationIds,
+    keywords: normalizedKeywords,
   });
   scoreUrl.searchParams.set("limit", String(normalizedPageSize));
 
@@ -443,47 +437,10 @@ async function getRecommendedDestinationFilters({
     };
   }
 
-  const scoreUrl = new URL(
-    "/rest/v1/destination_mbti_scores",
-    supabaseUrl,
-  );
-  scoreUrl.searchParams.set(
-    "select",
-    "destination_id,destinations!inner(province,image_url)",
-  );
-  scoreUrl.searchParams.set("mbti_type", `eq.${mbtiType}`);
-  // 이미지가 없는 관광지는 필터 옵션에서도 제외
-  scoreUrl.searchParams.set("destinations.image_url", "not.is.null");
-  scoreUrl.searchParams.set("limit", "1000");
-
-  const scoreRows = await requestSupabaseJson(fetchImpl, scoreUrl, headers);
-  const destinationIds = scoreRows
-    .map((row) => row.destination_id)
-    .filter((destinationId) => destinationId !== null);
-  const keywordMap = await getKeywordsByDestinationIds({
-    supabaseUrl,
-    headers,
-    destinationIds,
-    fetchImpl,
-  });
-
-  const provinces = [
-    ...new Set(
-      scoreRows.map((row) => row.destinations?.province).filter(Boolean),
-    ),
-  ].sort((firstProvince, secondProvince) =>
-    firstProvince.localeCompare(secondProvince, "ko"),
-  );
-  const keywords = [
-    ...new Set([...keywordMap.values()].flat().filter(Boolean)),
-  ].sort((firstKeyword, secondKeyword) =>
-    firstKeyword.localeCompare(secondKeyword, "ko"),
-  );
-
   return {
     mbtiType,
-    provinces,
-    keywords,
+    provinces: SUPPORTED_PROVINCES,
+    keywords: SUPPORTED_KEYWORDS,
   };
 }
 
@@ -495,4 +452,6 @@ module.exports = {
   normalizePage,
   normalizePageSize,
   normalizeFilterValues,
+  SUPPORTED_KEYWORDS,
+  SUPPORTED_PROVINCES,
 };

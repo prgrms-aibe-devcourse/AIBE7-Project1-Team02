@@ -128,7 +128,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   init().catch((error) => {
     console.error(error);
-    alert(error.message || "커뮤니티를 불러오지 못했습니다.");
+    window.PackingUI.alert(
+      error.message || "커뮤니티를 불러오지 못했습니다.",
+      {
+        type: "error",
+        title: "커뮤니티 조회 실패",
+      },
+    );
   });
 
   async function init() {
@@ -353,8 +359,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     els.detailDeleteBtn?.addEventListener("click", async () => {
       if (!state.detailPost) return;
-      if (!confirm("이 게시글을 삭제할까요? 삭제 후에는 복구할 수 없습니다."))
-        return;
+      const shouldDeletePost = await window.PackingUI.confirm(
+        "삭제한 게시글은 다시 복구할 수 없습니다.",
+        {
+          type: "danger",
+          title: "이 게시글을 삭제할까요?",
+          confirmText: "삭제하기",
+        },
+      );
+      if (!shouldDeletePost) return;
       await request(
         `${state.api.posts}?post_id=eq.${state.detailPost.post_id}&user_id=eq.${userId}`,
         {
@@ -1063,7 +1076,10 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     } else if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(url);
-      alert("공유 링크를 복사했습니다.");
+      await window.PackingUI.alert("공유 링크를 복사했습니다.", {
+        type: "success",
+        title: "링크 복사 완료",
+      });
     }
   }
 
@@ -1160,14 +1176,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
         tags.forEach((t) => {
           if (t.length > 10) {
-            alert(
+            window.PackingUI.alert(
               `태그는 최대 10자까지만 입력 가능합니다: '${t.slice(0, 10)}...'`,
+              {
+                type: "warning",
+                title: "태그 길이 확인",
+              },
             );
             return;
           }
           if (state.draftTags.length >= 5) {
             if (!countExceeded) {
-              alert("태그는 최대 5개까지만 등록할 수 있습니다.");
+              window.PackingUI.alert(
+                "태그는 최대 5개까지만 등록할 수 있습니다.",
+                {
+                  type: "warning",
+                  title: "태그 개수 확인",
+                },
+              );
               countExceeded = true;
             }
             return;
@@ -1266,7 +1292,13 @@ document.addEventListener("DOMContentLoaded", () => {
       /^image\/(png|jpe?g|webp)$/i.test(file.type),
     );
     if (!validFiles.length) {
-      alert("PNG, JPG, JPEG, WEBP 파일만 업로드할 수 있습니다.");
+      await window.PackingUI.alert(
+        "PNG, JPG, JPEG, WEBP 파일만 업로드할 수 있습니다.",
+        {
+          type: "warning",
+          title: "이미지 형식 확인",
+        },
+      );
       return;
     }
 
@@ -1274,7 +1306,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const filesToUpload = validFiles.slice(0, maxRemaining);
 
     if (validFiles.length > maxRemaining) {
-      alert(`사진은 최대 10장까지만 업로드할 수 있습니다. (초과된 파일 제외)`);
+      await window.PackingUI.alert(
+        "사진은 최대 10장까지만 업로드할 수 있습니다. 초과된 파일은 제외됩니다.",
+        {
+          type: "warning",
+          title: "사진 개수 확인",
+        },
+      );
     }
 
     for (const file of filesToUpload) {
@@ -1735,7 +1773,10 @@ document.addEventListener("DOMContentLoaded", () => {
           );
           const nextContent = input?.value.trim() || "";
           if (!nextContent) {
-            alert("댓글 내용을 입력해주세요.");
+            await window.PackingUI.alert("댓글 내용을 입력해주세요.", {
+              type: "warning",
+              title: "댓글 입력 확인",
+            });
             return;
           }
           await request(
@@ -1755,8 +1796,15 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
         if (action === "delete") {
-          if (!confirm("이 댓글을 삭제할까요? 삭제 후에는 복구할 수 없습니다."))
-            return;
+          const shouldDeleteComment = await window.PackingUI.confirm(
+            "삭제한 댓글은 다시 복구할 수 없습니다.",
+            {
+              type: "danger",
+              title: "이 댓글을 삭제할까요?",
+              confirmText: "삭제하기",
+            },
+          );
+          if (!shouldDeleteComment) return;
           await request(
             `${state.api.comments}?comment_id=eq.${encodeURIComponent(commentId)}&user_id=eq.${encodeURIComponent(userId)}`,
             {
@@ -1778,7 +1826,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const summaryText = els.postSummary.innerText.trim();
 
     if (!title || !summaryText) {
-      alert("제목과 후기는 필수입니다.");
+      await window.PackingUI.alert("제목과 후기는 필수입니다.", {
+        type: "warning",
+        title: "게시글 입력 확인",
+      });
       return;
     }
 
@@ -1789,7 +1840,13 @@ document.addEventListener("DOMContentLoaded", () => {
         : [];
 
     if (images.length === 0) {
-      alert("최소 한 장 이상의 사진을 업로드해주세요.");
+      await window.PackingUI.alert(
+        "최소 한 장 이상의 사진을 업로드해주세요.",
+        {
+          type: "warning",
+          title: "게시글 사진 확인",
+        },
+      );
       return;
     }
     const payload = {
@@ -1838,7 +1895,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const postId = state.activeCommentPostId || els.commentPostId.value;
     let content = els.commentTextarea.value.trim();
     if (!postId || !content) {
-      alert("댓글 내용을 입력해주세요.");
+      await window.PackingUI.alert("댓글 내용을 입력해주세요.", {
+        type: "warning",
+        title: "댓글 입력 확인",
+      });
       return;
     }
 

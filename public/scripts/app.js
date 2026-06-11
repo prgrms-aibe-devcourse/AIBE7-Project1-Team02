@@ -336,7 +336,10 @@ document.addEventListener("DOMContentLoaded", () => {
       setBookmarkButtonState(destinationDetailBookmark, destination);
       setBookmarkButtonState(featuredBookmarkButton, destination);
       lucide.createIcons();
-      alert(error.message);
+      window.PackingUI.alert(error.message, {
+        type: "error",
+        title: "북마크 처리 실패",
+      });
     }
   }
 
@@ -895,19 +898,19 @@ document.addEventListener("DOMContentLoaded", () => {
         {
           title: "제주 애월 바다",
           desc: "탁 트인 에메랄드빛 바다와 트렌디한 카페들이 모여있는 곳.",
-          img: "./images/jeju_night.png",
+          img: "./assets/images/jeju_night.png",
           score: 94,
         },
         {
           title: "부산 광안대교 야경",
           desc: "밤이 되면 더욱 화려해지는 바다와 로맨틱한 분위기.",
-          img: "./images/gwangalli.png",
+          img: "./assets/images/gwangalli.png",
           score: 88,
         },
         {
           title: "서울 북촌 한옥마을",
           desc: "현대적인 도심 속에서 느끼는 고즈넉한 전통의 매력.",
-          img: "./images/bukchon.png",
+          img: "./assets/images/bukchon.png",
           score: 82,
         },
       ];
