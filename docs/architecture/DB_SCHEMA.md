@@ -41,7 +41,13 @@ MBTI 16유형 적합도 점수를 Supabase에 적재했다.
 | `destination_keywords` | TourAPI 원본을 규칙으로 가공한 여행지 키워드를 관리한다. |
 | `destination_mbti_scores` | 여행지별 MBTI 16유형 적합도 점수를 관리한다. |
 | `user_bookmarks` | 사용자가 저장한 여행지를 관리한다. |
+| `community_posts` | 커뮤니티에 사용자가 작성한 게시물 정보를 관리한다. |
+| `community_comments` | 커뮤니티 게시물에 달린 댓글 정보를 관리한다. |
+| `community_likes` | 커뮤니티 게시물의 좋아요 내역을 관리한다. |
 | `community_comment_likes` | 사용자의 커뮤니티 댓글 좋아요 정보를 관리한다. |
+| `community_shares` | 커뮤니티 게시물의 공유 내역을 관리한다. |
+| `community_feed` | 피드 렌더링을 위해 게시물과 유저 성향을 조인한 뷰 (View) |
+| `community_tags_popular` | 인기 태그 집계를 위한 뷰 (View) |
 
 ## users
 
@@ -249,6 +255,71 @@ TourAPI 적재는 응답의 `totalCount`로 전체 페이지 수를 계산한 �
 | `created_at` | `timestamptz` | DEFAULT NOW | 생성 일시 |
 | `updated_at` | `timestamptz` | DEFAULT NOW | 수정 일시 |
 
+## community_posts
+
+커뮤니티에 사용자가 작성한 여행기나 게시물 정보를 저장한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `post_id` | `bigint` | PK, Identity | 게시물 식별자 |
+| `user_id` | `uuid` | FK, NOT NULL | 게시물을 작성한 사용자 (`auth.users.id` 참조) |
+| `nickname` | `varchar(100)` | NULL | 작성 당시 닉네임 캐싱 (빠른 조회를 위함) |
+| `profile_image` | `varchar(500)`| NULL | 작성 당시 프로필 이미지 캐싱 |
+| `title` | `varchar(255)` | NOT NULL | 게시물 제목 |
+| `content` | `text` | NOT NULL | 게시물 내용 (HTML 또는 텍스트) |
+| `tags` | `text` | NULL | 콤마 등으로 구분된 태그 목록 |
+| `image_urls` | `jsonb` | NULL | 업로드된 이미지 URL 목록 |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+| `updated_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 수정 일시 |
+
+## community_comments
+
+커뮤니티 게시물에 달린 댓글 정보를 저장한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `comment_id` | `bigint` | PK, Identity | 댓글 식별자 |
+| `post_id` | `bigint` | FK, NOT NULL | 댓글이 달린 게시물 (`community_posts.post_id` 참조) |
+| `user_id` | `uuid` | FK, NOT NULL | 댓글을 작성한 사용자 (`auth.users.id` 참조) |
+| `nickname` | `varchar(100)` | NULL | 작성 당시 닉네임 캐싱 |
+| `content` | `text` | NOT NULL | 댓글 내용 |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+| `updated_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 수정 일시 |
+
+## community_likes
+
+커뮤니티 게시물에 대한 사용자의 좋아요 내역을 저장한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `post_id` | `bigint` | PK, FK, NOT NULL | 좋아요 대상 게시물 (`community_posts.post_id` 참조, ON DELETE CASCADE) |
+| `user_id` | `uuid` | PK, FK, NOT NULL | 좋아요를 누른 사용자 (`auth.users.id` 참조, ON DELETE CASCADE) |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+
+복합 기본키(`post_id`, `user_id`)를 사용하여 한 사용자가 한 게시물에 한 번만 좋아요를 누를 수 있도록 한다.
+
+## community_shares
+
+커뮤니티 게시물에 대한 사용자의 공유 내역을 저장한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `share_id` | `bigint` | PK, Identity | 공유 식별자 |
+| `post_id` | `bigint` | FK, NOT NULL | 공유 대상 게시물 (`community_posts.post_id` 참조, ON DELETE CASCADE) |
+| `user_id` | `uuid` | FK, NOT NULL | 공유를 수행한 사용자 (`auth.users.id` 참조, ON DELETE CASCADE) |
+| `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
+
+## View: community_feed
+
+커뮤니티 피드를 그리기 위해 작성자의 최신 성향(칭호, MBTI)을 포함하여 게시물 정보를 제공하는 뷰이다.
+
+- `community_posts` 테이블과 `user_preferences` 테이블을 `user_id` 기준으로 조인하여 `badge`, `mbti_type` 컬럼을 함께 반환한다.
+- 프론트엔드에서는 뱃지와 MBTI 아이콘을 렌더링하기 위해 이 뷰를 직접 호출한다.
+
+## View: community_tags_popular
+
+사용자들이 커뮤니티 게시물에 사용한 태그들을 분리하고 집계하여, 많이 사용된 인기 태그 순위를 제공하는 뷰이다.
+
 ## 테이블 관계
 
 - `users` 1 : 1 `user_preferences`
@@ -269,6 +340,14 @@ TourAPI 적재는 응답의 `totalCount`로 전체 페이지 수를 계산한 �
   - 하나의 여행지는 여러 사용자의 북마크에 포함될 수 있다.
 - `trips` 1 : N `itineraries`
   - 하나의 여행은 여러 개의 세부 일정으로 구성된다.
+- `users` 1 : N `community_posts`
+  - 사용자 한 명은 여러 커뮤니티 게시물을 작성할 수 있다.
+- `community_posts` 1 : N `community_comments`
+  - 하나의 커뮤니티 게시물은 여러 댓글을 가질 수 있다.
+- `community_posts` 1 : N `community_likes`
+  - 하나의 커뮤니티 게시물은 여러 번 좋아요를 받을 수 있다.
+- `community_posts` 1 : N `community_shares`
+  - 하나의 커뮤니티 게시물은 여러 번 공유될 수 있다.
 
 ```mermaid
 erDiagram
@@ -281,6 +360,11 @@ erDiagram
     users ||--o{ user_bookmarks : bookmarks
     destinations ||--o{ user_bookmarks : saved_by
     trips ||--o{ itineraries : contains
+    users ||--o{ community_posts : posts
+    community_posts ||--o{ community_comments : receives
+    community_posts ||--o{ community_likes : receives
+    community_posts ||--o{ community_shares : receives
+    community_comments ||--o{ community_comment_likes : receives
 ```
 
 ## DBML
@@ -402,6 +486,58 @@ Ref: destinations.destination_id < destination_mbti_scores.destination_id
 Ref: users.user_id < user_bookmarks.user_id
 Ref: destinations.destination_id < user_bookmarks.destination_id
 Ref: trips.trip_id < itineraries.trip_id
+
+Table community_posts {
+  post_id bigint [pk, increment]
+  user_id uuid [not null]
+  nickname varchar(100)
+  profile_image varchar(500)
+  title varchar(255)
+  content text
+  tags text
+  image_urls jsonb
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table community_comments {
+  comment_id bigint [pk, increment]
+  post_id bigint [not null]
+  user_id uuid [not null]
+  nickname varchar(100)
+  content text [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Table community_likes {
+  post_id bigint [pk]
+  user_id uuid [pk]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table community_comment_likes {
+  comment_id bigint [pk]
+  user_id uuid [pk]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table community_shares {
+  share_id bigint [pk, increment]
+  post_id bigint [not null]
+  user_id uuid [not null]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Ref: users.user_id < community_posts.user_id
+Ref: community_posts.post_id < community_comments.post_id
+Ref: users.user_id < community_comments.user_id
+Ref: community_posts.post_id < community_likes.post_id
+Ref: users.user_id < community_likes.user_id
+Ref: community_comments.comment_id < community_comment_likes.comment_id
+Ref: users.user_id < community_comment_likes.user_id
+Ref: community_posts.post_id < community_shares.post_id
+Ref: users.user_id < community_shares.user_id
 ```
 
 ## 보안 정책
