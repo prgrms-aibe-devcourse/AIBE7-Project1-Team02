@@ -1,189 +1,228 @@
-# Tripadvisor AI Travel Planner
+# Packing
 
 ## 프로젝트 소개
 
-사용자의 성향과 여행 스타일을 분석해 개인에게 최적화된 여행지와 여행 일정을 추천하는 AI 기반 여행 플랫폼입니다.
+Packing은 여행 MBTI 성향을 바탕으로 국내 관광지를 추천하고, 선택한
+지역·기간·동행 유형·키워드에 맞는 여행 일정을 생성하는 웹 서비스입니다.
 
-기존 여행 플랫폼처럼 사용자가 직접 많은 정보를 검색하는 방식이 아니라, 회원가입 단계에서 성향을 먼저 진단하고 사용자에게 가장 적합한 여행지를 먼저 제안하는 것이 핵심 가치입니다.
-
-## MVP 서비스 범위
-
-MVP 단계에서는 대한민국 국내 여행만 지원합니다. 국내 관광지 정보는 한국관광공사 TourAPI 4.0 활용을 우선 고려하며, 해외 여행 추천은 국내 여행 플로우가 안정화된 이후 확장할 예정입니다.
+한국관광공사 TourAPI 4.0의 실제 관광지 데이터를 Supabase에 저장한 뒤
+서비스용 키워드와 MBTI 16유형 적합도 점수로 가공합니다. 추천과 일정
+생성은 DB에 존재하는 관광지를 기준으로 동작하여 임의의 장소 생성을
+줄였습니다.
 
 ## 기술 스택
 
-### Frontend
+- Frontend: HTML5, CSS3, Vanilla JavaScript
+- Backend: Node.js 20+, Express 5
+- Database/Auth/Storage: Supabase
+- AI: Google Gemini REST API, 규칙 기반 fallback 일정 생성기
+- External API: 한국관광공사 TourAPI 4.0, Kakao Maps JavaScript API
+- Deployment: Render
+- Test: Node.js Test Runner
 
-- HTML5
-- CSS3
-- JavaScript ES6+
+## 애플리케이션 구조
 
-### Backend
+`src/server.js`에서 Express 서버를 시작하고 `src/app.js`에서 미들웨어,
+정적 파일 및 `/api` 라우트를 등록합니다. 화면은 `public`에서 제공하고,
+데이터 처리와 인증이 필요한 기능은 API 또는 Supabase REST API로
+분리합니다.
 
-- Node.js
-- Express.js
-
-### Database
-
-- Supabase
-
-### Deployment
-
-- Render
-
-### AI 및 외부 API
-
-- OpenAI API Platform
-- Google Gemini 또는 Groq 등 대체 가능한 LLM API
-- Google Maps API
-- OpenWeather API
-- 한국관광공사 TourAPI 4.0
-- Unsplash Developers API
-
-AI Provider는 아직 확정되지 않았으며, 교체 가능한 서비스 구조로 구현합니다.
+```text
+project-root/
+├── public/
+│   ├── index.html
+│   ├── pages/
+│   ├── components/
+│   ├── scripts/
+│   ├── styles/
+│   └── assets/
+├── src/
+│   ├── routes/
+│   ├── services/
+│   ├── scripts/
+│   └── server.js
+├── supabase/migrations/
+├── test/
+└── docs/
+```
 
 ## 주요 기능
 
-### Flow A. 회원가입 및 사용자 성향 진단
+### 인증과 사용자 설정
 
-1. 아이디, 비밀번호, 닉네임 등 최소 정보로 계정을 생성합니다.
-2. 여행 체력/템포를 선택합니다.
-   - 아침 7시부터 움직이는 갓생형
-   - 여유롭게 일어나서 커피부터 찾는 힐링형
-3. 식요소(F&B) 민감도를 선택합니다.
-   - 1시간 웨이팅도 감수하는 핫플 탐험가
-   - 웨이팅은 질색, 발길 닿는 로컬 식당 선호
-4. 설문 결과에 따라 사용자 칭호를 부여하고 메인 대시보드로 이동합니다.
+- 이메일 회원가입 및 로그인
+- Google·Kakao OAuth 로그인
+- 이용약관·개인정보 처리방침 필수 동의
+- 최초 소셜 로그인 시 프로필 설정
+- 프로필 이미지·닉네임 수정
+- 사용자 활동 데이터 초기화 및 회원 탈퇴
 
-### Flow B. 여행 일정 생성
+### 여행 성향 분석
 
-1. 여행 도시, 시작일, 종료일, 동반자 유형을 입력합니다.
-2. 비주얼 키워드 칩을 렌더링합니다.
-   - 예: `#오션뷰`, `#인생샷`, `#레포츠`, `#뚜벅이`, `#맛집탐방`, `#야경명소`, `#힐링`, `#전통문화`
-3. 키워드는 최대 3개까지만 선택할 수 있습니다.
-4. 4번째 키워드 선택 시 "최대 3개까지만 선택 가능합니다" 툴팁을 표시하고 선택을 무효화합니다.
-5. 최소 1개 이상의 키워드가 선택되면 `내 맞춤 여행지 보기` 버튼을 활성화합니다.
+- 12개 문항, MBTI 4개 축별 3문항
+- 활동/휴식, 전통/탐험, 효율/감성, 계획/즉흥 점수 계산
+- 여행 MBTI 결과와 여행가 칭호 저장
 
-## 현재 구현 현황
+### 여행지 추천
 
-2026년 6월 8일 `feature/destination-data` 브랜치 기준 현황입니다.
+- 로그인 사용자는 저장된 여행 MBTI 기준 TOP 10 추천
+- 비로그인 사용자는 INFP 공개 추천 목록 제공
+- 전체 목록은 12개 단위 페이지네이션
+- 지역·키워드 복수 선택 필터
+- 여행지 상세 모달과 북마크
+- 이미지가 없는 관광지는 추천 화면에서 제외
 
-- TourAPI 콘텐츠 유형 6종에서 국내 관광지 600개 수집
-- 관광지 기본 정보와 상세 설명을 Supabase `destinations`에 저장
-- 규칙 기반 통제 키워드를 `destination_keywords`에 저장
-- 관광지별 MBTI 16유형 적합도 점수를 `destination_mbti_scores`에 저장
-- 설명 보강 후 전체 관광지의 키워드와 MBTI 점수를 재계산
-- 여행지 데이터 가공 단위 테스트 4건 통과
+### 여행 일정
 
-현재 Express API는 `GET /api/health`, `GET /api/config`,
-`GET /api/destinations/recommended`를 제공합니다. 메인 페이지는 로그인
-사용자의 여행 MBTI를 기준으로 Supabase에 저장된 관광지 적합도 점수
-상위 6개를 표시합니다.
+- 최대 7일 일정 생성
+- 지역, 동행 유형, 선택 키워드 최대 3개 반영
+- 이미지가 있는 실제 관광지만 후보로 사용
+- 같은 관광지 중복 배치 방지
+- 하루 최소 1개, 최대 3개 관광지 배치
+- 좌표 기반 근거리 그룹화
+- Gemini 실패 시 규칙 기반 fallback 일정 반환
+- 일정 상태: 시작 전, 진행 중, 완료
+- 날짜별 관광지와 Kakao 지도 마커 표시
+- 일정 저장·조회·상태 변경·삭제
 
-## AI 추천 알고리즘
+### 마이페이지와 커뮤니티
 
-추천 점수는 아래 기준으로 계산합니다.
+- 북마크 관광지 목록 및 상세 모달
+- 최근 완료한 여행 표시
+- 약관 및 개인정보 처리방침 확인
+- 게시글, 댓글, 좋아요, 공유 기반 커뮤니티
 
-```text
-추천 점수 = 성향 적합도 60% + 계절&날씨 적합도 20% + 동행자 적합도 20%
-```
+## 현재 구현 상태
 
-일정 생성 흐름은 아래 순서를 따릅니다.
+2026년 6월 11일 기준 인증, 성향 분석, MBTI 여행지 추천, 전체 탐색,
+북마크, 일정 생성·저장·확인, 커뮤니티, 마이페이지의 MVP 흐름이
+구현되어 있습니다.
 
-```text
-관광지 데이터 조회 -> 이동시간 계산 -> 동선 정렬 -> 마이페이지 저장 및 수정
-```
-
-AI 환각을 줄이기 위해 국내 관광 데이터는 TourAPI 등 신뢰 가능한 실제 데이터를 우선 조회하고, AI에는 실제 데이터와 사용자 조건을 함께 전달합니다.
+현재 일정 저장은 `trips`와 `trip_plans`·`trip_plan_items`를 함께
+사용하는 과도기 구조이며, 배포 안정화 이후 단일 일정 모델로 통합할
+예정입니다. AI 호출도 현재 `travel` route에 포함되어 있어 향후
+`src/services/ai` Provider 구조로 분리하는 작업이 남아 있습니다.
 
 ## 팀원 역할
 
 | 역할 | 담당 업무 |
 | --- | --- |
-| 기획 | 사용자 플로우, 요구사항, AI 프롬프트 방향 정의 |
-| 프론트엔드 | 회원가입/설문 UI, 일정 생성 UI, 키워드 칩 선택 로직 |
-| 백엔드 | Express API, Supabase 연동, 외부 API 통합 |
-| 인프라 | Render 배포, 환경 변수 관리, 라이브 확인 |
+| 기획 | 사용자 흐름, 화면 요구사항, 추천 기준 정의 |
+| 프론트엔드 | 공통 레이아웃, 추천·설문·일정·커뮤니티 UI |
+| 백엔드 | Express API, Supabase 연동, 일정·추천 로직 |
+| 데이터 | TourAPI 수집, 키워드 분류, MBTI 점수 가공 |
+| 인프라·QA | Render 배포, 환경 변수, OAuth·RLS·통합 검증 |
 
 ## 실행 방법
-
-의존성을 설치한 뒤 Express 서버를 실행합니다.
 
 ```bash
 npm install
 npm start
 ```
 
-기본 접속 주소는 `http://localhost:3000`이며, `.env`의 `PORT` 값으로
-변경할 수 있습니다. 서버 상태는 `GET /api/health`에서 확인합니다.
+개발 중 파일 변경 감지는 다음 명령을 사용합니다.
+
+```bash
+npm run dev
+```
+
+기본 주소는 `http://localhost:3000`입니다.
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+## 테스트
+
+```bash
+npm test
+```
+
+현재 테스트는 관광지 정규화·MBTI 가공, 추천 조회, TourAPI 분산 수집,
+일정 후보 선정·fallback 배치, 사용자 데이터 삭제 순서를 검증합니다.
 
 ## 환경 변수
 
-민감 정보는 `.env` 파일 또는 Render Environment Variables에서 관리합니다.
-
 ```env
 PORT=3000
+
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-AI_PROVIDER=
-AI_API_KEY=
-OPENAI_API_KEY=
+
 GEMINI_API_KEY=
-GROQ_API_KEY=
-GOOGLE_MAPS_API_KEY=
-OPENWEATHER_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash-lite
+
+KAKAO_JAVASCRIPT_KEY=
 TOUR_API_KEY=
-UNSPLASH_ACCESS_KEY=
+
+TOUR_API_REGIONS=
+TOUR_API_PAGE_SIZE=50
+TOUR_API_MAX_PAGES=3
+TOUR_API_REQUEST_DELAY_MS=150
 ```
 
-`.env` 파일은 GitHub에 올리지 않습니다.
-`SUPABASE_SERVICE_ROLE_KEY`는 여행지 적재 스크립트에서만 사용하며
-브라우저에 전달하거나 공개 저장소에 기록하지 않습니다.
+- `SUPABASE_ANON_KEY`: 브라우저와 로그인 사용자 RLS 요청에 사용합니다.
+- `SUPABASE_SERVICE_ROLE_KEY`: 관광지 적재, 데이터 초기화, 회원 탈퇴 등
+  서버 관리자 작업에만 사용합니다.
+- `GEMINI_API_KEY`: 일정 생성 API의 AI 호출에 사용합니다.
+- `KAKAO_JAVASCRIPT_KEY`: 브라우저 지도 SDK 로드에 사용합니다.
+- `TOUR_API_KEY`: 관광지 수집 및 설명 조회에 사용합니다.
 
-## 여행지 데이터 가공
+`.env`와 Service Role Key는 GitHub 또는 브라우저에 노출하지 않습니다.
+Render에도 동일한 환경 변수를 등록해야 합니다.
 
-여행지 데이터는 저장소의 정적 JSON 파일이 아니라 Supabase에 저장합니다.
+## 관광지 데이터 적재
 
 ```bash
-node src/scripts/importTourData.js
+npm run import:tour
+```
+
+특정 지역만 적재하는 예시:
+
+```bash
+TOUR_API_REGIONS=서울특별시,부산광역시 npm run import:tour
+```
+
+전체 페이지를 분산 제한 없이 조회하려면 다음과 같이 실행합니다. 무료
+TourAPI 호출량을 크게 사용할 수 있으므로 주의해야 합니다.
+
+```bash
+TOUR_API_MAX_PAGES=0 npm run import:tour
+```
+
+보조 스크립트:
+
+```bash
 node src/scripts/fillDescriptions.js
 node src/scripts/recalculateMbti.js
 ```
 
-실행 순서는 TourAPI 기본 데이터 적재, 누락 설명 보강, 키워드 및 MBTI
-점수 재계산 순서입니다. 세부 규칙은
-[Data Processing](./docs/architecture/DATA_PROCESSING.md)을 참고합니다.
+세부 처리 규칙은
+[DATA_PROCESSING.md](./docs/architecture/DATA_PROCESSING.md)를 참고합니다.
 
-## Documentation
+## 문서
 
-### Architecture
-
-- [DB Schema](./docs/architecture/DB_SCHEMA.md)
-- [API Specification](./docs/architecture/API_SPEC.md)
-- [Data Processing](./docs/architecture/DATA_PROCESSING.md)
-
-### Design
-
-- [Design System](./docs/design/DESIGN_SYSTEM.md)
-- [Page Specification](./docs/design/PAGE_SPEC.md)
-
-### Project Management
-
+- [DB 구조](./docs/architecture/DB_SCHEMA.md)
+- [API 명세](./docs/architecture/API_SPEC.md)
+- [관광지 데이터 가공](./docs/architecture/DATA_PROCESSING.md)
+- [페이지 명세](./docs/design/PAGE_SPEC.md)
+- [디자인 시스템](./docs/design/DESIGN_SYSTEM.md)
 - [WBS](./docs/management/WBS.md)
+- [트러블 슈팅](./docs/troubleshooting.md)
 
-현재 스키마는 사용자, 여행, 관광지 가공 데이터를 포함한 8개 테이블을
-사용합니다. 자세한 구조와 관계는
-[DB Schema](./docs/architecture/DB_SCHEMA.md)를 참고합니다.
+## 배포
 
-## 트러블 슈팅
+Render Web Service의 Build Command는 `npm install`, Start Command는
+`npm start`를 사용합니다. 배포 브랜치는 `main`이며, 배포 전 로컬 테스트와
+환경 변수 등록을 확인합니다.
 
-| 문제 | 원인 | 해결 방법 |
-| --- | --- | --- |
-| 외부 API 호출 실패 | API Key 누락 또는 환경 변수 오타 | `.env`와 Render Environment Variables 값을 확인 |
-| AI가 없는 장소를 추천 | 실제 관광 데이터 없이 AI 단독 응답 사용 | TourAPI 조회 결과를 프롬프트에 주입 |
-| 키워드 4개 이상 선택됨 | 프론트엔드 선택 제한 로직 누락 | Vanilla JS에서 선택 개수 검증 및 툴팁 표시 |
+배포 URL은 팀에서 운영 중인 Render 서비스 주소를 기재합니다.
 
-## 배포 주소
+## 향후 발전
 
-추후 Render 배포 완료 후 서비스 URL을 기재합니다.
+- `trips`와 `trip_plans` 일정 모델 통합
+- AI Provider 교체가 가능한 `src/services/ai` 구조 도입
+- TourAPI 정기 갱신 자동화
+- 실제 이동 시간, 운영 시간, 날씨를 반영한 경로 최적화
+- 북마크·일정 완료 기록을 활용한 개인화 점수 보정
