@@ -308,9 +308,13 @@ Request:
 
 ```json
 {
-  "userId": "traveler01",
+  "email": "traveler@example.com",
   "password": "password1234",
-  "nickname": "여행자"
+  "nickname": "여행자",
+  "agreements": {
+    "terms": true,
+    "privacy": true
+  }
 }
 ```
 
@@ -320,7 +324,7 @@ Response:
 {
   "success": true,
   "data": {
-    "userId": "traveler01",
+    "email": "traveler@example.com",
     "nickname": "여행자"
   },
   "message": "회원가입 성공"
@@ -332,9 +336,15 @@ Error Case:
 ```json
 {
   "success": false,
-  "message": "이미 사용 중인 아이디입니다."
+  "message": "이용약관과 개인정보 처리방침에 동의해주세요."
 }
 ```
+
+Implementation Note:
+
+- 현재 로그인/회원가입 화면은 `/api/config`에서 Supabase URL과 Anon Key를 받은 뒤 Supabase Auth REST API를 직접 호출한다.
+- 회원가입은 가입 요청 전 필수 동의를 확인하고, 로그인 및 소셜 로그인은 인증 완료 후 동의 이력이 없을 때 필수 동의 모달을 표시한다.
+- 동의 이력은 로그인 사용자의 토큰으로 `user_agreements`에 저장한다.
 
 ### POST /api/user/preference
 
