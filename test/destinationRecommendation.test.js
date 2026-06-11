@@ -2,12 +2,15 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const {
+  getRecommendedDestinationFilters,
   getRecommendedDestinations,
   normalizeLimit,
   normalizeMbtiType,
   normalizeFilterValues,
   normalizePage,
   normalizePageSize,
+  SUPPORTED_KEYWORDS,
+  SUPPORTED_PROVINCES,
 } = require("../src/services/supabase/destinationRecommendation");
 
 function createJsonResponse(body, status = 200, contentRange = "") {
@@ -154,11 +157,28 @@ test("복수 필터 값을 중복 없이 정규화한다", () => {
   );
 });
 
+test("필터 옵션은 대량 관광지 조회 없이 서버의 지원 목록을 반환한다", async () => {
+  const requestedUrls = [];
+  const result = await getRecommendedDestinationFilters({
+    supabaseUrl: "https://example.supabase.co",
+    anonKey: "anon-key",
+    mbtiType: "INFP",
+    fetchImpl: async (url) => {
+      requestedUrls.push(String(url));
+      return createJsonResponse([]);
+    },
+  });
+
+  assert.deepEqual(result.provinces, SUPPORTED_PROVINCES);
+  assert.deepEqual(result.keywords, SUPPORTED_KEYWORDS);
+  assert.equal(requestedUrls.length, 0);
+  assert.ok(result.keywords.includes("힐링"));
+});
+
 test("복수 지역과 키워드 조건을 적용하고 전체 개수를 포함해 페이지 조회한다", async () => {
   const requestedUrls = [];
   const responses = [
     createJsonResponse([{ mbti_type: "INFP" }]),
-    createJsonResponse([{ destination_id: 3 }]),
     createJsonResponse(
       [
         {
@@ -203,14 +223,17 @@ test("복수 지역과 키워드 조건을 적용하고 전체 개수를 포함�
     totalCount: 37,
     totalPages: 4,
   });
-  assert.match(requestedUrls[1], /keyword=in\./);
+  assert.match(
+    requestedUrls[1],
+    /destinations\.destination_keywords\.keyword=in\./,
+  );
   assert.match(requestedUrls[1], /%ED%9E%90%EB%A7%81/);
   assert.match(requestedUrls[1], /%EC%9E%90%EC%97%B0/);
-  assert.match(requestedUrls[2], /destinations%21inner/);
-  assert.match(requestedUrls[2], /destinations\.province=in\./);
-  assert.match(requestedUrls[2], /%EC%A0%9C%EC%A3%BC/);
-  assert.match(requestedUrls[2], /%EC%84%9C%EC%9A%B8/);
-  assert.match(requestedUrls[2], /destination_id=in\.%283%29/);
-  assert.match(requestedUrls[2], /limit=12/);
-  assert.match(requestedUrls[2], /offset=12/);
+  assert.match(requestedUrls[1], /destinations%21inner/);
+  assert.match(requestedUrls[1], /destinations\.province=in\./);
+  assert.match(requestedUrls[1], /%EC%A0%9C%EC%A3%BC/);
+  assert.match(requestedUrls[1], /%EC%84%9C%EC%9A%B8/);
+  assert.match(requestedUrls[1], /limit=12/);
+  assert.match(requestedUrls[1], /offset=12/);
+  assert.doesNotMatch(requestedUrls[1], /destination_id=in\./);
 });

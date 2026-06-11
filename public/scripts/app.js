@@ -336,7 +336,10 @@ document.addEventListener("DOMContentLoaded", () => {
       setBookmarkButtonState(destinationDetailBookmark, destination);
       setBookmarkButtonState(featuredBookmarkButton, destination);
       lucide.createIcons();
-      alert(error.message);
+      window.PackingUI.alert(error.message, {
+        type: "error",
+        title: "북마크 처리 실패",
+      });
     }
   }
 

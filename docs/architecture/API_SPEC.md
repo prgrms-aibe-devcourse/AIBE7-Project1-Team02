@@ -184,8 +184,9 @@ Error Case:
 
 ### GET /api/destinations/recommended/filters
 
-로그인 사용자의 여행 MBTI 추천 데이터 또는 공개 조회용 `mbtiType`에
-존재하는 광역시/도와 키워드 목록을 반환한다.
+로그인 사용자의 여행 MBTI 또는 공개 조회용 `mbtiType`과 함께
+서비스에서 지원하는 광역시/도와 규칙 기반 키워드 목록을 반환한다.
+필터 옵션 생성 시 관광지 점수 및 키워드 전체를 조회하지 않는다.
 
 Request Header:
 
@@ -345,6 +346,7 @@ Implementation Note:
 - 현재 로그인/회원가입 화면은 `/api/config`에서 Supabase URL과 Anon Key를 받은 뒤 Supabase Auth REST API를 직접 호출한다.
 - 회원가입은 가입 요청 전 필수 동의를 확인하고, 로그인 및 소셜 로그인은 인증 완료 후 동의 이력이 없을 때 필수 동의 모달을 표시한다.
 - 동의 이력은 로그인 사용자의 토큰으로 `user_agreements`에 저장한다.
+- 구글·카카오 소셜 로그인은 약관 확인 직후 프로필 설정을 필수로 진행하며, `users`의 `nickname`, `profile_image`를 갱신한 뒤 원래 요청 페이지로 이동한다.
 
 ### POST /api/user/preference
 

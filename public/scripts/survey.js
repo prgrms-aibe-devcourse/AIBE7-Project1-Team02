@@ -321,7 +321,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!res.ok) {
         const errorData = await res.json();
         console.error("MBTI 저장 실패:", JSON.stringify(errorData, null, 2));
-        alert("저장 실패: " + (errorData.message || JSON.stringify(errorData)));
+        await window.PackingUI.alert(
+          "저장 실패: " + (errorData.message || JSON.stringify(errorData)),
+          {
+            type: "error",
+            title: "성향 분석 저장 실패",
+          },
+        );
       } else {
         console.log("여행 성향 결과 저장 완료:", mbtiType);
       }

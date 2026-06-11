@@ -259,7 +259,10 @@ document.addEventListener("DOMContentLoaded", () => {
         ? bookmarkedDestinationIds.add(destinationId)
         : bookmarkedDestinationIds.delete(destinationId);
       updateRenderedBookmarkButtons(destination);
-      alert(error.message);
+      window.PackingUI.alert(error.message, {
+        type: "error",
+        title: "북마크 처리 실패",
+      });
     }
   }
 

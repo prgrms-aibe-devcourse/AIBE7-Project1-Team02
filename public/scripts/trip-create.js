@@ -166,7 +166,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   init().catch((error) => {
     console.error(error);
-    alert(error.message || "일정 생성 화면을 불러오지 못했습니다.");
+    window.PackingUI.alert(
+      error.message || "일정 생성 화면을 불러오지 못했습니다.",
+      {
+        type: "error",
+        title: "일정 생성 화면 오류",
+      },
+    );
   });
 
   async function init() {
@@ -332,24 +338,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     const _accessToken = authToken;
 
     if (!startDate || !endDate) {
-      alert("여행 시작일과 종료일을 입력해주세요.");
+      window.PackingUI.alert("여행 시작일과 종료일을 입력해주세요.", {
+        type: "warning",
+        title: "여행 날짜 확인",
+      });
       return;
     }
 
     if (new Date(endDate) < new Date(startDate)) {
-      alert("종료일은 시작일보다 빠를 수 없습니다.");
+      window.PackingUI.alert("종료일은 시작일보다 빠를 수 없습니다.", {
+        type: "warning",
+        title: "여행 날짜 확인",
+      });
       return;
     }
 
     if (calculateTripDays(startDate, endDate) > MAX_TRIP_DAYS) {
-      alert(
+      window.PackingUI.alert(
         `현재 관광지 데이터 기준으로 최대 ${MAX_TRIP_DAYS}일 일정까지만 생성할 수 있습니다.`,
+        {
+          type: "warning",
+          title: "여행 기간 확인",
+        },
       );
       return;
     }
 
     if (!Number.isFinite(peopleCount) || peopleCount < 1) {
-      alert("동행 유형을 선택해주세요.");
+      window.PackingUI.alert("동행 유형을 선택해주세요.", {
+        type: "warning",
+        title: "동행 유형 확인",
+      });
       return;
     }
 
@@ -401,7 +420,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     } catch (error) {
       console.error(error);
-      alert(error.message || "일정 생성 중 오류가 발생했습니다.");
+      await window.PackingUI.alert(
+        error.message || "일정 생성 중 오류가 발생했습니다.",
+        {
+          type: "error",
+          title: "일정 생성 실패",
+        },
+      );
     } finally {
       setLoading(false);
     }
@@ -1039,12 +1064,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function handleSaveTrip() {
     if (!latestPlanPayload) {
-      alert("저장할 일정이 없습니다. 먼저 일정을 생성해주세요.");
+      await window.PackingUI.alert(
+        "저장할 일정이 없습니다. 먼저 일정을 생성해주세요.",
+        {
+          type: "warning",
+          title: "저장할 일정 없음",
+        },
+      );
       return;
     }
 
     if (!currentUser.id) {
-      alert("로그인 정보를 확인할 수 없습니다. 다시 로그인해 주세요.");
+      await window.PackingUI.alert(
+        "로그인 정보를 확인할 수 없습니다. 다시 로그인해 주세요.",
+        {
+          type: "error",
+          title: "로그인 정보 확인",
+        },
+      );
       return;
     }
 
@@ -1075,10 +1112,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const saveResult = await saveTripToSupabase(savePayload);
       console.log("여행 일정 저장 완료:", saveResult);
-      alert("여행 일정이 저장되었습니다.");
+      await window.PackingUI.alert("여행 일정이 저장되었습니다.", {
+        type: "success",
+        title: "일정 저장 완료",
+      });
     } catch (error) {
       console.error(error);
-      alert(error.message || "일정 저장 중 오류가 발생했습니다.");
+      await window.PackingUI.alert(
+        error.message || "일정 저장 중 오류가 발생했습니다.",
+        {
+          type: "error",
+          title: "일정 저장 실패",
+        },
+      );
     } finally {
       setSaveButtonState(false);
     }

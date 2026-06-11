@@ -337,6 +337,69 @@
       </section>
     </div>
 
+    <div
+      id="socialProfileModal"
+      class="auth-modal"
+      aria-hidden="true"
+    >
+      <section
+        class="auth-modal-dialog auth-modal-dialog-compact"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="socialProfileTitle"
+      >
+        <header class="auth-modal-header">
+          <div>
+            <span class="recommendation-eyebrow">PROFILE</span>
+            <h2 id="socialProfileTitle">프로필 설정</h2>
+            <p>
+              서비스에서 사용할 닉네임과 프로필 이미지를 설정해주세요.
+            </p>
+          </div>
+        </header>
+        <div class="auth-modal-body">
+          <p id="socialProfileAlert" class="auth-modal-alert"></p>
+          <div class="auth-profile-editor">
+            <label
+              class="auth-profile-image-picker"
+              for="socialProfileImage"
+            >
+              <img
+                id="socialProfilePreview"
+                alt="프로필 이미지 미리보기"
+              />
+              <span>이미지 선택</span>
+            </label>
+            <input
+              id="socialProfileImage"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+            />
+            <label class="auth-profile-field">
+              <span>닉네임</span>
+              <input
+                id="socialProfileNickname"
+                type="text"
+                maxlength="100"
+                placeholder="서비스에서 사용할 닉네임"
+                autocomplete="nickname"
+              />
+            </label>
+          </div>
+        </div>
+        <footer class="auth-modal-footer">
+          <button
+            id="socialProfileConfirm"
+            class="btn-primary"
+            type="button"
+          >
+            프로필 저장하고 시작하기
+          </button>
+        </footer>
+      </section>
+    </div>
+
     <script src="/scripts/layout.js"></script>
     <script src="../scripts/login.js"></script>
   </body>
