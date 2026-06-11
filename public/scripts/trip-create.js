@@ -70,8 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     currentUser = JSON.parse(sessionStorage.getItem(AUTH_KEYS.user) || "{}");
   } catch (e) {}
-  // 사용자 ID : currentUser.id
-  // MBTI Type : userMbtiType
+
   await loadConfig();
 
   const headers = {
@@ -132,8 +131,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     saveBtn: document.getElementById("plan-save-btn"),
     editBtn: document.getElementById("plan-edit-btn"),
     generatedDayModal: document.getElementById("generated-day-modal"),
-    generatedDayModalClose: document.getElementById("generated-day-modal-close"),
-    generatedDayModalTitle: document.getElementById("generated-day-modal-title"),
+    generatedDayModalClose: document.getElementById(
+      "generated-day-modal-close",
+    ),
+    generatedDayModalTitle: document.getElementById(
+      "generated-day-modal-title",
+    ),
     generatedDayModalPeriod: document.getElementById(
       "generated-day-modal-period",
     ),
@@ -177,7 +180,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     els.startDate?.addEventListener("change", updateEndDateLimit);
     els.saveBtn?.addEventListener("click", handleSaveTrip);
     els.editBtn?.addEventListener("click", showInputView);
-    els.generatedDayModalClose?.addEventListener("click", closeGeneratedDayModal);
+    els.generatedDayModalClose?.addEventListener(
+      "click",
+      closeGeneratedDayModal,
+    );
     els.generatedDayModal?.addEventListener("click", (event) => {
       if (event.target === els.generatedDayModal) {
         closeGeneratedDayModal();
@@ -287,9 +293,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (els.selectedDestinationName)
       els.selectedDestinationName.textContent =
         activeDestination.destinationName || "선택한 여행지";
-    if (els.selectedDestinationAddress)
+    if (els.selectedDestinationAddress) {
       els.selectedDestinationAddress.textContent =
         activeDestination.address || "";
+
+      const dt = els.selectedDestinationAddress.textContent;
+      const dts = dt.split(" ");
+
+      selectedRegion = dts[0];
+      renderRegionSummary();
+    }
     if (els.selectedDestinationKeywords) {
       const keywords = Array.isArray(activeDestination.keywords)
         ? activeDestination.keywords
@@ -314,6 +327,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const destinationId = Number.isFinite(activeDestination.destinationId)
       ? activeDestination.destinationId
       : null;
+    const userId = currentUser.id;
+    const _accessToken = authToken;
 
     if (!startDate || !endDate) {
       alert("여행 시작일과 종료일을 입력해주세요.");
@@ -366,6 +381,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           region,
           memo,
           destinationId,
+          userId,
+          accessToken: _accessToken,
         }),
       });
 
@@ -478,8 +495,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         els.generatedDayModalTitle.textContent = `DAY ${selectedDayNumber} 일정과 루트`;
       }
       if (els.generatedDayModalPeriod) {
-        els.generatedDayModalPeriod.textContent =
-          `${selectedItems.length}곳의 추천 여행지`;
+        els.generatedDayModalPeriod.textContent = `${selectedItems.length}곳의 추천 여행지`;
       }
       if (!els.generatedDayModalBody) return;
 
@@ -508,14 +524,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         </section>
       `;
 
-      els.generatedDayModalBody.querySelectorAll("[data-item-id]").forEach((card) => {
-        card.addEventListener("click", () => {
-          selectedItemId =
-            selectedItemId === card.dataset.itemId ? null : card.dataset.itemId;
-          renderModalBody();
-          mapController?.focusItem(selectedItemId);
+      els.generatedDayModalBody
+        .querySelectorAll("[data-item-id]")
+        .forEach((card) => {
+          card.addEventListener("click", () => {
+            selectedItemId =
+              selectedItemId === card.dataset.itemId
+                ? null
+                : card.dataset.itemId;
+            renderModalBody();
+            mapController?.focusItem(selectedItemId);
+          });
         });
-      });
 
       window.lucide?.createIcons();
 
@@ -590,9 +610,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function getGeneratedItemAddress(item) {
     return (
-      item.address ||
-      [item.province, item.city].filter(Boolean).join(" ") ||
-      ""
+      item.address || [item.province, item.city].filter(Boolean).join(" ") || ""
     );
   }
 
@@ -636,7 +654,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           new Promise((resolve, reject) => {
             const appKey = result.data?.kakaoJavascriptKey;
             if (!appKey) {
-              reject(new Error("카카오맵 JavaScript 키가 설정되지 않았습니다."));
+              reject(
+                new Error("카카오맵 JavaScript 키가 설정되지 않았습니다."),
+              );
               return;
             }
 
@@ -903,7 +923,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       button.className = "trip-region-option trip-companion-option";
       button.type = "button";
       button.textContent = option.label;
-      button.classList.toggle("selected", draftCompanion.label === option.label);
+      button.classList.toggle(
+        "selected",
+        draftCompanion.label === option.label,
+      );
       button.setAttribute(
         "aria-pressed",
         draftCompanion.label === option.label ? "true" : "false",
@@ -1064,7 +1087,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function saveTripToSupabase(savePayload) {
     await loadConfig();
-
+    debugger;
+    /*
     const existingPlanId =
       savePayload?.itinerary?.trip?.planId ||
       savePayload?.itinerary?.trip?.plan_id;
@@ -1082,7 +1106,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         ),
       };
     }
-
+    */
+    debugger;
     const authToken = sessionStorage.getItem("sb_access_token") || "";
     const supabaseHeaders = {
       apikey: SUPABASE_ANON_KEY,
@@ -1165,10 +1190,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         ? savePayload.itinerary
         : [];
 
-    for (const idx = 0; idx < days.length; idx++) {
+    for (let idx = 0; idx < days.length; idx++) {
       const day = days[idx] || {};
       const items = Array.isArray(day.items) ? day.items : [];
-      for (const _idx = 0; _idx < items.length; _idx++) {
+      for (let _idx = 0; _idx < items.length; _idx++) {
         const item = items[_idx];
 
         const planInsertPayload = {
@@ -1176,7 +1201,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           user_id: savePayload.userId,
           day_number: idx + 1,
           order_index: _idx + 1,
-          memo: idx + 1 + "번째 날 " + _idx + 1 + " 번째 방문지",
+          memo: idx + 1 + " 일차 " + (_idx + 1) + " 번째 목적지",
           destination_id: item.destinationId,
         };
 
