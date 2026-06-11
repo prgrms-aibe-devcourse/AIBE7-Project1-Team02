@@ -1891,7 +1891,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function handleCommentSubmit(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    if (state.isSubmittingComment) return;
+
     const postId = state.activeCommentPostId || els.commentPostId.value;
     let content = els.commentTextarea.value.trim();
     if (!postId || !content) {
@@ -1902,56 +1904,62 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (state.replyingToCommentId) {
-      const parent = state.comments.find(
-        (c) => String(c.comment_id) === String(state.replyingToCommentId),
-      );
-      const expectedPrefix = parent ? `@${parent.nickname || "사용자"}` : "";
-      if (content.startsWith(expectedPrefix) || content.startsWith("@")) {
-        content += `\n<!--reply:${state.replyingToCommentId}-->`;
-      } else {
-        state.replyingToCommentId = null;
-      }
-    }
+    try {
+      state.isSubmittingComment = true;
 
-    if (state.editingCommentId) {
-      const target = state.comments.find(
-        (r) => String(r.comment_id) === String(state.editingCommentId),
-      );
-      if (target) {
-        await request(
-          `${state.api.comments}?comment_id=eq.${encodeURIComponent(target.comment_id)}&user_id=eq.${encodeURIComponent(userId)}`,
-          {
-            method: "PATCH",
-            headers: { Prefer: "return=representation" },
-            body: JSON.stringify({
-              content,
-              updated_at: new Date().toISOString(),
-            }),
-          },
+      if (state.replyingToCommentId) {
+        const parent = state.comments.find(
+          (c) => String(c.comment_id) === String(state.replyingToCommentId),
         );
-        state.editingCommentId = null;
-        els.commentTextarea.value = "";
-        await loadComments(postId);
-        await refreshCommunity();
-        return;
+        const expectedPrefix = parent ? `@${parent.nickname || "사용자"}` : "";
+        if (content.startsWith(expectedPrefix) || content.startsWith("@")) {
+          content += `\n<!--reply:${state.replyingToCommentId}-->`;
+        } else {
+          state.replyingToCommentId = null;
+        }
       }
-    }
 
-    await request(state.api.comments, {
-      method: "POST",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({
-        post_id: Number(postId),
-        user_id: userId,
-        nickname: userNickname,
-        content,
-      }),
-    });
-    els.commentTextarea.value = "";
-    state.replyingToCommentId = null;
-    await loadComments(postId);
-    await refreshCommunity();
+      if (state.editingCommentId) {
+        const target = state.comments.find(
+          (r) => String(r.comment_id) === String(state.editingCommentId),
+        );
+        if (target) {
+          await request(
+            `${state.api.comments}?comment_id=eq.${encodeURIComponent(target.comment_id)}&user_id=eq.${encodeURIComponent(userId)}`,
+            {
+              method: "PATCH",
+              headers: { Prefer: "return=representation" },
+              body: JSON.stringify({
+                content,
+                updated_at: new Date().toISOString(),
+              }),
+            },
+          );
+          state.editingCommentId = null;
+          els.commentTextarea.value = "";
+          await loadComments(postId);
+          await refreshCommunity();
+          return;
+        }
+      }
+
+      await request(state.api.comments, {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          post_id: Number(postId),
+          user_id: userId,
+          nickname: userNickname,
+          content,
+        }),
+      });
+      els.commentTextarea.value = "";
+      state.replyingToCommentId = null;
+      await loadComments(postId);
+      await refreshCommunity();
+    } finally {
+      state.isSubmittingComment = false;
+    }
   }
 
   function handleLogout() {
