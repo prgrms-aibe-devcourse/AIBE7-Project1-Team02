@@ -100,7 +100,6 @@ router.post("/plan", async (request, response) => {
   const destinationId = Number.parseInt(request.body?.destinationId, 10);
   const userId = request.body.userId;
   const accessToken = request.body.accessToken;
-  console.log(accessToken);
   if (!startDate || !endDate) {
     return response
       .status(400)
