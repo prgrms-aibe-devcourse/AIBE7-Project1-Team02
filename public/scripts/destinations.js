@@ -145,11 +145,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return window.TravelerProfile?.getTitle(mbtiType) || "취향 맞춤 여행가";
   }
 
-  function createTravelerBadge(title) {
+  function createTravelerBadge(title, mbtiType) {
     return window.TravelerProfile?.createBadge
       ? window.TravelerProfile.createBadge(title, {
           variant: "subtle",
           size: "compact",
+          mbtiType: mbtiType
         })
       : document.createTextNode(title);
   }
@@ -570,7 +571,7 @@ document.addEventListener("DOMContentLoaded", () => {
       subtitle.hidden = !authToken;
       if (authToken) {
         subtitle.replaceChildren(
-          createTravelerBadge(travelerTitle),
+          createTravelerBadge(travelerTitle, mbtiType),
           document.createTextNode(
             " 여행 성향에 잘 맞는 관광지를 적합도순으로 보여드려요.",
           ),

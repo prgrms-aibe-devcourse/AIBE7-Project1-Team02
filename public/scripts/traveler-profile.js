@@ -92,7 +92,26 @@
     }
 
     badge.className = classNames.join(" ");
-    badge.textContent = label || "나만의 취향 여행가";
+    
+    if (options.mbtiType) {
+      const img = document.createElement("img");
+      img.src = `/assets/icons/mbti/${options.mbtiType}.png`;
+      img.alt = "badge";
+      img.style.width = "1.1rem";
+      img.style.height = "1.1rem";
+      img.style.verticalAlign = "middle";
+      img.style.display = "inline-block";
+      img.style.borderRadius = "0";
+      
+      const textNode = document.createElement("span");
+      textNode.textContent = label || "나만의 취향 여행가";
+      
+      badge.appendChild(img);
+      badge.appendChild(textNode);
+    } else {
+      badge.textContent = label || "나만의 취향 여행가";
+    }
+    
     return badge;
   }
 

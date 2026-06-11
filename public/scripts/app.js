@@ -714,6 +714,7 @@ document.addEventListener("DOMContentLoaded", () => {
         createTravelerBadge(travelerTitle, {
           variant: "subtle",
           size: "compact",
+          mbtiType: mbtiType
         }),
         document.createTextNode(
           " 한 장씩 넘겨보며 가장 마음에 드는 여행지를 골라보세요.",

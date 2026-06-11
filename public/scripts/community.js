@@ -444,7 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       const from = state.feedPage * state.feedLimit;
-      let url = `${state.api.feed}?select=post_id,user_id,title,nickname,profile_image,tags,image_urls,created_at&order=created_at.desc&limit=${state.feedLimit}&offset=${from}`;
+      let url = `${state.api.feed}?select=post_id,user_id,title,nickname,profile_image,badge,mbti_type,tags,image_urls,created_at&order=created_at.desc&limit=${state.feedLimit}&offset=${from}`;
       if (state.currentTagFilter) {
         url += `&tags=ilike.*${encodeURIComponent(state.currentTagFilter)}*`;
       }
@@ -536,6 +536,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="travel-card-title">${escapeHtml(post.title || "무제")}</div>
                 <div class="travel-card-meta">
                   <img src="${escapeAttr(getAvatarUrl(post.profile_image, post.nickname || userNickname))}" alt="프로필" loading="lazy">
+                  ${renderPostBadge(post.badge, post.mbti_type)}
                   <span>${escapeHtml(post.nickname || userNickname)}</span>
                 </div>
               </div>
@@ -767,7 +768,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (detailCategory)
       detailCategory.textContent = post.type || post.category || "게시글 상세";
     const authorName = post.nickname || userNickname;
-    if (els.detailAuthor) els.detailAuthor.textContent = authorName;
+    if (els.detailAuthor) els.detailAuthor.innerHTML = `${renderPostBadge(post.badge, post.mbti_type)}<span>${escapeHtml(authorName)}</span>`;
 
     const detailAuthorAvatar = document.getElementById("detail-author-avatar");
     if (detailAuthorAvatar) {
@@ -1971,5 +1972,15 @@ document.addEventListener("DOMContentLoaded", () => {
       ? `${window.location.origin}/`
       : `${window.location.origin}/`;
     return new URL(normalized, base).toString();
+  }
+
+  function renderPostBadge(badgeText, mbtiType) {
+    if (!badgeText) return "";
+    let html = `<span class="traveler-title-badge-subtle header-traveler-badge" style="margin-right: 0.3rem;">`;
+    if (mbtiType) {
+      html += `<img src="/assets/icons/mbti/${mbtiType}.png" alt="badge" style="width: 1.1rem; height: 1.1rem; vertical-align: middle; display: inline-block; border-radius: 0;">`;
+    }
+    html += `<span>${escapeHtml(badgeText)}</span></span>`;
+    return html;
   }
 });
