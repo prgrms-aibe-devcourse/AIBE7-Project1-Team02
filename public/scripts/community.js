@@ -317,6 +317,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     els.detailLikeBtn?.addEventListener("click", async () => {
       if (!state.detailPost) return;
+      if (state.likingPostIds.has(String(state.detailPost.post_id))) return;
 
       // Optimistic UI update for modal button
       const isLikedBefore = isPostLiked(state.detailPost.post_id);
@@ -331,16 +332,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       els.detailLikeBtn.innerHTML = `${iconHtml} 좋아요 ${count > 0 ? count : ""}`;
       if (window.lucide) window.lucide.createIcons({ root: els.detailLikeBtn });
-
-      // Sync background feed card immediately
-      const feedBtn = document.querySelector(
-        `[data-post-id="${CSS.escape(state.detailPost.post_id)}"][data-action="like"]`,
-      );
-      if (feedBtn) {
-        const wrapper = feedBtn.closest(".travel-card-like") || feedBtn;
-        if (isLikedNow) wrapper.classList.add("is-liked");
-        else wrapper.classList.remove("is-liked");
-      }
 
       await toggleLike(state.detailPost);
 
@@ -582,9 +573,6 @@ document.addEventListener("DOMContentLoaded", () => {
             <article class="travel-card" data-post-id="${post.post_id}" data-action="detail">
               <div class="travel-card-image-wrap">
                 ${imageHtml}
-                <button class="travel-card-like${isPostLiked(post.post_id) ? " is-liked" : ""}" data-action="like" data-post-id="${post.post_id}">
-                  <i data-lucide="heart"></i>
-                </button>
               </div>
               <div class="travel-card-info">
                 <div class="travel-card-title">${escapeHtml(post.title || "무제")}</div>
@@ -640,15 +628,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (action === "detail")
           openPostDetail(post.post_id, { initialData: post });
-        if (action === "like") {
-          await toggleLike(post);
-          const btn = el.closest(".travel-card-like") || el;
-          if (isPostLiked(post.post_id)) {
-            btn.classList.add("is-liked");
-          } else {
-            btn.classList.remove("is-liked");
-          }
-        }
       });
     });
   }
@@ -973,6 +952,17 @@ document.addEventListener("DOMContentLoaded", () => {
       { method: "GET" },
     );
     const post = Array.isArray(rows) ? rows[0] : null;
+    if (post) {
+      try {
+        const likesRes = await request(
+          `${state.api.likes}?post_id=eq.${encodeURIComponent(postId)}&select=user_id`,
+          { method: "GET" },
+        );
+        post.like_count = Array.isArray(likesRes) ? likesRes.length : 0;
+      } catch (e) {
+        console.error("좋아요 수 조회 실패:", e);
+      }
+    }
     if (post && post.user_id) {
       try {
         const usersRes = await request(
