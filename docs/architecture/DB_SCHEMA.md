@@ -59,6 +59,7 @@ MBTI 16유형 적합도 점수를 Supabase에 적재했다.
 | `email` | `varchar(255)` | UNIQUE, NOT NULL | 로그인 및 연락용 이메일 |
 | `nickname` | `varchar(100)` | NOT NULL | 서비스에서 표시할 닉네임 |
 | `profile_image` | `varchar(500)` | NULL | 프로필 이미지 URL |
+| `profile_completed` | `boolean` | NOT NULL, DEFAULT FALSE | 소셜 로그인 최초 프로필 설정 완료 여부 |
 | `created_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 생성 일시 |
 | `updated_at` | `timestamptz` | NOT NULL, DEFAULT NOW | 수정 일시 |
 

@@ -346,7 +346,7 @@ Implementation Note:
 - 현재 로그인/회원가입 화면은 `/api/config`에서 Supabase URL과 Anon Key를 받은 뒤 Supabase Auth REST API를 직접 호출한다.
 - 회원가입은 가입 요청 전 필수 동의를 확인하고, 로그인 및 소셜 로그인은 인증 완료 후 동의 이력이 없을 때 필수 동의 모달을 표시한다.
 - 동의 이력은 로그인 사용자의 토큰으로 `user_agreements`에 저장한다.
-- 구글·카카오 소셜 로그인은 약관 확인 직후 프로필 설정을 필수로 진행하며, `users`의 `nickname`, `profile_image`를 갱신한 뒤 원래 요청 페이지로 이동한다.
+- 구글·카카오 소셜 로그인은 약관 확인 직후 `users.profile_completed`를 확인한다. 값이 `false`인 최초 로그인에서만 프로필 설정을 필수로 진행하며, `nickname`, `profile_image`, `profile_completed = true`를 저장한 뒤 원래 요청 페이지로 이동한다.
 
 ### POST /api/user/preference
 
