@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="./public/assets/images/packing-logo.png" alt="Packing Logo" width="200" />
+</div>
+
 # Packing
 
 ## 프로젝트 소개
@@ -12,13 +16,13 @@ Packing은 여행 MBTI 성향을 바탕으로 국내 관광지를 추천하고, 
 
 ## 기술 스택
 
-- Frontend: HTML5, CSS3, Vanilla JavaScript
-- Backend: Node.js 20+, Express 5
-- Database/Auth/Storage: Supabase
-- AI: Google Gemini REST API, 규칙 기반 fallback 일정 생성기
-- External API: 한국관광공사 TourAPI 4.0, Kakao Maps JavaScript API
-- Deployment: Render
-- Test: Node.js Test Runner
+- **Frontend**: ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white) ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white) ![Vanilla JavaScript](https://img.shields.io/badge/Vanilla_JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
+- **Backend**: ![Node.js 20+](https://img.shields.io/badge/Node.js_20+-339933?style=flat-square&logo=nodedotjs&logoColor=white) ![Express 5](https://img.shields.io/badge/Express_5-000000?style=flat-square&logo=express&logoColor=white)
+- **Database/Auth/Storage**: ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+- **AI**: ![Google Gemini REST API](https://img.shields.io/badge/Google_Gemini-8E75B2?style=flat-square&logo=googlegemini&logoColor=white), 규칙 기반 fallback 일정 생성기
+- **External API**: ![TourAPI 4.0](https://img.shields.io/badge/한국관광공사_TourAPI_4.0-0052A4?style=flat-square) ![Kakao Maps](https://img.shields.io/badge/Kakao_Maps_JavaScript_API-FFCD00?style=flat-square&logo=kakaotalk&logoColor=black)
+- **Deployment**: ![Render](https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render&logoColor=white)
+- **Test**: ![Node.js Test Runner](https://img.shields.io/badge/Node.js_Test_Runner-339933?style=flat-square&logo=nodedotjs&logoColor=white)
 
 ## 애플리케이션 구조
 
@@ -45,6 +49,31 @@ project-root/
 ├── test/
 └── docs/
 ```
+
+## 서비스 화면 미리보기
+
+<table align="center">
+  <tr>
+    <td align="center"><b>여행 성향 분석</b></td>
+    <td align="center"><b>성향 분석 결과</b></td>
+    <td align="center"><b>맞춤 여행지 추천</b></td>
+  </tr>
+  <tr>
+    <td><img src="./public/assets/images/screenshot_survey.png" width="250" alt="여행 성향 분석" /></td>
+    <td><img src="./public/assets/images/screenshot_result.png" width="250" alt="성향 분석 결과" /></td>
+    <td><img src="./public/assets/images/screenshot_recommendation.png" width="250" alt="맞춤 여행지 추천" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>여행 일정 및 루트</b></td>
+    <td align="center"><b>커뮤니티</b></td>
+    <td align="center"><b>여행지 더 찾아보기</b></td>
+  </tr>
+  <tr>
+    <td><img src="./public/assets/images/screenshot_schedule.png" width="250" alt="여행 일정 및 루트" /></td>
+    <td><img src="./public/assets/images/screenshot_community.png" width="250" alt="커뮤니티" /></td>
+    <td><img src="./public/assets/images/screenshot_more_destinations.png" width="250" alt="여행지 더 찾아보기" /></td>
+  </tr>
+</table>
 
 ## 주요 기능
 
