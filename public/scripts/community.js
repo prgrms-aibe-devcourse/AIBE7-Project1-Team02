@@ -62,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
     headerUserName: document.getElementById("header-user-name"),
     logoutBtn: document.getElementById("logout-btn"),
     feed: document.getElementById("community-feed"),
+    pagination: document.getElementById("community-pagination"),
     popularTags: document.getElementById("popular-tags"),
     recommendedUsers: document.getElementById("recommended-users"),
     featuredStory: document.getElementById("featured-story"),
@@ -141,7 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
     bindTagInputEvents();
     await loadConfig();
     const likesPromise = fetchUserLikes();
-    setupInfiniteScroll();
     await refreshCommunity(likesPromise);
   }
 
@@ -407,65 +407,118 @@ document.addEventListener("DOMContentLoaded", () => {
       .join("");
     els.feed.innerHTML = skeletonHTML;
 
-    await Promise.all([loadFeedChunk(likesPromise), renderTags()]);
+    await Promise.all([loadFeedPage(1, likesPromise), renderTags()]);
     if (state.detailPost) {
       await openPostDetail(state.detailPost.post_id, { refresh: true });
     }
   }
 
-  function setupInfiniteScroll() {
-    if (!els.feed) return;
-    let sentinel = document.getElementById("feed-sentinel");
-    if (!sentinel) {
-      sentinel = document.createElement("div");
-      sentinel.id = "feed-sentinel";
-      sentinel.style.height = "20px";
-      sentinel.style.width = "100%";
-      els.feed.parentNode.insertBefore(sentinel, els.feed.nextSibling);
+  function createPageButton(text, pageNum, isActive = false) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "pagination-btn";
+    if (isActive) btn.classList.add("active");
+    btn.textContent = text;
+    if (pageNum !== null) {
+      btn.dataset.page = pageNum;
+      btn.addEventListener("click", () => {
+        loadFeedPage(pageNum);
+      });
+    } else {
+      btn.disabled = true;
     }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          !state.isLoadingFeed &&
-          state.hasMoreFeed
-        ) {
-          loadFeedChunk();
-        }
-      },
-      { rootMargin: "200px" },
-    );
-    observer.observe(sentinel);
+    return btn;
   }
 
-  async function loadFeedChunk(likesPromise = Promise.resolve()) {
-    if (state.isLoadingFeed || !state.hasMoreFeed) return;
+  function renderPagination(totalCount, currentPage) {
+    if (!els.pagination) return;
+    els.pagination.hidden = false;
+    els.pagination.innerHTML = "";
+
+    const totalPages = Math.ceil(totalCount / state.feedLimit);
+    if (totalPages <= 1) {
+      els.pagination.hidden = true;
+      return;
+    }
+
+    const prevBtn = document.createElement("button");
+    prevBtn.type = "button";
+    prevBtn.className = "pagination-nav-btn";
+    prevBtn.innerHTML = `<i data-lucide="chevron-left"></i>`;
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.addEventListener("click", () => {
+      if (currentPage > 1) loadFeedPage(currentPage - 1);
+    });
+    els.pagination.appendChild(prevBtn);
+
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      els.pagination.appendChild(createPageButton(String(i), i, i === currentPage));
+    }
+
+    const nextBtn = document.createElement("button");
+    nextBtn.type = "button";
+    nextBtn.className = "pagination-nav-btn";
+    nextBtn.innerHTML = `<i data-lucide="chevron-right"></i>`;
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.addEventListener("click", () => {
+      if (currentPage < totalPages) loadFeedPage(currentPage + 1);
+    });
+    els.pagination.appendChild(nextBtn);
+
+    if (window.lucide) {
+      window.lucide.createIcons({ root: els.pagination });
+    }
+  }
+
+  async function loadFeedPage(page = 1, likesPromise = Promise.resolve()) {
+    if (state.isLoadingFeed) return;
     state.isLoadingFeed = true;
+    state.feedPage = page;
 
     try {
-      const from = state.feedPage * state.feedLimit;
+      const from = (page - 1) * state.feedLimit;
+      const to = from + state.feedLimit - 1;
       let url = `${state.api.feed}?select=post_id,user_id,title,nickname,profile_image,badge,mbti_type,tags,image_urls,created_at&order=created_at.desc&limit=${state.feedLimit}&offset=${from}`;
       if (state.currentTagFilter) {
         url += `&tags=ilike.*${encodeURIComponent(state.currentTagFilter)}*`;
       }
-      const feedPromise = request(url, { method: "GET" });
+      
+      const res = await fetch(url, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          apikey: state.supabaseAnonKey,
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+          Prefer: "count=exact"
+        }
+      });
 
-      const [rows] = await Promise.all([feedPromise, likesPromise]);
-
-      const newPosts = Array.isArray(rows) ? rows : [];
-      if (newPosts.length < state.feedLimit) {
-        state.hasMoreFeed = false;
+      const contentRange = res.headers.get("Content-Range");
+      let totalCount = 0;
+      if (contentRange) {
+        totalCount = parseInt(contentRange.split("/")[1], 10) || 0;
       }
 
+      const rows = await res.json().catch(() => []);
+      await likesPromise;
+
+      const newPosts = Array.isArray(rows) ? rows : [];
+      
       if (newPosts.length > 0) {
-        const userIds = [...new Set(newPosts.map((p) => p.user_id))].filter(
-          Boolean,
-        );
+        const userIds = [...new Set(newPosts.map((p) => p.user_id))].filter(Boolean);
         if (userIds.length > 0) {
           try {
             const usersRes = await request(
               `${state.api.users}?user_id=in.(${userIds.join(",")})&select=user_id,profile_image,nickname`,
-              { method: "GET" },
+              { method: "GET" }
             );
             if (Array.isArray(usersRes)) {
               const userMap = {};
@@ -483,8 +536,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      state.posts = newPosts; // 현재 페이지 데이터로 교체
+
       const writeCardHtml =
-        state.feedPage === 0
+        state.feedPage === 1
           ? `
         <article class="travel-card write-post-card" data-action="write" style="box-shadow: none; background: transparent; cursor: pointer;">
           <div class="travel-card-image-wrap" style="aspect-ratio: 1 / 1; border-radius: 12px; background: rgba(59, 130, 246, 0.04); display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed rgba(59, 130, 246, 0.25); transition: all 0.2s ease;">
@@ -495,16 +550,15 @@ document.addEventListener("DOMContentLoaded", () => {
       `
           : "";
 
-      if (newPosts.length === 0 && state.feedPage === 0) {
+      if (newPosts.length === 0 && state.feedPage === 1) {
         els.feed.innerHTML =
           writeCardHtml +
           '<div class="empty-feed" style="grid-column: 1 / -1;">아직 게시글이 없습니다. 첫 게시글을 작성해보세요.</div>';
         if (window.lucide) window.lucide.createIcons({ root: els.feed });
         bindCardEvents();
+        if (els.pagination) els.pagination.hidden = true;
         return;
       }
-
-      state.posts.push(...newPosts);
 
       const html = newPosts
         .map((post) => {
@@ -545,10 +599,10 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .join("");
 
-      if (state.feedPage === 0) {
+      if (state.feedPage === 1) {
         els.feed.innerHTML = writeCardHtml + html;
       } else {
-        els.feed.insertAdjacentHTML("beforeend", html);
+        els.feed.innerHTML = html;
       }
 
       bindCardEvents();
@@ -557,7 +611,9 @@ document.addEventListener("DOMContentLoaded", () => {
         window.lucide.createIcons({ root: els.feed });
       }
 
-      state.feedPage++;
+      renderPagination(totalCount, state.feedPage);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
     } finally {
       state.isLoadingFeed = false;
     }
