@@ -15,6 +15,8 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 - `GET /api/user/bookmarks`
 - `POST /api/user/bookmarks`
 - `DELETE /api/user/bookmarks/:destinationId`
+- `DELETE /api/user/data`
+- `DELETE /api/user/account`
 - `GET /api/travel/list` (임시 일정 테이블)
 - `GET /api/travel/:id` (임시 일정 테이블)
 
@@ -53,6 +55,8 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | DONE | GET | `/api/user/bookmarks` | Authorization Bearer Token | 저장한 여행지 ID 목록 | 로그인 만료, Supabase 조회 실패 | 백엔드 |
 | DONE | POST | `/api/user/bookmarks` | Authorization Bearer Token, `destinationId` | 북마크 저장 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 저장 실패 | 백엔드 |
 | DONE | DELETE | `/api/user/bookmarks/:destinationId` | Authorization Bearer Token | 북마크 해제 결과 | 로그인 만료, 유효하지 않은 여행지, Supabase 삭제 실패 | 백엔드 |
+| DONE | DELETE | `/api/user/data` | Authorization Bearer Token | 사용자 활동 데이터 초기화 결과 | 로그인 만료, Service Role Key 누락, Supabase 삭제 실패 | 백엔드 |
+| DONE | DELETE | `/api/user/account` | Authorization Bearer Token | 활동 데이터 및 Auth 계정 삭제 결과 | 로그인 만료, Service Role Key 누락, Auth 사용자 삭제 실패 | 백엔드 |
 | DONE | PATCH | `/api/travel/:id/status` | Authorization Bearer Token, `status` | 변경된 일정 상태 | 로그인 만료, 유효하지 않은 상태, 일정 없음 | 백엔드 |
 | DONE | DELETE | `/api/travel/:id` | Authorization Bearer Token | 삭제된 일정 ID | 로그인 만료, 일정 없음, Supabase 삭제 실패 | 백엔드 |
 | PLANNED | POST | `/api/auth/signup` | 아이디, 비밀번호, 닉네임 | 회원가입 결과 | 중복 아이디, 비밀번호 형식 오류 | 백엔드 |
@@ -65,6 +69,14 @@ MVP 단계의 여행 추천 및 일정 생성 API는 대한민국 국내 여행�
 | PLANNED | PATCH | `/api/travel/:id` | 수정할 일정 정보 | 수정된 여행 일정 | 일정 없음, 권한 없음 | 백엔드 |
 
 ## 상세 예시
+
+`DELETE /api/user/data`는 프로필과 필수 약관 동의 이력을 유지하고,
+성향 분석, 북마크, 커뮤니티 활동, `trips`, `trip_plans`,
+`trip_plan_items` 등 사용자 활동 데이터를 삭제한다.
+
+`DELETE /api/user/account`는 사용자 활동과 약관 동의 이력을 먼저 정리한
+뒤 Supabase Auth 사용자를 삭제한다. 두 API 모두 서버에서만 사용하는
+`SUPABASE_SERVICE_ROLE_KEY`가 필요하다.
 
 ### GET /api/health
 

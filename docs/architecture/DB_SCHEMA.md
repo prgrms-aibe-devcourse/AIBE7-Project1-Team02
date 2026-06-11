@@ -255,6 +255,7 @@ TourAPI 적재는 응답의 `totalCount`로 전체 페이지 수를 계산한 �
 | 컬럼 | 타입 | 제약조건 | 설명 |
 | --- | --- | --- | --- |
 | `plan_id` | `bigint` | PK, Identity | 임시 일정 식별자 |
+| `user_id` | `uuid` | FK, NOT NULL | 임시 일정을 소유한 사용자 |
 | `title` | `varchar(100)` | NOT NULL | 일정 제목 |
 | `mbti_type` | `varchar(4)` | NULL | 일정 생성 당시 여행 성향 코드 |
 | `region` | `varchar(50)` | NULL | 대표 지역 |
@@ -264,6 +265,21 @@ TourAPI 적재는 응답의 `totalCount`로 전체 페이지 수를 계산한 �
 | `completed_at` | `timestamptz` | NULL | 모든 여행지 완료 시각 |
 | `created_at` | `timestamptz` | DEFAULT NOW | 생성 일시 |
 | `updated_at` | `timestamptz` | DEFAULT NOW | 수정 일시 |
+
+## trip_plan_items
+
+임시 일정에 포함되는 날짜별 관광지를 방문 순서대로 저장한다.
+
+| 컬럼 | 타입 | 제약조건 | 설명 |
+| --- | --- | --- | --- |
+| `item_id` | `bigint` | PK, Identity | 일정 항목 식별자 |
+| `plan_id` | `bigint` | FK, NOT NULL | 항목이 속한 임시 일정 |
+| `user_id` | `uuid` | FK, NOT NULL | 일정 항목을 소유한 사용자 |
+| `destination_id` | `bigint` | FK, NOT NULL | 방문 관광지 |
+| `day_number` | `integer` | NOT NULL | 여행 일차 |
+| `order_index` | `integer` | NOT NULL | 해당 일차의 방문 순서 |
+| `memo` | `text` | NULL | 일정 메모 |
+| `created_at` | `timestamptz` | DEFAULT NOW | 생성 일시 |
 
 ## community_posts
 
@@ -350,6 +366,10 @@ TourAPI 적재는 응답의 `totalCount`로 전체 페이지 수를 계산한 �
   - 하나의 여행지는 여러 사용자의 북마크에 포함될 수 있다.
 - `trips` 1 : N `itineraries`
   - 하나의 여행은 여러 개의 세부 일정으로 구성된다.
+- `users` 1 : N `trip_plans`
+  - 사용자 한 명은 여러 개의 임시 일정을 저장할 수 있다.
+- `trip_plans` 1 : N `trip_plan_items`
+  - 하나의 임시 일정은 여러 날짜별 관광지 항목으로 구성된다.
 - `users` 1 : N `community_posts`
   - 사용자 한 명은 여러 커뮤니티 게시물을 작성할 수 있다.
 - `community_posts` 1 : N `community_comments`
@@ -370,6 +390,9 @@ erDiagram
     users ||--o{ user_bookmarks : bookmarks
     destinations ||--o{ user_bookmarks : saved_by
     trips ||--o{ itineraries : contains
+    users ||--o{ trip_plans : creates
+    trip_plans ||--o{ trip_plan_items : contains
+    destinations ||--o{ trip_plan_items : selected_for
     users ||--o{ community_posts : posts
     community_posts ||--o{ community_comments : receives
     community_posts ||--o{ community_likes : receives
