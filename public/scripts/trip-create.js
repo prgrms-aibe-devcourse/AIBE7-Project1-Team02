@@ -323,6 +323,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const peopleCount = Number.parseInt(els.peopleCount.value, 10);
     const region = selectedRegion.trim();
     const memo = getSelectedKeywordMemo();
+    const keywords = getSelectedKeywords();
     const activeDestination = getActiveDestination();
     const destinationId = Number.isFinite(activeDestination.destinationId)
       ? activeDestination.destinationId
@@ -380,6 +381,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           peopleCount,
           region,
           memo,
+          keywords,
           destinationId,
           userId,
           accessToken: _accessToken,
@@ -1003,6 +1005,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function getSelectedKeywordMemo() {
     return [...selectedKeywords].join(", ");
+  }
+
+  function getSelectedKeywords() {
+    return [...selectedKeywords].map((keyword) => keyword.replace(/^#/, ""));
   }
 
   function showKeywordWarning() {
