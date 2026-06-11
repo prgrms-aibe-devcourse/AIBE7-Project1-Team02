@@ -109,8 +109,9 @@
     badge.className = classNames.join(" ");
 
     if (options.mbtiType) {
+      const lowerMbti = options.mbtiType.toLowerCase();
       const img = document.createElement("img");
-      img.src = `/assets/icons/mbti/${options.mbtiType}.png`;
+      img.src = `/assets/icons/mbti/${lowerMbti}.png`;
       img.alt = "badge";
       img.style.width = "1.1rem";
       img.style.height = "1.1rem";
