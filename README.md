@@ -248,6 +248,7 @@ node src/scripts/recalculateMbti.js
 
 - [DB 구조](./docs/architecture/DB_SCHEMA.md)
 - [API 명세](./docs/architecture/API_SPEC.md)
+- [아키텍처 의사결정 기록](./docs/architecture/ADR.md)
 - [관광지 데이터 가공](./docs/architecture/DATA_PROCESSING.md)
 - [페이지 명세](./docs/design/PAGE_SPEC.md)
 - [디자인 시스템](./docs/design/DESIGN_SYSTEM.md)
