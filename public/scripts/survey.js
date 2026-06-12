@@ -200,36 +200,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Show Result ────────────────────────────────────────────
   /**
-   * 각 축의 score(0~100)를 50 기준으로 분기하여 양방향 바를 렌더링한다.
-   * - score > 50 : 왼쪽(A 성향) 방향으로 퍼짐
-   * - score < 50 : 오른쪽(B 성향) 방향으로 퍼짐
-   * - score = 50 : 중앙 고정, 바 너비 0
+   * 각 축의 score(0~100)를 좌우 색상 비율로 렌더링한다.
+   * - score는 왼쪽(A 성향)의 비율
+   * - 100 - score는 오른쪽(B 성향)의 비율
    */
   function renderCenterOutBar(barEl, rowEl, valEl, score, labelLeft, labelRight) {
-    // 방향 및 너비 계산
-    const deviation = score - 50; // 양수: 왼쪽, 음수: 오른쪽
-    const dominancePercent = Math.abs(deviation) * 2; // 표시용 0~100%
-    // 중앙 기준 양방향 바는 한쪽에 트랙의 50%만 사용할 수 있다.
-    const trackWidthPercent = dominancePercent / 2;
+    const normalizedScore = Math.max(0, Math.min(100, Number(score) || 0));
+    const rightScore = 100 - normalizedScore;
 
     // 방향 클래스 초기화
-    barEl.classList.remove("direction-left", "direction-right", "direction-center");
+    barEl.classList.remove(
+      "direction-left",
+      "direction-right",
+      "direction-center",
+      "direction-split",
+    );
     rowEl.classList.remove("dominant-left", "dominant-right");
 
-    if (deviation > 0) {
-      barEl.classList.add("direction-left");
+    barEl.classList.add("direction-split");
+    barEl.style.width = "100%";
+    barEl.style.setProperty("--score-left-percent", `${normalizedScore}%`);
+
+    if (normalizedScore > rightScore) {
       rowEl.classList.add("dominant-left");
-      valEl.textContent = `${labelLeft} ${Math.round(dominancePercent)}%`;
-    } else if (deviation < 0) {
-      barEl.classList.add("direction-right");
+      valEl.textContent = `${labelLeft} ${Math.round(normalizedScore)}%`;
+    } else if (rightScore > normalizedScore) {
       rowEl.classList.add("dominant-right");
-      valEl.textContent = `${labelRight} ${Math.round(dominancePercent)}%`;
+      valEl.textContent = `${labelRight} ${Math.round(rightScore)}%`;
     } else {
-      barEl.classList.add("direction-center");
       valEl.textContent = "균형";
     }
-
-    barEl.style.width = `${trackWidthPercent}%`;
   }
 
   function showResult({ scores, mbtiType }) {
