@@ -352,6 +352,80 @@
   font-weight: 800;
 }
 
+/* MyPage modal base */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.modal-content {
+  position: relative;
+  width: min(500px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: var(--color-bg-card);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+  transform: translateY(16px) scale(0.98);
+  transition: transform 0.2s ease;
+}
+
+.modal-overlay.active .modal-content {
+  transform: translateY(0) scale(1);
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: var(--color-bg-card-hover);
+  color: var(--color-text-main);
+  transform: translateY(-1px);
+}
+
+.modal-close-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 .saved-destinations-modal-content {
   width: min(720px, calc(100vw - 2rem));
   max-height: min(760px, 90vh);
@@ -796,7 +870,10 @@
 
 /* Settings Modal Specific Styles */
 .settings-modal-content {
+  width: min(500px, calc(100vw - 2rem));
+  max-height: min(760px, calc(100vh - 2rem));
   padding: 2.5rem 2rem;
+  overflow-y: auto;
   border-radius: 20px;
   background: var(--color-bg-card);
   max-width: 500px;
