@@ -105,6 +105,27 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  function renderTravelerTitleBadge(element, title, mbtiType) {
+    if (!element) return;
+
+    element.replaceChildren();
+
+    const normalizedType = String(mbtiType || "")
+      .trim()
+      .toLowerCase();
+
+    if (normalizedType) {
+      const icon = document.createElement("img");
+      icon.src = `/assets/icons/mbti/${normalizedType}.png`;
+      icon.alt = `${mbtiType} 성향 뱃지`;
+      element.appendChild(icon);
+    }
+
+    const label = document.createElement("span");
+    label.textContent = title || "나만의 취향 여행가";
+    element.appendChild(label);
+  }
+
   // ── Slide Navigation ───────────────────────────────────────
   let currentSlide = 0;
   const totalSlides = slides.length;
@@ -200,13 +221,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── Show Result ────────────────────────────────────────────
   /**
-   * 각 축의 score(0~100)를 좌우 색상 비율로 렌더링한다.
-   * - score는 왼쪽(A 성향)의 비율
-   * - 100 - score는 오른쪽(B 성향)의 비율
+   * 각 축의 score(0~100)를 중앙 기준 양방향 바에 반영한다.
+   * - score > 50 : 중앙에서 왼쪽(A 성향)으로 우세도만큼 뻗음
+   * - score < 50 : 중앙에서 오른쪽(B 성향)으로 우세도만큼 뻗음
+   * - score = 50 : 중앙 고정, 바 너비 0
    */
   function renderCenterOutBar(barEl, rowEl, valEl, score, labelLeft, labelRight) {
     const normalizedScore = Math.max(0, Math.min(100, Number(score) || 0));
-    const rightScore = 100 - normalizedScore;
+    const deviation = normalizedScore - 50; // 양수: 왼쪽, 음수: 오른쪽
+    const dominancePercent = Math.abs(deviation) * 2; // 표시용 0~100%
+    const halfTrackWidthPercent = dominancePercent / 2;
 
     // 방향 클래스 초기화
     barEl.classList.remove(
@@ -217,18 +241,20 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     rowEl.classList.remove("dominant-left", "dominant-right");
 
-    barEl.classList.add("direction-split");
-    barEl.style.width = "100%";
-    barEl.style.setProperty("--score-left-percent", `${normalizedScore}%`);
-
-    if (normalizedScore > rightScore) {
+    if (deviation > 0) {
+      barEl.classList.add("direction-left");
       rowEl.classList.add("dominant-left");
-      valEl.textContent = `${labelLeft} ${Math.round(normalizedScore)}%`;
-    } else if (rightScore > normalizedScore) {
+      valEl.textContent = `${labelLeft} ${Math.round(dominancePercent)}%`;
+      barEl.style.width = `${halfTrackWidthPercent}%`;
+    } else if (deviation < 0) {
+      barEl.classList.add("direction-right");
       rowEl.classList.add("dominant-right");
-      valEl.textContent = `${labelRight} ${Math.round(rightScore)}%`;
+      valEl.textContent = `${labelRight} ${Math.round(dominancePercent)}%`;
+      barEl.style.width = `${halfTrackWidthPercent}%`;
     } else {
+      barEl.classList.add("direction-center");
       valEl.textContent = "균형";
+      barEl.style.width = "0%";
     }
   }
 
@@ -240,7 +266,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Populate result
     const travelerTitle = getTravelerTitle(mbtiType);
-    document.getElementById("resultMbtiType").textContent = travelerTitle;
+    renderTravelerTitleBadge(
+      document.getElementById("resultMbtiType"),
+      travelerTitle,
+      mbtiType,
+    );
     document.getElementById("resultAlias").textContent =
       "당신에게 어울리는 여행가 칭호";
     document.getElementById("resultDesc").textContent =
