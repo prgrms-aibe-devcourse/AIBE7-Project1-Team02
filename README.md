@@ -227,6 +227,8 @@ node src/scripts/recalculateMbti.js
 - [관광지 데이터 가공](./docs/architecture/DATA_PROCESSING.md)
 - [페이지 명세](./docs/design/PAGE_SPEC.md)
 - [디자인 시스템](./docs/design/DESIGN_SYSTEM.md)
+- [프로젝트 기획안](./docs/management/PROJECT_PROPOSAL.md)
+- [요구사항 명세서](./docs/management/REQUIREMENTS.md)
 - [WBS](./docs/management/WBS.md)
 - [트러블 슈팅](./docs/troubleshooting.md)
 
