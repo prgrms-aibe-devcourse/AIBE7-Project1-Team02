@@ -59,9 +59,9 @@ project-root/
     <td align="center"><b>맞춤 여행지 추천</b></td>
   </tr>
   <tr>
-    <td><img src="./public/assets/images/screenshot_survey.png" width="250" alt="여행 성향 분석" /></td>
-    <td><img src="./public/assets/images/screenshot_result.png" width="250" alt="성향 분석 결과" /></td>
-    <td><img src="./public/assets/images/screenshot_recommendation.png" width="250" alt="맞춤 여행지 추천" /></td>
+    <td><img src="./docs/design/assets/screenshot_survey.png" width="250" alt="여행 성향 분석" /></td>
+    <td><img src="./docs/design/assets/screenshot_result.png" width="250" alt="성향 분석 결과" /></td>
+    <td><img src="./docs/design/assets/screenshot_recommendation.png" width="250" alt="맞춤 여행지 추천" /></td>
   </tr>
   <tr>
     <td align="center"><b>여행 일정 및 루트</b></td>
@@ -69,9 +69,9 @@ project-root/
     <td align="center"><b>여행지 더 찾아보기</b></td>
   </tr>
   <tr>
-    <td><img src="./public/assets/images/screenshot_schedule.png" width="250" alt="여행 일정 및 루트" /></td>
-    <td><img src="./public/assets/images/screenshot_community.png" width="250" alt="커뮤니티" /></td>
-    <td><img src="./public/assets/images/screenshot_more_destinations.png" width="250" alt="여행지 더 찾아보기" /></td>
+    <td><img src="./docs/design/assets/screenshot_schedule.png" width="250" alt="여행 일정 및 루트" /></td>
+    <td><img src="./docs/design/assets/screenshot_community.png" width="250" alt="커뮤니티" /></td>
+    <td><img src="./docs/design/assets/screenshot_more_destinations.png" width="250" alt="여행지 더 찾아보기" /></td>
   </tr>
 </table>
 
