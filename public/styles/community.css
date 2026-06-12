@@ -68,6 +68,10 @@ body,
 }
 
 .tag-list-horizontal .keyword-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-main);
   background: #ffffff;
   border: 1px solid var(--color-border);
   padding: 0.6rem 1.4rem;
@@ -775,6 +779,10 @@ body,
 }
 
 .keyword-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-main);
   border: 1px solid var(--color-border);
   background: #fff;
   color: var(--color-text-main);
