@@ -164,6 +164,7 @@ npm test
 
 ```env
 PORT=3000
+SITE_URL=https://your-service.onrender.com
 
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
@@ -187,6 +188,8 @@ TOUR_API_REQUEST_DELAY_MS=150
 - `GEMINI_API_KEY`: 일정 생성 API의 AI 호출에 사용합니다.
 - `KAKAO_JAVASCRIPT_KEY`: 브라우저 지도 SDK 로드에 사용합니다.
 - `TOUR_API_KEY`: 관광지 수집 및 설명 조회에 사용합니다.
+- `SITE_URL`: Open Graph 링크 미리보기의 절대 URL 생성에 사용합니다.
+  미설정 시 요청의 host와 protocol을 기준으로 자동 생성합니다.
 
 `.env`와 Service Role Key는 GitHub 또는 브라우저에 노출하지 않습니다.
 Render에도 동일한 환경 변수를 등록해야 합니다.
