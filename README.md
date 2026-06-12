@@ -8,7 +8,7 @@
 
 | 제민기 | 박진우 | 한재훈 | 정민석  |
 |:------:|:------:|:------:|:------:|
-| <img src="https://avatars.githubusercontent.com/jmin4078" width="100"/> | <img src="https://avatars.githubusercontent.com/wlsdn020416" width="100"/> | <img src="https://avatars.githubusercontent.com/ImJhoon" width="100"/> | <img src="https://avatars.githubusercontent.com/jms0326" width="100"/> | |
+| <img src="https://avatars.githubusercontent.com/jmin4078" width="100"/> | <img src="https://avatars.githubusercontent.com/wlsdn020416" width="100"/> | <img src="https://avatars.githubusercontent.com/ImJhoon" width="100"/> | <img src="https://avatars.githubusercontent.com/jms0326" width="100"/> |
 | [@jmin4078](https://github.com/jmin4078) | [@wlsdn020416](https://github.com/wlsdn020416) | [@ImJhoon](https://github.com/ImJhoon) | [@jms0326](https://github.com/jms0326) |
 
 ## 프로젝트 소개
@@ -130,7 +130,7 @@ project-root/
 
 ## 현재 구현 상태
 
-2026년 6월 11일 기준 인증, 성향 분석, MBTI 여행지 추천, 전체 탐색,
+2026년 6월 12일 기준 인증, 성향 분석, MBTI 여행지 추천, 전체 탐색,
 북마크, 일정 생성·저장·확인, 커뮤니티, 마이페이지의 MVP 흐름이
 구현되어 있습니다.
 
@@ -166,6 +166,20 @@ npm test
 
 현재 테스트는 관광지 정규화·MBTI 가공, 추천 조회, TourAPI 분산 수집,
 일정 후보 선정·fallback 배치, 사용자 데이터 삭제 순서를 검증합니다.
+
+## 배포 및 시연
+
+- 배포 URL: [https://aibe7-project1-team02.onrender.com](https://aibe7-project1-team02.onrender.com)
+- 테스트 계정: `team2test@naver.com`
+- 테스트 비밀번호: `test123`
+
+시연 흐름:
+
+1. 비로그인 상태에서 여행지 더 찾아보기 페이지의 공개 추천과 필터를 확인합니다.
+2. 테스트 계정으로 로그인한 뒤 성향 분석을 진행합니다.
+3. 메인 추천 화면에서 MBTI 맞춤 여행지 TOP 10과 상세 모달을 확인합니다.
+4. 추천 여행지 또는 일정 생성 메뉴에서 지역·기간·동행 유형·키워드를 선택해 일정을 생성합니다.
+5. 생성한 일정을 저장하고 여행 일정 페이지에서 상세, 지도, 상태 변경, 삭제 흐름을 확인합니다.
 
 ## 환경 변수
 
@@ -248,7 +262,7 @@ Render Web Service의 Build Command는 `npm install`, Start Command는
 `npm start`를 사용합니다. 배포 브랜치는 `main`이며, 배포 전 로컬 테스트와
 환경 변수 등록을 확인합니다.
 
-배포 URL은 팀에서 운영 중인 Render 서비스 주소를 기재합니다.
+배포 URL은 [https://aibe7-project1-team02.onrender.com](https://aibe7-project1-team02.onrender.com)입니다.
 
 ## 향후 발전
 
