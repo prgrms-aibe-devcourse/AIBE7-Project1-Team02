@@ -145,3 +145,41 @@ SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 - 이미지 URL과 파일 크기 최적화
 - 같은 추천 요청 캐싱 검토
 - 데이터 적재 스크립트와 사용자 조회 트래픽 분리
+
+## Supabase 무료 한도 초과와 프로젝트 이전
+
+문제:
+
+Supabase 무료 사용량, 특히 Egress 사용량이 증가하면서 기존 프로젝트를
+계속 사용하기 어려운 상황이 발생했습니다. 새 Supabase 프로젝트로
+이전하려고 했지만, 저장소의 migration이 실제 운영 중인 테이블 구조를
+완전히 반영하지 못하고 있었습니다.
+
+증상:
+
+- 새 프로젝트에 migration을 실행해도 필요한 테이블이나 컬럼이 누락됨
+- `destinations`, `trip_plans`, `user_agreements` 등 현재 코드가 기대하는
+  구조와 DB 구조가 어긋남
+- RLS policy, grant, Auth trigger, Storage bucket 설정을 따로 다시 확인해야 함
+- OAuth 로그인 과정에서 신규 사용자 저장 trigger가 실패함
+
+대응:
+
+초기에는 필요한 테이블과 정책을 Supabase SQL Editor에서 수기로 옮기며
+프로젝트를 복구했습니다. 이후 현재 코드가 실제로 사용하는 스키마를
+기준으로 기준 migration을 다시 작성하고, DB 문서와 ERD도 함께 최신화했습니다.
+
+교훈:
+
+Supabase처럼 관리형 DB를 사용하더라도, 실제 운영 스키마와 저장소의
+migration이 어긋나면 프로젝트 이전이나 복구 시 비용이 크게 증가합니다.
+테이블을 임시로 만들거나 SQL Editor에서 직접 수정한 경우에도, 작업이
+끝난 뒤 반드시 migration과 DB 문서를 함께 갱신해야 합니다.
+
+향후 개선:
+
+- DB 변경은 SQL Editor에서 끝내지 않고 migration 파일로 남김
+- 배포 전 새 프로젝트에 migration을 처음부터 실행해보는 검증 절차 추가
+- RLS policy, grant, trigger, Storage bucket까지 migration에 포함
+- TourAPI 데이터처럼 다시 적재 가능한 데이터와 사용자 데이터처럼
+  보존해야 하는 데이터를 분리해 백업 전략 수립
