@@ -4,6 +4,13 @@
 
 # Packing
 
+## 팀 소개
+
+| 제민기 | 박진우 | 한재훈 | 정민석  |
+|:------:|:------:|:------:|:------:|
+| <img src="https://avatars.githubusercontent.com/jmin4078" width="100"/> | <img src="https://avatars.githubusercontent.com/wlsdn020416" width="100"/> | <img src="https://avatars.githubusercontent.com/ImJhoon" width="100"/> | <img src="https://avatars.githubusercontent.com/jms0326" width="100"/> | |
+| [@jmin4078](https://github.com/jmin4078) | [@wlsdn020416](https://github.com/wlsdn020416) | [@ImJhoon](https://github.com/ImJhoon) | [@jms0326](https://github.com/jms0326) |
+
 ## 프로젝트 소개
 
 Packing은 여행 MBTI 성향을 바탕으로 국내 관광지를 추천하고, 선택한
