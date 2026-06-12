@@ -371,6 +371,14 @@
   word-break: keep-all;
 }
 
+.result-header .mbti-type img {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: inline-block;
+  flex: 0 0 auto;
+  border-radius: 0;
+}
+
 .result-header .mbti-alias {
   font-size: 1.25rem;
   font-weight: 700;
@@ -473,7 +481,7 @@
   pointer-events: none;
 }
 
-/* 바 fill: 좌우 성향 색을 실제 퍼센트 비율로 나누는 방식 */
+/* 바 fill: 중앙 균형선에서 우세한 성향 방향으로 뻗는 방식 */
 .score-bar-fill {
   height: 100%;
   border-radius: 100px;
@@ -484,9 +492,6 @@
     left 1s cubic-bezier(0.4, 0, 0.2, 1),
     right 1s cubic-bezier(0.4, 0, 0.2, 1);
   width: 0%;
-  --score-left-color: var(--accent-blue);
-  --score-right-color: var(--accent-pink);
-  --score-left-percent: 50%;
 }
 
 /* 좌측 방향 (A 성향: score > 50) — 중앙에서 왼쪽으로 */
@@ -508,38 +513,11 @@
   width: 0%;
 }
 
-.score-bar-fill.direction-split {
-  left: 0;
-  right: auto;
-  width: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--score-left-color) 0 var(--score-left-percent),
-    var(--score-right-color) var(--score-left-percent) 100%
-  );
-}
-
 /* 축별 색상 */
-.score-bar-fill.ei {
-  --score-left-color: var(--accent-blue);
-  --score-right-color: var(--accent-pink);
-  background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
-}
-.score-bar-fill.sn {
-  --score-left-color: var(--accent-cyan);
-  --score-right-color: var(--accent-blue);
-  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
-}
-.score-bar-fill.tf {
-  --score-left-color: var(--accent-purple);
-  --score-right-color: var(--accent-pink);
-  background: linear-gradient(90deg, var(--accent-purple), var(--accent-pink));
-}
-.score-bar-fill.jp {
-  --score-left-color: var(--accent-blue);
-  --score-right-color: var(--accent-cyan);
-  background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
-}
+.score-bar-fill.ei { background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); }
+.score-bar-fill.sn { background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue)); }
+.score-bar-fill.tf { background: linear-gradient(90deg, var(--accent-purple), var(--accent-pink)); }
+.score-bar-fill.jp { background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); }
 
 /* 우측 방향일 때 그라디언트 반전 */
 .score-bar-fill.direction-right.ei { background: linear-gradient(90deg, var(--accent-purple), var(--accent-pink)); }
@@ -551,7 +529,7 @@
 .score-value {
   font-size: 0.8rem;
   font-weight: 700;
-  width: 58px;
+  width: 52px;
   text-align: center;
   flex-shrink: 0;
   white-space: nowrap;
