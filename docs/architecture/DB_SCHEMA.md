@@ -433,12 +433,14 @@ supabase/migrations/202606080001_create_mvp_tables.sql
 supabase/migrations/202606080002_remove_budget_columns.sql
 supabase/migrations/202606080003_add_destination_mbti_processing.sql
 supabase/migrations/202606110001_add_profile_completed.sql
+supabase/migrations/20260612093854_create_current_project_schema.sql
 supabase/migrations/travel_mbti_results.sql
 ```
 
-실제 Supabase에 수동 생성된 커뮤니티·일정 테이블과 정책이 있으므로,
-새 프로젝트 이전 전에는 Dashboard 스키마와 migration 차이를 먼저
-정리해야 합니다.
+`20260612093854_create_current_project_schema.sql`은 새 Supabase 프로젝트에
+현재 애플리케이션을 맞춰 올리기 위한 기준 스키마입니다. 기존 초기
+마이그레이션과 실제 운영 스키마의 차이를 흡수하며, 커뮤니티·일정·
+약관·프로필·Storage bucket 정책을 함께 생성합니다.
 
 ## 추후 확장
 
