@@ -1,0 +1,199 @@
+erDiagram
+    AUTH_USERS {
+        uuid id PK
+        varchar email
+    }
+
+    USERS {
+        uuid user_id PK
+        varchar email
+        varchar nickname
+        varchar profile_image
+        varchar approval_status
+        boolean profile_completed
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    USER_AGREEMENTS {
+        uuid user_id PK
+        timestamptz terms_agreed_at
+        timestamptz privacy_agreed_at
+        varchar terms_version
+        varchar privacy_version
+        timestamptz created_at
+    }
+
+    USER_PREFERENCES {
+        bigint preference_id PK
+        uuid user_id FK
+        varchar mbti_type
+        varchar badge
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    TRAVEL_MBTI_RESULTS {
+        uuid id PK
+        uuid user_id FK
+        varchar mbti_type
+        smallint ei_score
+        smallint sn_score
+        smallint tf_score
+        smallint jp_score
+        jsonb raw_answers
+    }
+
+    DESTINATIONS {
+        bigint destination_id PK
+        varchar tour_content_id
+        integer content_type_id
+        varchar province
+        varchar city
+        varchar destination_name
+        text description
+        varchar address
+        numeric latitude
+        numeric longitude
+        varchar image_url
+    }
+
+    DESTINATION_KEYWORDS {
+        bigint destination_keyword_id PK
+        bigint destination_id FK
+        varchar keyword
+        varchar source
+        numeric confidence
+        varchar rule_version
+    }
+
+    DESTINATION_MBTI_SCORES {
+        bigint destination_mbti_score_id PK
+        bigint destination_id FK
+        varchar mbti_type
+        numeric score
+        text reason
+        varchar source
+        varchar rule_version
+    }
+
+    USER_BOOKMARKS {
+        bigint bookmark_id PK
+        uuid user_id FK
+        bigint destination_id FK
+        timestamptz created_at
+    }
+
+    TRIPS {
+        bigint trip_id PK
+        uuid user_id FK
+        varchar title
+        date start_date
+        date end_date
+        text memo
+        varchar status
+    }
+
+    TRIP_PLANS {
+        bigint plan_id PK
+        uuid user_id FK
+        varchar title
+        varchar mbti_type
+        varchar region
+        integer total_days
+        varchar keyword
+        text ai_summary
+        varchar status
+        timestamptz completed_at
+    }
+
+    TRIP_PLAN_ITEMS {
+        bigint item_id PK
+        bigint plan_id FK
+        uuid user_id FK
+        bigint destination_id FK
+        integer day_number
+        integer order_index
+        text memo
+    }
+
+    COMMUNITY_POSTS {
+        bigint post_id PK
+        uuid user_id FK
+        varchar nickname
+        varchar title
+        text summary
+        text tags
+        varchar location
+        varchar category
+        varchar type
+        integer like_count
+        integer comment_count
+        jsonb image_urls
+    }
+
+    COMMUNITY_COMMENTS {
+        bigint comment_id PK
+        bigint post_id FK
+        uuid user_id FK
+        varchar nickname
+        text content
+    }
+
+    COMMUNITY_LIKES {
+        bigint like_id PK
+        bigint post_id FK
+        uuid user_id FK
+    }
+
+    COMMUNITY_COMMENT_LIKES {
+        bigint comment_id PK
+        uuid user_id PK
+    }
+
+    COMMUNITY_SHARES {
+        bigint share_id PK
+        bigint post_id FK
+        uuid user_id FK
+        text shared_url
+    }
+
+    COMMUNITY_FEED {
+        bigint post_id
+        uuid user_id
+        varchar title
+        varchar nickname
+        varchar profile_image
+        varchar badge
+        varchar mbti_type
+    }
+
+    COMMUNITY_TAGS_POPULAR {
+        text tag
+        integer count
+    }
+
+    AUTH_USERS ||--|| USERS : "auth profile"
+    USERS ||--|| USER_AGREEMENTS : "agrees"
+    USERS ||--|| USER_PREFERENCES : "has"
+    USERS ||--|| TRAVEL_MBTI_RESULTS : "diagnosed"
+    USERS ||--o{ USER_BOOKMARKS : "saves"
+    DESTINATIONS ||--o{ USER_BOOKMARKS : "bookmarked"
+    DESTINATIONS ||--o{ DESTINATION_KEYWORDS : "classified"
+    DESTINATIONS ||--o{ DESTINATION_MBTI_SCORES : "scored"
+    USERS ||--o{ TRIPS : "creates"
+    USERS ||--o{ TRIP_PLANS : "owns"
+    USERS ||--o{ TRIP_PLAN_ITEMS : "owns"
+    TRIP_PLANS ||--o{ TRIP_PLAN_ITEMS : "contains"
+    DESTINATIONS ||--o{ TRIP_PLAN_ITEMS : "scheduled"
+    USERS ||--o{ COMMUNITY_POSTS : "writes"
+    COMMUNITY_POSTS ||--o{ COMMUNITY_COMMENTS : "receives"
+    COMMUNITY_POSTS ||--o{ COMMUNITY_LIKES : "receives"
+    COMMUNITY_POSTS ||--o{ COMMUNITY_SHARES : "shared"
+    COMMUNITY_COMMENTS ||--o{ COMMUNITY_COMMENT_LIKES : "receives"
+    USERS ||--o{ COMMUNITY_COMMENTS : "writes"
+    USERS ||--o{ COMMUNITY_LIKES : "likes"
+    USERS ||--o{ COMMUNITY_COMMENT_LIKES : "likes"
+    USERS ||--o{ COMMUNITY_SHARES : "shares"
+    COMMUNITY_POSTS ||--o{ COMMUNITY_FEED : "view source"
+    USERS ||--o{ COMMUNITY_FEED : "view profile"

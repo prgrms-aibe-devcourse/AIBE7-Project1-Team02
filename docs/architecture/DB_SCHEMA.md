@@ -4,12 +4,12 @@
 
 - Database: Supabase PostgreSQL
 - Auth: Supabase Auth
-- Storage: `avatars` 공개 버킷
+- Storage: `avatars`, `community-images` 공개 버킷
 - MVP 범위: 대한민국 국내 여행
 - 지역 필드: `province`는 광역시·도, `city`는 시·군·구
 - 사용자 소유 데이터는 `auth.uid()` 기준 RLS 적용
 
-이 문서는 2026년 6월 11일 현재 애플리케이션이 사용하는 Supabase
+이 문서는 2026년 6월 12일 Render 배포 완료 시점의 Supabase
 구조를 기준으로 합니다. 저장소의 초기 migration과 실제 프로젝트
 스키마가 다른 부분은 아래 과도기 구조에 별도로 기록합니다.
 
@@ -262,28 +262,213 @@ View:
 게시글 삭제 시 연결된 댓글·좋아요·공유가 함께 정리되도록 cascade
 정책을 유지합니다.
 
-## 관계
+## ERD
 
 ```mermaid
 erDiagram
-    AUTH_USERS ||--|| USERS : profile
-    USERS ||--|| USER_AGREEMENTS : agrees
-    USERS ||--|| USER_PREFERENCES : has
-    USERS ||--|| TRAVEL_MBTI_RESULTS : diagnosed
-    USERS ||--o{ USER_BOOKMARKS : saves
-    DESTINATIONS ||--o{ USER_BOOKMARKS : bookmarked
-    DESTINATIONS ||--o{ DESTINATION_KEYWORDS : classified
-    DESTINATIONS ||--o{ DESTINATION_MBTI_SCORES : scored
-    USERS ||--o{ TRIPS : creates
-    USERS ||--o{ TRIP_PLANS : owns
-    TRIP_PLANS ||--o{ TRIP_PLAN_ITEMS : contains
-    DESTINATIONS ||--o{ TRIP_PLAN_ITEMS : scheduled
-    USERS ||--o{ COMMUNITY_POSTS : writes
-    COMMUNITY_POSTS ||--o{ COMMUNITY_COMMENTS : receives
-    COMMUNITY_POSTS ||--o{ COMMUNITY_LIKES : receives
-    COMMUNITY_POSTS ||--o{ COMMUNITY_SHARES : shared
-    COMMUNITY_COMMENTS ||--o{ COMMUNITY_COMMENT_LIKES : receives
+    AUTH_USERS {
+        uuid id PK
+        varchar email
+    }
+
+    USERS {
+        uuid user_id PK
+        varchar email
+        varchar nickname
+        varchar profile_image
+        varchar approval_status
+        boolean profile_completed
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    USER_AGREEMENTS {
+        uuid user_id PK
+        timestamptz terms_agreed_at
+        timestamptz privacy_agreed_at
+        varchar terms_version
+        varchar privacy_version
+        timestamptz created_at
+    }
+
+    USER_PREFERENCES {
+        bigint preference_id PK
+        uuid user_id FK
+        varchar mbti_type
+        varchar badge
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    TRAVEL_MBTI_RESULTS {
+        uuid id PK
+        uuid user_id FK
+        varchar mbti_type
+        smallint ei_score
+        smallint sn_score
+        smallint tf_score
+        smallint jp_score
+        jsonb raw_answers
+    }
+
+    DESTINATIONS {
+        bigint destination_id PK
+        varchar tour_content_id
+        integer content_type_id
+        varchar province
+        varchar city
+        varchar destination_name
+        text description
+        varchar address
+        numeric latitude
+        numeric longitude
+        varchar image_url
+    }
+
+    DESTINATION_KEYWORDS {
+        bigint destination_keyword_id PK
+        bigint destination_id FK
+        varchar keyword
+        varchar source
+        numeric confidence
+        varchar rule_version
+    }
+
+    DESTINATION_MBTI_SCORES {
+        bigint destination_mbti_score_id PK
+        bigint destination_id FK
+        varchar mbti_type
+        numeric score
+        text reason
+        varchar source
+        varchar rule_version
+    }
+
+    USER_BOOKMARKS {
+        bigint bookmark_id PK
+        uuid user_id FK
+        bigint destination_id FK
+        timestamptz created_at
+    }
+
+    TRIPS {
+        bigint trip_id PK
+        uuid user_id FK
+        varchar title
+        date start_date
+        date end_date
+        text memo
+        varchar status
+    }
+
+    TRIP_PLANS {
+        bigint plan_id PK
+        uuid user_id FK
+        varchar title
+        varchar mbti_type
+        varchar region
+        integer total_days
+        varchar keyword
+        text ai_summary
+        varchar status
+        timestamptz completed_at
+    }
+
+    TRIP_PLAN_ITEMS {
+        bigint item_id PK
+        bigint plan_id FK
+        uuid user_id FK
+        bigint destination_id FK
+        integer day_number
+        integer order_index
+        text memo
+    }
+
+    COMMUNITY_POSTS {
+        bigint post_id PK
+        uuid user_id FK
+        varchar nickname
+        varchar title
+        text summary
+        text tags
+        varchar location
+        varchar category
+        varchar type
+        integer like_count
+        integer comment_count
+        jsonb image_urls
+    }
+
+    COMMUNITY_COMMENTS {
+        bigint comment_id PK
+        bigint post_id FK
+        uuid user_id FK
+        varchar nickname
+        text content
+    }
+
+    COMMUNITY_LIKES {
+        bigint like_id PK
+        bigint post_id FK
+        uuid user_id FK
+    }
+
+    COMMUNITY_COMMENT_LIKES {
+        bigint comment_id PK
+        uuid user_id PK
+    }
+
+    COMMUNITY_SHARES {
+        bigint share_id PK
+        bigint post_id FK
+        uuid user_id FK
+        text shared_url
+    }
+
+    COMMUNITY_FEED {
+        bigint post_id
+        uuid user_id
+        varchar title
+        varchar nickname
+        varchar profile_image
+        varchar badge
+        varchar mbti_type
+    }
+
+    COMMUNITY_TAGS_POPULAR {
+        text tag
+        integer count
+    }
+
+    AUTH_USERS ||--|| USERS : "auth profile"
+    USERS ||--|| USER_AGREEMENTS : "agrees"
+    USERS ||--|| USER_PREFERENCES : "has"
+    USERS ||--|| TRAVEL_MBTI_RESULTS : "diagnosed"
+    USERS ||--o{ USER_BOOKMARKS : "saves"
+    DESTINATIONS ||--o{ USER_BOOKMARKS : "bookmarked"
+    DESTINATIONS ||--o{ DESTINATION_KEYWORDS : "classified"
+    DESTINATIONS ||--o{ DESTINATION_MBTI_SCORES : "scored"
+    USERS ||--o{ TRIPS : "creates"
+    USERS ||--o{ TRIP_PLANS : "owns"
+    USERS ||--o{ TRIP_PLAN_ITEMS : "owns"
+    TRIP_PLANS ||--o{ TRIP_PLAN_ITEMS : "contains"
+    DESTINATIONS ||--o{ TRIP_PLAN_ITEMS : "scheduled"
+    USERS ||--o{ COMMUNITY_POSTS : "writes"
+    COMMUNITY_POSTS ||--o{ COMMUNITY_COMMENTS : "receives"
+    COMMUNITY_POSTS ||--o{ COMMUNITY_LIKES : "receives"
+    COMMUNITY_POSTS ||--o{ COMMUNITY_SHARES : "shared"
+    COMMUNITY_COMMENTS ||--o{ COMMUNITY_COMMENT_LIKES : "receives"
+    USERS ||--o{ COMMUNITY_COMMENTS : "writes"
+    USERS ||--o{ COMMUNITY_LIKES : "likes"
+    USERS ||--o{ COMMUNITY_COMMENT_LIKES : "likes"
+    USERS ||--o{ COMMUNITY_SHARES : "shares"
+    COMMUNITY_POSTS ||--o{ COMMUNITY_FEED : "view source"
+    USERS ||--o{ COMMUNITY_FEED : "view profile"
 ```
+
+`community_feed`와 `community_tags_popular`는 물리 테이블이 아니라 View입니다.
+Storage는 `avatars`, `community-images` 공개 버킷을 사용하며 ERD의 테이블
+관계에는 포함하지 않습니다.
 
 ## DBML
 
@@ -383,6 +568,7 @@ Table trip_plans {
   mbti_type varchar(4)
   region varchar
   total_days integer
+  keyword varchar
   ai_summary text
   status varchar
   completed_at timestamptz
@@ -398,6 +584,47 @@ Table trip_plan_items {
   memo text
 }
 
+Table community_posts {
+  post_id bigint [pk, increment]
+  user_id uuid [not null]
+  nickname varchar
+  title varchar
+  summary text
+  tags text
+  location varchar
+  category varchar
+  type varchar
+  like_count integer
+  comment_count integer
+  image_urls jsonb
+}
+
+Table community_comments {
+  comment_id bigint [pk, increment]
+  post_id bigint [not null]
+  user_id uuid [not null]
+  nickname varchar
+  content text
+}
+
+Table community_likes {
+  like_id bigint [pk, increment]
+  post_id bigint [not null]
+  user_id uuid [not null]
+}
+
+Table community_comment_likes {
+  comment_id bigint [pk, not null]
+  user_id uuid [pk, not null]
+}
+
+Table community_shares {
+  share_id bigint [pk, increment]
+  post_id bigint [not null]
+  user_id uuid [not null]
+  shared_url text
+}
+
 Ref: users.user_id < user_agreements.user_id
 Ref: users.user_id < user_preferences.user_id
 Ref: users.user_id < travel_mbti_results.user_id
@@ -408,7 +635,17 @@ Ref: destinations.destination_id < destination_mbti_scores.destination_id
 Ref: users.user_id < trips.user_id
 Ref: users.user_id < trip_plans.user_id
 Ref: trip_plans.plan_id < trip_plan_items.plan_id
+Ref: users.user_id < trip_plan_items.user_id
 Ref: destinations.destination_id < trip_plan_items.destination_id
+Ref: users.user_id < community_posts.user_id
+Ref: community_posts.post_id < community_comments.post_id
+Ref: users.user_id < community_comments.user_id
+Ref: community_posts.post_id < community_likes.post_id
+Ref: users.user_id < community_likes.user_id
+Ref: community_comments.comment_id < community_comment_likes.comment_id
+Ref: users.user_id < community_comment_likes.user_id
+Ref: community_posts.post_id < community_shares.post_id
+Ref: users.user_id < community_shares.user_id
 ```
 
 ## RLS와 권한
